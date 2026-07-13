@@ -96,10 +96,12 @@ body.in-session.timer-on{--timer-space:78px}
 .vc-fill.prev{background:var(--text-faint);opacity:.55}
 .vc-val{font-size:11px;font-weight:700;color:var(--text);text-align:right;white-space:nowrap}
 .vc-val.prev{color:var(--text-faint);font-weight:600}
-/* Übungskarte füllt den Rest, ohne zu scrollen */
-/* Übungskarte: nur so hoch wie ihr Inhalt (kein leerer Bereich unten) */
-.sess-body{flex:1;min-height:0;display:flex;align-items:flex-start}
-.ex-card{flex:0 1 auto;max-height:100%;min-height:0;display:flex;flex-direction:column;margin:0;overflow:hidden;width:100%}
+/* Übungskarte: so hoch wie ihr Inhalt, aber nie höher als der verfügbare Platz.
+   Wichtig: jede Ebene braucht min-height:0, sonst wächst der Inhalt durch
+   und landet unter dem Timer. */
+.sess-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;overflow:hidden}
+.ex-card{flex:0 1 auto;min-height:0;max-height:100%;display:flex;flex-direction:column;
+  margin:0;overflow:hidden;width:100%}
 /* Bild bekommt genau den Platz, der nach den Sätzen übrig bleibt (0 bis 240px).
    Es gibt als Erstes nach – die Sätze behalten ihre volle Höhe. */
 /* Bild vollständig sichtbar (nicht beschnitten). Die Maximalhöhe setzt JS
@@ -107,10 +109,15 @@ body.in-session.timer-on{--timer-space:78px}
 .ex-card .ex-preview{flex:0 0 auto;margin:10px 0 12px;width:100%;
   max-height:var(--img-max,300px);display:flex;align-items:center;justify-content:center}
 .ex-card .ex-preview img{max-width:100%;max-height:var(--img-max,300px);width:auto;height:auto;object-fit:contain;display:block}
-/* Sätze schrumpfen nicht. Nur wenn selbst ohne Bild die Höhe nicht reicht
-   (sehr flacher Bildschirm), scrollt ausschließlich dieser Bereich –
-   Kopfzeile, Timer, Punkte und Navigation bleiben immer sichtbar. */
+/* Sätze: bekommen ihren Platz nach Kopfzeile, Bild und Vergleich.
+   Reicht die Höhe nicht (kleiner Bildschirm, Windows-Skalierung), scrollt
+   ausschließlich dieser Bereich – Timer, Punkte und Navigation bleiben sichtbar.
+   flex-basis:0 ist entscheidend, damit die Begrenzung wirklich greift. */
 .ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+/* Notfall bei sehr flachem Fenster: die ganze Karte scrollt.
+   Timer, Punkte und Navigation bleiben davon unberührt und immer sichtbar. */
+.ex-card.scroll-all{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.ex-card.scroll-all .ex-sets{overflow:visible;max-height:none;flex:0 0 auto}
 /* Punkte + Pfeile */
 .sess-nav{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;padding-top:2px}
 .sess-nav-spacer{flex-shrink:0;height:2px}
@@ -1471,30 +1478,77 @@ function toggleSessImg(){
 /* Bildhöhe an den tatsächlich freien Platz anpassen:
    Karte darf höchstens so hoch werden wie der Bereich zwischen Volumen-Karte und Punkten.
    Das Bild bekommt genau den Platz, der nach Kopfzeile und Sätzen übrig bleibt. */
+/* Verteilt den verfügbaren Platz in der Übungskarte:
+   Kopfzeile und Vergleichsbalken sind fix, die Sätze haben Vorrang,
+   das Bild bekommt den Rest. Reicht es selbst ohne Bild nicht (kleiner Bildschirm
+   oder Windows-Skalierung), scrollen ausschließlich die Sätze – Timer, Punkte
+   und Navigation bleiben immer sichtbar. */
 function fitSessImage(){
   const body=document.getElementById('sessBody'); if(!body) return;
   const card=body.querySelector('.ex-card'); if(!card) return;
-  const prev=card.querySelector('.ex-preview');
-  if(!prev){ card.style.removeProperty('--img-max'); return; }
   const head=card.querySelector('.row');
   const sets=card.querySelector('.ex-sets');
-  const vc=card.querySelector('.vc');   // Vergleichsbalken belegt ebenfalls festen Platz
+  const vc=card.querySelector('.vc');
+  const prev=card.querySelector('.ex-preview');
+  if(!sets) return;
+
+  // Erst alles zurücksetzen, damit die echten Größen gemessen werden
+  if(vc) vc.style.display='';
+  if(prev) prev.style.display='';
+  sets.style.maxHeight='';
+  card.style.maxHeight='';
+  card.classList.remove('scroll-all');
+
   const cs=getComputedStyle(card);
-  const padding=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const pcs=getComputedStyle(prev);
-  const margins=parseFloat(pcs.marginTop)+parseFloat(pcs.marginBottom);
+  const pad=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+  const headH=head?head.getBoundingClientRect().height:0;
+  const frei = body.clientHeight - pad - headH;   // Platz für Bild + Sätze + Vergleich
+
+  const setsVoll = sets.scrollHeight;
+  const MIN_SETS = 120;                            // darunter wird es unbrauchbar
+
   let vcH=0;
   if(vc){
-    const vcs=getComputedStyle(vc);
-    vcH = vc.getBoundingClientRect().height + parseFloat(vcs.marginTop||0);
+    const v=getComputedStyle(vc);
+    vcH = vc.getBoundingClientRect().height + parseFloat(v.marginTop||0);
+    // Reicht der Platz nicht einmal für die Sätze? Dann Vergleich ausblenden.
+    if(frei - vcH < MIN_SETS){ vc.style.display='none'; vcH=0; }
   }
-  const avail = body.clientHeight - padding - margins - vcH
-              - (head?head.getBoundingClientRect().height:0)
-              - (sets?sets.scrollHeight:0);
-  // Obergrenze großzügig, damit große Bildschirme das Bild gut ausnutzen
-  const max = Math.max(0, Math.min(380, Math.floor(avail)));
-  card.style.setProperty('--img-max', max+'px');
-  prev.style.display = max<40 ? 'none' : ''; // unter 40px lohnt es sich nicht mehr
+
+  let imgBlock=0;
+  if(prev){
+    const p=getComputedStyle(prev);
+    const imgMargins=parseFloat(p.marginTop)+parseFloat(p.marginBottom);
+    const rest = frei - vcH - setsVoll - imgMargins;
+    const imgMax = Math.max(0, Math.min(380, Math.floor(rest)));
+    if(imgMax<40){ prev.style.display='none'; card.style.setProperty('--img-max','0px'); }
+    else { card.style.setProperty('--img-max', imgMax+'px'); imgBlock = imgMax + imgMargins; }
+  }
+
+  // Was übrig bleibt, bekommen die Sätze – notfalls scrollen sie.
+  const fuerSaetze = Math.floor(frei - vcH - imgBlock);
+  if(fuerSaetze < MIN_SETS){
+    // Zu wenig Platz für ein sinnvolles Aufteilen (sehr flaches Fenster,
+    // starke Windows-Skalierung): dann scrollt die ganze Karte.
+    // Timer, Punkte und Navigation bleiben trotzdem immer sichtbar.
+    card.classList.add('scroll-all');
+    sets.style.maxHeight='';
+  } else {
+    card.classList.remove('scroll-all');
+    sets.style.maxHeight = Math.min(setsVoll, fuerSaetze) + 'px';
+  }
+  // Sicherheitsnetz: Die Karte darf niemals in den Timer ragen.
+  const timerEl=document.getElementById('restTimer');
+  if(timerEl && timerEl.classList.contains('show')){
+    const t=timerEl.getBoundingClientRect();
+    const c=card.getBoundingClientRect();
+    if(c.bottom > t.top-6){
+      card.classList.add('scroll-all');
+      card.style.maxHeight = Math.max(80, Math.floor(t.top - c.top - 6)) + 'px';
+      return;
+    }
+  }
+  card.style.maxHeight='';
 }
 window.addEventListener('resize', ()=>{ if(SESSION && current==='today') fitSessImage(); });
 
