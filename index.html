@@ -628,9 +628,26 @@ const META_KEY='progresslab.sync';   // merkt sich den zuletzt geholten Cloud-St
    ================================================================ */
 const CLOUD = {
   url:  'https://xqynnxgcdlcghgvxbcxw.supabase.co/rest/v1',
-  key:  'sb_publishable_ZdFTi9VHRCwBeCxREgGg1A_SrQExXxf'
+  key:  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxeW5ueGdjZGxjZ2hndnhiY3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Mzg5NjEsImV4cCI6MjA5OTUxNDk2MX0.WsZbak5l0OTfjwrmVLOZDqEEHB3fLy_0ts8qLnwzN1I'
 };
 function cloudConfigured(){ return !!(CLOUD.url && CLOUD.key); }
+/* Räumt die eingetragene URL auf, damit kleine Tippfehler nicht stören:
+   - Leerzeichen weg
+   - fehlendes https:// ergänzen
+   - Schrägstrich(e) und versehentlich mitkopierte Pfade am Ende entfernen
+   Ergebnis ist immer die reine Projekt-Adresse, z. B. https://abc.supabase.co */
+(function normalizeCloudUrl(){
+  let u=(CLOUD.url||'').trim();
+  if(!u) return;
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
+  try{
+    const p=new URL(u);
+    CLOUD.url = p.origin;          // nur Schema + Host, ohne Pfad und ohne / am Ende
+  }catch(e){
+    CLOUD.url = u.replace(/\/+$/,'');
+  }
+  CLOUD.key = (CLOUD.key||'').trim();
+})();
 
 // Sync-Zustand: 'off' | 'signed-out' | 'idle' | 'syncing' | 'error' | 'conflict'
 let SYNC = { state:'off', msg:'', user:null, token:null, rev:0, lastPull:null, dirty:false };
@@ -1014,6 +1031,11 @@ async function doAuth(){
     let m=e.message||'Fehlgeschlagen';
     if(/Invalid login/i.test(m)) m='E-Mail oder Passwort stimmt nicht';
     if(/already registered/i.test(m)) m='Diese E-Mail ist bereits registriert';
+    if(/Invalid path|not found|404/i.test(m)) m='Die Projekt-URL stimmt nicht. Sie muss auf .supabase.co enden – ohne Schrägstrich und ohne Pfad dahinter.';
+    if(/Invalid API key|apikey/i.test(m)) m='Der Schlüssel stimmt nicht. Nimm den „anon public“-Schlüssel aus den Projekt-Einstellungen.';
+    if(/does not exist|relation/i.test(m)) m='Die Tabelle fehlt. Führe das SQL aus Schritt 2 der Anleitung aus.';
+    if(/not confirmed/i.test(m)) m='E-Mail noch nicht bestätigt. Entweder Link in der Mail anklicken oder in Supabase „Confirm email“ ausschalten.';
+    if(/fetch|network|Load failed/i.test(m)) m='Keine Verbindung. Stimmt die Projekt-URL? Bist du online?';
     renderAuthForm(m);
   }
 }
