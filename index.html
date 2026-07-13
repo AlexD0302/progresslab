@@ -160,6 +160,33 @@ body.in-session.timer-on{--timer-space:78px}
   display:flex;align-items:center;justify-content:space-between;
 }
 .brand{display:flex;align-items:center;gap:9px}
+/* ---- Cloud: Statusanzeige in der Kopfzeile ---- */
+.sync-badge{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--text-dim);
+  transition:all .15s;max-width:46%}
+.sync-badge:active{transform:scale(.95)}
+.sync-badge svg{width:14px;height:14px;stroke-width:2;flex-shrink:0}
+.sync-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync-badge.ok{color:var(--accent-dim);border-color:rgba(200,255,0,.22)}
+.sync-badge.busy{color:var(--text-dim)}
+.sync-badge.busy .sync-ico{animation:spin 1.1s linear infinite;display:inline-flex}
+.sync-badge.err{color:var(--red);border-color:rgba(255,92,92,.3)}
+.sync-badge.off{color:var(--text-faint)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ---- Anmeldung ---- */
+.auth-err{background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.28);color:var(--red);
+  font-size:12.5px;font-weight:600;padding:10px 12px;border-radius:9px;margin-bottom:14px}
+/* ---- Konflikt: Auswahl der Stände ---- */
+.cf-opt{display:block;width:100%;text-align:left;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;transition:all .15s}
+.cf-opt:hover{border-color:var(--accent-dim)}
+.cf-opt:active{transform:scale(.99)}
+.cf-title{display:flex;align-items:center;justify-content:space-between;
+  font-weight:700;font-size:14.5px;color:var(--text)}
+.cf-title svg{width:16px;height:16px;color:var(--text-faint)}
+.cf-sub{font-size:12.5px;color:var(--text-dim);margin-top:5px}
+.cf-when{font-size:11px;color:var(--text-faint);margin-top:3px}
 .brand .mark{
   width:30px;height:30px;border-radius:8px;
   background:var(--accent);position:relative;flex-shrink:0;
@@ -550,6 +577,11 @@ const I = {
   download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12M7 11l5 5 5-5M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   database:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" stroke-linecap="round"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.1 10.5 3.75 3.75 0 0 0 6.5 19z" stroke-linejoin="round"/></svg>',
+  cloudOk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17.5 18a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.1 9.5 3.75 3.75 0 0 0 6.5 18" stroke-linejoin="round"/><path d="M9 15.5l2 2 4-4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  cloudOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4l16 16" stroke-linecap="round"/><path d="M17.5 19a4.5 4.5 0 0 0 3.2-7.6M15.6 8.3A6 6 0 0 0 6.2 10.5 3.75 3.75 0 0 0 6.5 19h11" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0" stroke-linecap="round"/></svg>',
+  logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h11" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   timer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 5V2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   restart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 2.6-6.3M3 4v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>',
@@ -587,6 +619,30 @@ function exMeta(name){ return EXBYNAME[name]||null; }
 
 /* ---------- Storage ---------- */
 const KEY='progresslab.v1';
+const META_KEY='progresslab.sync';   // merkt sich den zuletzt geholten Cloud-Stand
+
+/* ================================================================
+   CLOUD-SYNC (Supabase)
+   Trage hier die beiden Werte aus deinem Supabase-Projekt ein.
+   Ohne diese Werte läuft die App ganz normal weiter – nur eben ohne Cloud.
+   ================================================================ */
+const CLOUD = {
+  url:  'https://xqynnxgcdlcghgvxbcxw.supabase.co/rest/v1/',
+  key:  'sb_publishable_ZdFTi9VHRCwBeCxREgGg1A_SrQExXxf'
+};
+function cloudConfigured(){ return !!(CLOUD.url && CLOUD.key); }
+
+// Sync-Zustand: 'off' | 'signed-out' | 'idle' | 'syncing' | 'error' | 'conflict'
+let SYNC = { state:'off', msg:'', user:null, token:null, rev:0, lastPull:null, dirty:false };
+
+// Merkt sich lokal, welchen Cloud-Stand wir zuletzt gesehen haben
+function syncMeta(){
+  try{ return JSON.parse(localStorage.getItem(META_KEY)) || {}; }catch(e){ return {}; }
+}
+function setSyncMeta(m){
+  try{ localStorage.setItem(META_KEY, JSON.stringify(m)); }catch(e){}
+}
+
 let DB = load();
 function load(){
   try{
@@ -595,10 +651,11 @@ function load(){
   }catch(e){}
   return {plans:[],logs:[],settings:{unit:'kg',incrementUpper:2.5,incrementLower:5},customEx:[]};
 }
-let saveTimer;
+let saveTimer, pushTimer;
 function save(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(saveNow,120);
+  markDirty();
 }
 // Sofort schreiben – wird beim Schließen/Wegwischen der Seite genutzt,
 // damit die letzte Änderung nicht im Verzögerungsfenster verloren geht.
@@ -607,9 +664,410 @@ function saveNow(){
   try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
   catch(e){ toast('Speichern fehlgeschlagen'); }
 }
-window.addEventListener('pagehide', saveNow);
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') saveNow(); });
+// Änderung vormerken und (gebündelt) in die Cloud schicken
+function markDirty(){
+  if(SYNC.state==='off' || SYNC.state==='signed-out' || SYNC.state==='conflict') return;
+  SYNC.dirty=true;
+  renderSyncBadge();
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(()=>{ pushToCloud(); }, 1500);   // 1,5 s nach der letzten Änderung
+}
+window.addEventListener('pagehide', ()=>{ saveNow(); flushPush(); });
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='hidden'){ saveNow(); flushPush(); }
+  else if(document.visibilityState==='visible' && SYNC.state==='idle'){ pullFromCloud(true); }
+});
+// Beim Verlassen der Seite noch schnell hochladen (überlebt das Schließen dank keepalive)
+function flushPush(){
+  if(!SYNC.dirty || !SYNC.token || !cloudConfigured()) return;
+  clearTimeout(pushTimer);
+  try{
+    fetch(`${CLOUD.url}/rest/v1/progresslab?id=eq.${SYNC.user.id}`, {
+      method:'PATCH', keepalive:true,
+      headers:{
+        'apikey':CLOUD.key,
+        'Authorization':'Bearer '+SYNC.token,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({ data:DB, rev:SYNC.rev+1, updated_at:new Date().toISOString() })
+    });
+  }catch(e){}
+}
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ================================================================
+   CLOUD: Anmeldung, Hoch- und Herunterladen, Konflikte
+   ================================================================ */
+const AUTH_KEY='progresslab.auth';
+
+async function cloudFetch(path, opts={}){
+  const res=await fetch(CLOUD.url+path, {
+    ...opts,
+    headers:{
+      'apikey':CLOUD.key,
+      'Content-Type':'application/json',
+      ...(SYNC.token?{'Authorization':'Bearer '+SYNC.token}:{}),
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){
+    let msg='';
+    try{ const j=await res.json(); msg=j.msg||j.message||j.error_description||j.error||''; }catch(e){}
+    throw new Error(msg||('Fehler '+res.status));
+  }
+  // Bei 201/204 (return=minimal) kommt kein Inhalt zurück – das ist kein Fehler.
+  const txt=await res.text();
+  if(!txt) return null;
+  try{ return JSON.parse(txt); }catch(e){ return null; }
+}
+
+/* ---- Anmeldung ---- */
+async function cloudSignUp(email, password){
+  const r=await fetch(`${CLOUD.url}/auth/v1/signup`,{
+    method:'POST',
+    headers:{'apikey':CLOUD.key,'Content-Type':'application/json'},
+    body:JSON.stringify({email,password})
+  });
+  const j=await r.json();
+  if(!r.ok) throw new Error(j.msg||j.message||j.error_description||'Registrierung fehlgeschlagen');
+  // Wenn E-Mail-Bestätigung aktiv ist, kommt noch kein Token zurück
+  if(!j.access_token) return {needsConfirm:true};
+  applySession(j);
+  return {needsConfirm:false};
+}
+async function cloudSignIn(email, password){
+  const r=await fetch(`${CLOUD.url}/auth/v1/token?grant_type=password`,{
+    method:'POST',
+    headers:{'apikey':CLOUD.key,'Content-Type':'application/json'},
+    body:JSON.stringify({email,password})
+  });
+  const j=await r.json();
+  if(!r.ok) throw new Error(j.error_description||j.msg||j.message||'Anmeldung fehlgeschlagen');
+  applySession(j);
+}
+function applySession(j){
+  SYNC.token=j.access_token;
+  SYNC.refresh=j.refresh_token;
+  SYNC.user=j.user;
+  try{ localStorage.setItem(AUTH_KEY, JSON.stringify({
+    token:j.access_token, refresh:j.refresh_token, user:j.user,
+    expires: Date.now() + (j.expires_in||3600)*1000
+  })); }catch(e){}
+}
+async function cloudRefresh(refresh){
+  const r=await fetch(`${CLOUD.url}/auth/v1/token?grant_type=refresh_token`,{
+    method:'POST',
+    headers:{'apikey':CLOUD.key,'Content-Type':'application/json'},
+    body:JSON.stringify({refresh_token:refresh})
+  });
+  if(!r.ok) throw new Error('Sitzung abgelaufen');
+  applySession(await r.json());
+}
+function cloudSignOut(){
+  SYNC={state:'signed-out', msg:'', user:null, token:null, rev:0, lastPull:null, dirty:false};
+  try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
+  renderSyncBadge(); renderView();
+  toast('Abgemeldet');
+}
+
+/* ---- Daten holen ---- */
+async function pullFromCloud(silent){
+  if(!SYNC.token) return;
+  setSync('syncing','Lade…');
+  try{
+    const rows=await cloudFetch(`/rest/v1/progresslab?id=eq.${SYNC.user.id}&select=data,rev,updated_at`);
+    const row=rows && rows[0];
+    const meta=syncMeta();
+
+    if(!row){
+      // Noch nichts in der Cloud: aktuellen lokalen Stand hochladen
+      await pushToCloud(true);
+      return;
+    }
+
+    const cloudRev = row.rev||0;
+    const seenRev  = meta.rev||0;          // Stand, den dieses Gerät zuletzt gesehen hat
+    const localChanged = SYNC.dirty || !!meta.dirty;
+
+    if(cloudRev===seenRev){
+      // Cloud unverändert seit unserem letzten Abgleich
+      SYNC.rev=cloudRev;
+      if(localChanged){ await pushToCloud(); }
+      else setSync('idle','Aktuell');
+      return;
+    }
+
+    // Cloud hat einen neueren Stand
+    if(!localChanged){
+      applyCloudData(row);
+      setSync('idle','Aktualisiert');
+      if(!silent) toast('Daten aus der Cloud geladen');
+      return;
+    }
+
+    // Beides geändert -> Konflikt
+    SYNC.conflict = { cloud:row, localAt: meta.changedAt||Date.now() };
+    setSync('conflict','Konflikt');
+    showConflict();
+  }catch(e){
+    // Token abgelaufen? Einmal erneuern und nochmal versuchen.
+    if(/JWT|token|401/i.test(e.message) && SYNC.refresh){
+      try{ await cloudRefresh(SYNC.refresh); return pullFromCloud(silent); }catch(_){}
+    }
+    setSync('error', e.message||'Fehler');
+  }
+}
+function applyCloudData(row){
+  const d=row.data||{};
+  DB.plans    = Array.isArray(d.plans)? d.plans : [];
+  DB.logs     = Array.isArray(d.logs)?  d.logs  : [];
+  DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
+  DB.settings = (d.settings && typeof d.settings==='object') ? d.settings : DB.settings;
+  DB.logs.sort((a,b)=>a.date-b.date);
+  rebuildExDB(); migrateMuscleNames();
+  saveNow();
+  SYNC.rev = row.rev||0;
+  SYNC.dirty=false;
+  setSyncMeta({rev:SYNC.rev, dirty:false, changedAt:null});
+  renderView();
+}
+
+/* ---- Daten hochladen ---- */
+async function pushToCloud(isFirst){
+  if(!SYNC.token || SYNC.state==='conflict') return;
+  setSync('syncing','Speichere…');
+  try{
+    const nextRev = (SYNC.rev||0)+1;
+    const payload = { id:SYNC.user.id, data:DB, rev:nextRev, updated_at:new Date().toISOString() };
+    await cloudFetch('/rest/v1/progresslab', {
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(payload)
+    });
+    SYNC.rev=nextRev;
+    SYNC.dirty=false;
+    setSyncMeta({rev:nextRev, dirty:false, changedAt:null});
+    setSync('idle', isFirst?'Hochgeladen':'Gespeichert');
+  }catch(e){
+    if(/JWT|token|401/i.test(e.message) && SYNC.refresh){
+      try{ await cloudRefresh(SYNC.refresh); return pushToCloud(isFirst); }catch(_){}
+    }
+    setSync('error', e.message||'Fehler');
+  }
+}
+
+/* ---- Zustand + Anzeige ---- */
+function setSync(state, msg){
+  // Netzwerkfehler verständlich benennen
+  if(state==='error' && (!navigator.onLine || /fetch|network|Load failed/i.test(msg||''))){
+    msg='Offline – wird nachgeholt';
+  }
+  SYNC.state=state; SYNC.msg=msg||'';
+  // ungespeicherte Änderungen auch über einen Neustart hinweg merken
+  if(state!=='conflict'){
+    const m=syncMeta();
+    setSyncMeta({...m, rev:SYNC.rev, dirty:SYNC.dirty, changedAt: SYNC.dirty?(m.changedAt||Date.now()):null});
+  }
+  renderSyncBadge();
+}
+// Sobald wieder Netz da ist: ausstehende Änderungen hochladen
+window.addEventListener('online', ()=>{
+  if(SYNC.token && SYNC.state!=='conflict'){
+    if(SYNC.dirty) pushToCloud(); else pullFromCloud(true);
+  }
+});
+// Nach einem Fehler regelmäßig erneut versuchen (alle 30 s), solange etwas aussteht
+setInterval(()=>{
+  if(SYNC.state==='error' && SYNC.token && navigator.onLine){
+    if(SYNC.dirty) pushToCloud(); else pullFromCloud(true);
+  }
+}, 30000);
+
+/* ---- Konflikt: welchen Stand behalten? ---- */
+function showConflict(){
+  const c=SYNC.conflict; if(!c) return;
+  const cd=c.cloud.data||{};
+  const cloudInfo = `${(cd.plans||[]).length} Pläne · ${(cd.logs||[]).length} Trainings · ${(cd.customEx||[]).length} Übungen`;
+  const localInfo = `${DB.plans.length} Pläne · ${DB.logs.length} Trainings · ${DB.customEx.length} Übungen`;
+  const cloudWhen = c.cloud.updated_at ? fmtDateTime(new Date(c.cloud.updated_at).getTime()) : '—';
+  const localWhen = c.localAt ? fmtDateTime(c.localAt) : '—';
+
+  openModal(`<div class="grab"></div>
+    <h2>Unterschiedliche Stände</h2>
+    <p class="muted" style="font-size:13px;margin:8px 0 18px">
+      Auf diesem Gerät und in der Cloud wurde unabhängig voneinander etwas geändert.
+      Welcher Stand soll behalten werden?
+    </p>
+
+    <button class="cf-opt" onclick="resolveConflict('local')">
+      <div class="cf-title">Dieses Gerät behalten ${I.chevron}</div>
+      <div class="cf-sub">${localInfo}</div>
+      <div class="cf-when">Zuletzt geändert: ${localWhen}</div>
+    </button>
+
+    <button class="cf-opt" onclick="resolveConflict('cloud')">
+      <div class="cf-title">Cloud-Stand übernehmen ${I.chevron}</div>
+      <div class="cf-sub">${cloudInfo}</div>
+      <div class="cf-when">Zuletzt geändert: ${cloudWhen}</div>
+    </button>
+
+    <p class="faint" style="font-size:11.5px;margin-top:14px;line-height:1.5">
+      Der nicht gewählte Stand wird überschrieben. Lade vorher ein Backup herunter,
+      wenn du unsicher bist (Statistik → Backup).
+    </p>
+  `);
+}
+function resolveConflict(which){
+  const c=SYNC.conflict; if(!c) return;
+  SYNC.conflict=null;
+  closeModal();
+  if(which==='cloud'){
+    applyCloudData(c.cloud);
+    setSync('idle','Cloud übernommen');
+    toast('Cloud-Stand übernommen');
+  }else{
+    // Lokalen Stand durchsetzen: über die Cloud-Version schreiben
+    SYNC.rev = c.cloud.rev||0;
+    SYNC.dirty=true;
+    SYNC.state='idle';
+    pushToCloud().then(()=>toast('Dieses Gerät hat gewonnen'));
+  }
+}
+function fmtDateTime(ts){
+  const d=new Date(ts);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' '+
+         d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ---- Panel: anmelden / Status / abmelden ---- */
+let _authMode='in';   // 'in' = anmelden, 'up' = registrieren
+function openSyncPanel(){
+  if(SYNC.state==='conflict'){ showConflict(); return; }
+  if(SYNC.user) return openAccountPanel();
+  renderAuthForm('');
+}
+function renderAuthForm(err, busy){
+  const up = _authMode==='up';
+  openModal(`<div class="grab"></div>
+    <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
+      <span style="color:var(--accent)">${I.cloud}</span>
+      <h2 style="margin:0">${up?'Konto erstellen':'Anmelden'}</h2>
+    </div>
+    <p class="faint" style="font-size:12px;margin:6px 0 18px">
+      Damit sind deine Trainingsdaten auf allen Geräten gleich.
+    </p>
+
+    <div class="field"><label>E-Mail</label>
+      <input class="input" id="authMail" type="email" autocomplete="email" placeholder="du@beispiel.de"></div>
+    <div class="field"><label>Passwort</label>
+      <input class="input" id="authPass" type="password" autocomplete="${up?'new-password':'current-password'}" placeholder="${up?'mindestens 6 Zeichen':'••••••••'}"
+        onkeydown="if(event.key==='Enter')doAuth()"></div>
+
+    ${err?`<div class="auth-err">${esc(err)}</div>`:''}
+
+    <button class="btn-slim solid" style="margin-top:6px" id="authBtn" ${busy?'disabled':''} onclick="doAuth()">
+      <span>${busy?'Moment…':(up?'Konto erstellen':'Anmelden')}</span></button>
+
+    <button class="btn ghost" style="margin-top:10px" onclick="_authMode='${up?'in':'up'}';renderAuthForm('')">
+      ${up?'Ich habe schon ein Konto':'Neues Konto erstellen'}</button>
+
+    <p class="faint" style="font-size:11px;margin-top:14px;line-height:1.5">
+      Ohne Anmeldung funktioniert die App normal weiter – die Daten bleiben dann nur auf diesem Gerät.
+    </p>
+  `);
+}
+async function doAuth(){
+  const mail=(document.getElementById('authMail').value||'').trim();
+  const pass=(document.getElementById('authPass').value||'').trim();
+  if(!mail || !pass){ renderAuthForm('Bitte E-Mail und Passwort eingeben'); return; }
+  if(_authMode==='up' && pass.length<6){ renderAuthForm('Das Passwort braucht mindestens 6 Zeichen'); return; }
+  renderAuthForm('', true);
+  try{
+    if(_authMode==='up'){
+      const r=await cloudSignUp(mail,pass);
+      if(r.needsConfirm){
+        openModal(`<div class="grab"></div>
+          <h2>Fast geschafft</h2>
+          <p class="muted" style="margin:10px 0 20px;font-size:13.5px">
+            Wir haben dir eine E-Mail an <b>${esc(mail)}</b> geschickt.
+            Bestätige den Link darin und melde dich danach an.
+          </p>
+          <button class="btn-slim solid" onclick="_authMode='in';renderAuthForm('')"><span>Zur Anmeldung</span></button>
+          <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Später</button>`);
+        return;
+      }
+    } else {
+      await cloudSignIn(mail,pass);
+    }
+    closeModal();
+    setSync('syncing','Verbinde…');
+    // Beim ersten Anmelden auf einem Gerät: lokalen Stand als "geändert" werten,
+    // damit vorhandene Daten nicht stillschweigend überschrieben werden.
+    const hasLocal = DB.plans.length||DB.logs.length||DB.customEx.length;
+    setSyncMeta({rev:0, dirty:!!hasLocal, changedAt: hasLocal?Date.now():null});
+    SYNC.rev=0; SYNC.dirty=!!hasLocal;
+    await pullFromCloud();
+    renderView();
+    toast('Angemeldet als '+mail);
+  }catch(e){
+    let m=e.message||'Fehlgeschlagen';
+    if(/Invalid login/i.test(m)) m='E-Mail oder Passwort stimmt nicht';
+    if(/already registered/i.test(m)) m='Diese E-Mail ist bereits registriert';
+    renderAuthForm(m);
+  }
+}
+function openAccountPanel(){
+  const st = {
+    'idle':   SYNC.dirty?'Änderungen noch nicht gespeichert':'Alles synchron',
+    'syncing':'Synchronisiere gerade…',
+    'error':  'Fehler: '+(SYNC.msg||'unbekannt'),
+    'signed-out':'Nicht angemeldet'
+  }[SYNC.state] || SYNC.msg;
+  openModal(`<div class="grab"></div>
+    <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
+      <span style="color:var(--accent)">${I.cloudOk}</span>
+      <h2 style="margin:0">Cloud</h2>
+    </div>
+
+    <div class="card" style="margin:16px 0 14px;padding:14px">
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="faint">${I.user}</span>
+        <div style="min-width:0">
+          <div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(SYNC.user.email||'')}</div>
+          <div class="faint" style="font-size:11.5px;margin-top:2px">${esc(st)}</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-slim" onclick="pullFromCloud();closeModal()">${I.restart}<span>Jetzt abgleichen</span></button>
+    <button class="btn-slim" style="margin-top:10px;border-color:rgba(255,92,92,.3);color:var(--red)" onclick="closeModal();cloudSignOut()">${I.logout}<span>Abmelden</span></button>
+
+    <p class="faint" style="font-size:11px;margin-top:14px;line-height:1.5">
+      Deine Daten liegen zusätzlich auf diesem Gerät – die App funktioniert auch ohne Internet.
+      Änderungen werden hochgeladen, sobald du wieder online bist.
+    </p>
+    <button class="btn ghost" style="margin-top:12px" onclick="closeModal()">Schließen</button>
+  `);
+}
+
+/* ---- Start: gespeicherte Sitzung wiederherstellen ---- */
+async function initCloud(){
+  if(!cloudConfigured()){ SYNC.state='off'; renderSyncBadge(); return; }
+  let saved=null;
+  try{ saved=JSON.parse(localStorage.getItem(AUTH_KEY)); }catch(e){}
+  if(!saved || !saved.refresh){ setSync('signed-out','Nicht angemeldet'); renderView(); return; }
+  SYNC.token=saved.token; SYNC.refresh=saved.refresh; SYNC.user=saved.user;
+  const meta=syncMeta();
+  SYNC.rev=meta.rev||0; SYNC.dirty=!!meta.dirty;
+  renderView();   // Anzeige sofort zeigen, dann im Hintergrund abgleichen
+  try{
+    if(!saved.expires || Date.now() > saved.expires-60000) await cloudRefresh(saved.refresh);
+    await pullFromCloud(true);
+  }catch(e){
+    setSync('signed-out','Bitte neu anmelden');
+  }
+}
 
 /* ---------- Helpers ---------- */
 const $=(s,el=document)=>el.querySelector(s);
@@ -737,7 +1195,31 @@ function topbar(sub){
       <div class="mark"></div>
       <div><div class="name">Progress<b>Lab</b></div>
       <div class="sub">${sub||'Kraft · Daten · Fortschritt'}</div></div>
-    </div></div>`;
+    </div>${syncBadge()}</div>`;
+}
+/* Statusanzeige der Cloud – zeigt, was gerade passiert */
+function syncBadge(){
+  if(SYNC.state==='off') return '';
+  const map={
+    'signed-out':{cls:'off',  ico:I.cloudOff, txt:'Anmelden'},
+    'syncing':   {cls:'busy', ico:I.cloud,    txt:SYNC.msg||'Synchronisiere…'},
+    'idle':      {cls:'ok',   ico:I.cloudOk,  txt:SYNC.dirty?'Nicht gespeichert':(SYNC.msg||'Synchron')},
+    'error':     {cls:'err',  ico:I.cloudOff, txt:SYNC.msg||'Fehler'},
+    'conflict':  {cls:'err',  ico:I.cloudOff, txt:'Konflikt'}
+  };
+  const s=map[SYNC.state]||map['idle'];
+  return `<button class="sync-badge ${s.cls}" onclick="openSyncPanel()" title="${esc(s.txt)}">
+    <span class="sync-ico">${s.ico}</span>
+    <span class="sync-txt">${esc(s.txt)}</span>
+  </button>`;
+}
+function renderSyncBadge(){
+  document.querySelectorAll('.topbar .sync-badge').forEach(b=>{
+    const wrap=document.createElement('div');
+    wrap.innerHTML=syncBadge();
+    const neu=wrap.firstElementChild;
+    if(neu) b.replaceWith(neu); else b.remove();
+  });
 }
 
 /* ================================================================
@@ -2484,6 +2966,7 @@ rebuildExDB();
 migrateMuscleNames();   // alte Muskel-Bezeichnungen umstellen
 renderNav();
 renderView();
+initCloud();            // Cloud-Sitzung wiederherstellen und abgleichen
 </script>
 </body>
 </html>
