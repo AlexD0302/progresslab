@@ -196,11 +196,11 @@ body.in-session.timer-on{--timer-space:78px}
 .cf-when{font-size:11px;color:var(--text-faint);margin-top:3px}
 .brand .mark{
   width:30px;height:30px;border-radius:8px;
-  background:var(--accent);position:relative;flex-shrink:0;
-  display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line);
+  flex-shrink:0;display:grid;place-items:center;
   box-shadow:0 0 16px var(--accent-glow);
 }
-.brand .mark::before{content:"";width:4px;height:15px;background:var(--bg);border-radius:2px;box-shadow:6px 0 0 var(--bg),-6px 0 0 var(--bg);transform:scaleY(.6)}
+.brand .mark svg{width:19px;height:19px;color:var(--accent);stroke-width:2.2}
 .brand .name{font-family:var(--font-display);font-weight:800;font-size:20px;letter-spacing:.02em}
 .brand .name b{color:var(--accent)}
 .topbar .sub{font-size:11px;color:var(--text-faint);letter-spacing:.18em;text-transform:uppercase;margin-top:-3px}
@@ -1221,7 +1221,7 @@ function renderView(){
 }
 function topbar(sub){
   return `<div class="topbar"><div class="brand">
-      <div class="mark"></div>
+      <div class="mark">${I.dumb}</div>
       <div><div class="name">Progress<b>Lab</b></div>
       <div class="sub">${sub||'Strength · Data · Progress'}</div></div>
     </div>${syncBadge()}</div>`;
@@ -2166,7 +2166,7 @@ function viewExercises(){
   const ownCount=customList().length;
   const active=(_exMuscle?1:0)+(_exEquip?1:0);
   return topbar('All exercises')+`<div class="pad">
-    <button class="btn-slim solid" onclick="openCustomExercise()">${I.plus}<span>Eigene Übung erstellen</span></button>
+    <button class="btn-slim" onclick="openCustomExercise()">${I.plus}<span>Eigene Übung erstellen</span></button>
 
     <input class="input" style="margin:14px 0 10px" placeholder="Suchen (Name, Muskel, Gerät)…"
       value="${esc(_exSearch)}" oninput="_exSearch=this.value;refreshExList()">
