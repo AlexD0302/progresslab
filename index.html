@@ -266,6 +266,8 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 
 .pad{padding:4px 20px 20px}
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);padding:18px}
+/* Karten in den Hauptansichten: grüner Rand + Schein (wie das Logo) */
+.pad > .card, .ex-card{border-color:rgba(200,255,0,.22);box-shadow:0 0 24px rgba(200,255,0,.12)}
 .card+.card{margin-top:14px}
 .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-weight:600}
 .muted{color:var(--text-dim)}
@@ -2226,7 +2228,7 @@ function viewExercises(){
       <span class="eyebrow">Übungen</span>
       <span class="faint num" style="font-size:12px" id="exCount">${list.length}</span>
     </div>
-    <div id="exList">${exListHTML(list)}</div>
+    <div class="card"><div id="exList">${exListHTML(list)}</div></div>
   </div>`;
 }
 function exListHTML(list){
