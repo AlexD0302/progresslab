@@ -326,11 +326,13 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 
 /* Einheiten-Zeilen (aufgeklappt) auf der Trainingsseite */
 .day-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;
-  padding:12px 14px;margin-bottom:8px;background:var(--surface-2);border:1px solid var(--line-soft);
+  padding:12px 14px;margin-bottom:8px;background:transparent;border:1px solid var(--line);
   border-radius:11px;transition:background .15s,border-color .15s}
 .day-row:last-child{margin-bottom:0}
-.day-row:hover{background:var(--surface-3);border-color:var(--line)}
+.day-row:hover{background:var(--surface-2);border-color:var(--accent-dim)}
 .day-row:active{transform:scale(.99)}
+.day-box{background:transparent;border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px}
+.day-box:last-of-type{margin-bottom:0}
 .day-name{font-weight:700;font-size:15px;margin-bottom:2px}
 .day-go{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;
   background:var(--accent);color:#0a0c10}
@@ -348,7 +350,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .log-btn.danger:hover{background:rgba(255,92,92,.1);color:var(--red)}
 
 /* Detail-/Editor-Ansicht eines Trainings */
-.det-ex{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:14px;margin-bottom:10px}
+.det-ex{background:transparent;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
 .det-grid{display:grid;grid-template-columns:44px 1fr 1fr;gap:10px;align-items:center;padding:5px 2px;font-size:13.5px}
 .det-grid.det-grid-edit{grid-template-columns:44px 1fr 1fr 40px}
 .det-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;border-bottom:1px solid var(--line-soft);padding-bottom:7px;margin-bottom:3px}
@@ -445,7 +447,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 /* Plan-Builder: Drag & Drop Übungszeilen */
 .drag-hint{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-faint);margin-bottom:8px;padding:0 2px}
 .drag-hint svg{width:14px;height:14px}
-.bld-row{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid transparent;border-radius:8px;padding:8px;margin-bottom:6px;transition:border-color .12s,opacity .12s,transform .12s}
+.bld-row{display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;transition:border-color .12s,opacity .12s,transform .12s}
 .bld-grip{flex-shrink:0;width:24px;display:grid;place-items:center;color:var(--text-faint);cursor:grab;touch-action:none;align-self:stretch}
 .bld-grip:active{cursor:grabbing}
 .bld-grip svg{width:18px;height:18px}
@@ -1329,7 +1331,7 @@ function viewToday(){
     </div>`;
   }).join('');
   return topbar('Ready to train')+`<div class="pad">
-    <div class="card" style="background:linear-gradient(135deg,#12151c,#161b25)">
+    <div class="card">
       <div class="row between"><div>
         <div class="eyebrow" style="color:var(--accent-dim)">Aktuelle Serie</div>
         <div class="display num" style="font-size:40px;line-height:1;margin-top:4px">${streak}<span style="font-size:18px;color:var(--text-dim);margin-left:6px">${streak===1?'Training':'Trainings'}</span></div>
@@ -1881,7 +1883,7 @@ function planCard(p){
       <button class="chip" onclick="deletePlan('${p.id}')" style="padding:6px 9px;flex-shrink:0;align-self:flex-start">${I.trash}</button>
     </div>
     ${open?`<div style="margin-top:12px">
-      ${p.days.map(d=>`<div style="background:var(--surface-2);border-radius:9px;padding:11px 13px;margin-bottom:8px">
+      ${p.days.map(d=>`<div class="day-box">
         <div class="row between"><span style="font-weight:700;font-size:14px">${esc(d.name)}</span>
         <span class="faint" style="font-size:11px">${d.exercises.length} Übungen</span></div>
         <div class="faint" style="font-size:12px;margin-top:4px">${d.exercises.map(e=>esc(e.name)).join(' · ')||'—'}</div>
@@ -3073,4 +3075,4 @@ renderView();
 initCloud();            // Cloud-Sitzung wiederherstellen und abgleichen
 </script>
 </body>
-</html> 
+</html>
