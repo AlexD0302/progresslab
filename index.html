@@ -118,6 +118,40 @@ body.in-session.timer-on{--timer-space:78px}
    Timer, Punkte und Navigation bleiben davon unberührt und immer sichtbar. */
 .ex-card.scroll-all{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .ex-card.scroll-all .ex-sets{overflow:visible;max-height:none;flex:0 0 auto}
+/* Standard: Bild über den Sätzen (hochkant) */
+.ex-main{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
+.ex-col{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
+
+/* ===== QUERFORMAT: breiter, flacher Bildschirm (z. B. Fernseher, Laptop im Wohnzimmer) =====
+   Dann steht das Bild links NEBEN den Sätzen, und die App darf breiter werden.
+   So bleibt vertikal Platz, statt alles zu stauchen. */
+@media (min-width:900px) and (max-height:820px){
+  /* Auf breiten, flachen Bildschirmen darf die App insgesamt breiter werden –
+     so passt mehr auf einen Blick, statt vertikal zu stauchen. */
+  #app{max-width:1100px}
+  body .nav{max-width:1060px;width:calc(100% - 40px)}
+  body .rest-timer{max-width:1060px;width:calc(100% - 40px)}
+  .sess{padding-left:20px;padding-right:20px}
+
+  /* Die Karte füllt die verfügbare Höhe, damit das Bild groß werden kann */
+  .ex-card{flex:1 1 auto !important;height:100%;max-height:100% !important}
+
+  /* Bild links, Sätze rechts */
+  .ex-main{flex-direction:row;align-items:stretch;gap:22px;flex:1 1 auto;min-height:0}
+  .ex-card .ex-preview{
+    flex:0 0 44%;max-width:48%;margin:8px 0 0;
+    max-height:none !important;height:auto;align-self:stretch;min-height:0;
+  }
+  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;height:auto;width:auto}
+  .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
+  /* Sätze bekommen die volle Höhe der rechten Spalte */
+  .ex-sets{max-height:none !important;flex:1 1 auto;overflow-y:auto}
+  /* Vergleich kompakter, damit die Sätze mehr Platz haben */
+  .ex-col .vc{flex:0 0 auto;margin-top:8px;padding-top:8px}
+  .ex-col .vc .vc-row{margin-bottom:3px}
+
+}
+
 /* Punkte + Pfeile */
 .sess-nav{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;padding-top:2px}
 .sess-nav-spacer{flex-shrink:0;height:2px}
@@ -1524,6 +1558,18 @@ function fitSessImage(){
   const prev=card.querySelector('.ex-preview');
   if(!sets) return;
 
+  // Querformat (Bild neben den Sätzen): Das CSS regelt die Größen selbst,
+  // hier ist keine Höhenberechnung nötig.
+  const quer = window.matchMedia('(min-width:900px) and (max-height:820px)').matches;
+  if(quer){
+    if(vc) vc.style.display='';
+    if(prev){ prev.style.display=''; card.style.removeProperty('--img-max'); }
+    sets.style.maxHeight='';
+    card.style.maxHeight='';
+    card.classList.remove('scroll-all');
+    return;
+  }
+
   // Erst alles zurücksetzen, damit die echten Größen gemessen werden
   if(vc) vc.style.display='';
   if(prev) prev.style.display='';
@@ -1625,16 +1671,21 @@ function exerciseCard(ex,ei){
         ${meta?`<button class="chip" onclick='showExercise("${escAttr(ex.name)}")' style="padding:6px 9px">${I.info}</button>`:''}
       </div>
     </div>
-    ${thumb&&!hidden?`<div class="ex-preview" onclick='showExercise("${escAttr(ex.name)}")'>
-      <img loading="lazy" src="${thumb}" alt="" onerror="this.parentNode.classList.add('bad')">
-    </div>`:''}
-    <div class="ex-sets">
-      <div class="set-grid set-head">
-        <span>#</span><span>KG</span><span>WDH</span><span></span></div>
-      ${ex.sets.map((st,si)=>setRow(ex,ei,st,si)).join('')}
-      <button class="add-set" onclick="addSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
+    <!-- Bild + Sätze: untereinander (hoch) oder nebeneinander (breit & flach) -->
+    <div class="ex-main">
+      ${thumb&&!hidden?`<div class="ex-preview" onclick='showExercise("${escAttr(ex.name)}")'>
+        <img loading="lazy" src="${thumb}" alt="" onerror="this.parentNode.classList.add('bad')">
+      </div>`:''}
+      <div class="ex-col">
+        <div class="ex-sets">
+          <div class="set-grid set-head">
+            <span>#</span><span>KG</span><span>WDH</span><span></span></div>
+          ${ex.sets.map((st,si)=>setRow(ex,ei,st,si)).join('')}
+          <button class="add-set" onclick="addSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
+        </div>
+        ${volCompare(ex)}
+      </div>
     </div>
-    ${volCompare(ex)}
   </div>`;
 }
 /* Vergleichsbalken: Volumen dieser Übung heute vs. letztes Training derselben Einheit.
