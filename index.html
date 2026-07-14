@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ProgressLab">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c8ff00'/%3E%3Crect x='18' y='22' width='6' height='20' rx='2' fill='%230a0c10'/%3E%3Crect x='29' y='16' width='6' height='32' rx='2' fill='%230a0c10'/%3E%3Crect x='40' y='26' width='6' height='12' rx='2' fill='%230a0c10'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312151c'/%3E%3Cg stroke='%23c8ff00' stroke-width='3.4' stroke-linecap='round' fill='none'%3E%3Cpath d='M20 22v20M44 22v20M13 27v10M51 27v10M20 32h24'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 /* ============ DESIGN TOKENS ============ */
 :root{
@@ -634,8 +634,8 @@ const META_KEY='progresslab.sync';   // merkt sich den zuletzt geholten Cloud-St
    Ohne diese Werte läuft die App ganz normal weiter – nur eben ohne Cloud.
    ================================================================ */
 const CLOUD = {
-  url:  'https://xqynnxgcdlcghgvxbcxw.supabase.co',
-  key:  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxeW5ueGdjZGxjZ2hndnhiY3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Mzg5NjEsImV4cCI6MjA5OTUxNDk2MX0.WsZbak5l0OTfjwrmVLOZDqEEHB3fLy_0ts8qLnwzN1I'
+  url:  '',   // z. B. https://abcdefgh.supabase.co
+  key:  ''    // der "anon public"-Schlüssel
 };
 function cloudConfigured(){ return !!(CLOUD.url && CLOUD.key); }
 /* Räumt die eingetragene URL auf, damit kleine Tippfehler nicht stören:
@@ -1223,7 +1223,7 @@ function topbar(sub){
   return `<div class="topbar"><div class="brand">
       <div class="mark"></div>
       <div><div class="name">Progress<b>Lab</b></div>
-      <div class="sub">${sub||'Kraft · Daten · Fortschritt'}</div></div>
+      <div class="sub">${sub||'Strength · Data · Progress'}</div></div>
     </div>${syncBadge()}</div>`;
 }
 /* Statusanzeige der Cloud – zeigt, was gerade passiert */
@@ -1300,7 +1300,7 @@ function viewToday(){
       </div>`:''}
     </div>`;
   }).join('');
-  return topbar('Bereit zu trainieren')+`<div class="pad">
+  return topbar('Ready to train')+`<div class="pad">
     <div class="card" style="background:linear-gradient(135deg,#12151c,#161b25)">
       <div class="row between"><div>
         <div class="eyebrow" style="color:var(--accent-dim)">Aktuelle Serie</div>
@@ -1825,7 +1825,7 @@ function finishSession(){
    VIEW: PLANS
    ================================================================ */
 function viewPlans(){
-  return topbar('Deine Trainingspläne')+`<div class="pad">
+  return topbar('Your training plans')+`<div class="pad">
     <button class="btn-slim" onclick="openPlanBuilder()">${I.plus}<span>Neuer Plan</span></button>
     ${DB.plans.length>1?`<div class="row between" style="margin:18px 4px 4px">
       <span class="eyebrow">${DB.plans.length} Pläne</span>
@@ -2165,7 +2165,7 @@ function viewExercises(){
   const list=exViewList();
   const ownCount=customList().length;
   const active=(_exMuscle?1:0)+(_exEquip?1:0);
-  return topbar('Alle Übungen')+`<div class="pad">
+  return topbar('All exercises')+`<div class="pad">
     <button class="btn-slim solid" onclick="openCustomExercise()">${I.plus}<span>Eigene Übung erstellen</span></button>
 
     <input class="input" style="margin:14px 0 10px" placeholder="Suchen (Name, Muskel, Gerät)…"
@@ -2239,7 +2239,7 @@ function refreshExList(){
    ================================================================ */
 function viewHistory(){
   const logs=[...DB.logs].reverse();
-  return topbar('Trainingsverlauf')+`<div class="pad">
+  return topbar('Training history')+`<div class="pad">
     ${logs.length? logs.map(l=>historyCard(l)).join('') : `<div class="empty">${I.history}
       <h3>Noch kein Training</h3><p style="font-size:13.5px">Deine abgeschlossenen Einheiten erscheinen hier.</p></div>`}
   </div>`;
@@ -2442,7 +2442,7 @@ function importData(ev){
 }
 
 function viewStats(){
-  if(!DB.logs.length) return topbar('Statistik')+`<div class="pad"><div class="empty">${I.stats}
+  if(!DB.logs.length) return topbar('Statistics')+`<div class="pad"><div class="empty">${I.stats}
     <h3>Keine Daten</h3><p style="font-size:13.5px">Trainiere ein paar Mal — dann zeigen wir deinen Fortschritt.</p></div>
     ${backupCard()}</div>`;
   const totalVol=DB.logs.reduce((a,l)=>a+logVolume(l),0);
@@ -2462,7 +2462,7 @@ function viewStats(){
   // Übungen für 1RM-Fortschritt
   const exNames=[...new Set(DB.logs.flatMap(l=>l.exercises.map(e=>e.name)))];
 
-  return topbar('Deine Statistik')+`<div class="pad">
+  return topbar('Your statistics')+`<div class="pad">
     <div class="row" style="gap:12px">
       <div class="card" style="flex:1;text-align:center;padding:18px 12px">
         <div class="display" style="font-size:30px;color:var(--accent)">${DB.logs.length}</div>
