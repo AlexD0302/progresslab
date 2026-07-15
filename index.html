@@ -152,6 +152,62 @@ body.in-session.timer-on{--timer-space:78px}
 
 }
 
+/* ===== SEHR FLACHE DISPLAYS (z. B. Promethean-Panel: 1280 × 588) =====
+   Bei so geringer Höhe ist der fixe Platz unten (Nav + Timer = bis 174px)
+   der Hauptgrund für Überlappungen. Diese Regel schrumpft alles Feste unten,
+   macht Nav und Timer flacher und stellt sicher, dass NUR der Sätze-Bereich
+   scrollt – Timer, Punkte und Navigation bleiben immer frei sichtbar.
+   Bewusst OHNE dvh gerechnet, weil ältere Chromium-Builds auf solchen
+   Panels dvh nicht zuverlässig melden. */
+@media (max-height:640px){
+  /* Weniger Platz unten reservieren: Nav + Timer sind hier deutlich flacher. */
+  body.in-session{--nav-space:66px;--timer-space:0px}
+  body.in-session.timer-on{--timer-space:58px}
+
+  /* Robuste Höhe statt dvh: vh ist auf diesen Panels verlässlicher. */
+  body.in-session #app{height:100vh}
+  .sess{height:100vh;padding-top:8px;gap:6px}
+
+  /* Kopfzeile kompakter */
+  .sess-head{gap:8px}
+  .sess-btn{padding:5px 9px;font-size:11px}
+  .sess-vol{padding:7px 11px}
+
+  /* Karte darf schrumpfen; Bild nicht auf volle Höhe zwingen. */
+  .ex-card{flex:1 1 auto;height:auto;max-height:100% !important;min-height:0}
+  .ex-main{gap:16px;min-height:0}
+  /* Bild bleibt innerhalb der Karte. Die Höhe kommt aus --img-max (per JS an die
+     Kartenhöhe gekoppelt) und überstimmt die max-height:none der breiten Regel. */
+  .ex-card .ex-preview{align-self:center !important;margin:0;min-height:0;
+    max-height:var(--img-max,100%) !important;overflow:hidden}
+  .ex-card .ex-preview img{max-height:var(--img-max,100%) !important}
+
+  /* Die Sätze scrollen zuverlässig innerhalb der rechten Spalte. */
+  .ex-sets{flex:1 1 0;min-height:0;overflow-y:auto}
+
+  /* Vergleichsbalken sehr kompakt, damit die Sätze Luft behalten. */
+  .ex-col .vc{margin-top:6px;padding-top:6px}
+  .vc-title{margin-bottom:5px}
+  .vc-row{margin-bottom:3px}
+
+  /* Punkte-/Pfeilzeile flacher */
+  .sess-nav{padding-top:0}
+  .sess-arrow{width:32px;height:32px}
+  .sess-arrow svg{width:16px;height:16px}
+  .sess-dot{width:7px;height:7px}
+
+  /* Nav-Leiste flacher und näher am Rand */
+  body .nav{margin-bottom:calc(6px + env(safe-area-inset-bottom));padding:5px}
+  body .nav button{padding:5px 2px;font-size:9px;gap:1px}
+  body .nav button svg{width:17px;height:17px}
+
+  /* Rest-Timer flacher und direkt über der (nun flacheren) Nav-Leiste */
+  body .rest-timer{bottom:calc(60px + env(safe-area-inset-bottom))}
+  .rt-body{padding:7px 11px}
+  .rt-time{font-size:20px}
+  .rt-ico svg{width:20px;height:20px}
+}
+
 /* Punkte + Pfeile */
 .sess-nav{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;padding-top:2px}
 .sess-nav-spacer{flex-shrink:0;height:2px}
@@ -1558,15 +1614,73 @@ function fitSessImage(){
   const prev=card.querySelector('.ex-preview');
   if(!sets) return;
 
+  const flach = window.innerHeight <= 640;
+
+  // Auf flachen Panels ist die verlässlichste Höhe window.innerHeight.
+  // Manche älteren Browser (z. B. der Chromium mancher Promethean-Panels)
+  // lösen 100dvh/100vh zu groß auf, wodurch die Karte unter Timer und Nav läuft.
+  // Wir klemmen das Session-Layout deshalb hart auf die echte Fensterhöhe.
+  if(flach){
+    const sess=card.closest('.sess');
+    const appEl=document.getElementById('app');
+    const h=window.innerHeight;
+    if(appEl){ appEl.style.height=h+'px'; }
+    if(sess){ sess.style.height=h+'px'; }
+  } else {
+    const sess=card.closest('.sess');
+    const appEl=document.getElementById('app');
+    if(appEl) appEl.style.removeProperty('height');
+    if(sess) sess.style.removeProperty('height');
+  }
+
   // Querformat (Bild neben den Sätzen): Das CSS regelt die Größen selbst,
   // hier ist keine Höhenberechnung nötig.
-  const quer = window.matchMedia('(min-width:900px) and (max-height:820px)').matches;
+  // ABER nur, wenn auch wirklich genug Höhe da ist. Auf sehr flachen Panels
+  // (z. B. Promethean 1280×588) würde der Schnellausstieg das Sicherheitsnetz
+  // gegen die Timer-Überlappung überspringen – dort rechnen wir voll durch.
+  const querBreit = window.matchMedia('(min-width:900px) and (max-height:820px)').matches;
+  const quer = querBreit && !flach;
   if(quer){
     if(vc) vc.style.display='';
     if(prev){ prev.style.display=''; card.style.removeProperty('--img-max'); }
     sets.style.maxHeight='';
     card.style.maxHeight='';
     card.classList.remove('scroll-all');
+    return;
+  }
+  // Flaches Querformat-Panel (z. B. Promethean): Größen regelt das CSS (Bild
+  // neben den Sätzen, die Sätze scrollen). Höhe NICHT selbst berechnen –
+  // aber das Sicherheitsnetz gegen die Timer-Überlappung muss laufen.
+  if(querBreit && flach){
+    if(vc) vc.style.display='';
+    sets.style.maxHeight='';
+    card.style.maxHeight='';
+    card.classList.remove('scroll-all');
+    if(prev) prev.style.display='';
+
+    // Obergrenze für die Karte: bis knapp über den Timer (bzw. bis zum unteren
+    // Rand des sess-Paddings, wenn kein Timer läuft). Ohne dvh gerechnet.
+    const timerEl=document.getElementById('restTimer');
+    const cTop=card.getBoundingClientRect().top;
+    let limitBottom;
+    if(timerEl && timerEl.classList.contains('show')){
+      limitBottom = timerEl.getBoundingClientRect().top - 6;
+    } else {
+      // kein Timer: bis zum Ende des verfügbaren sess-Bereichs
+      const sess=card.closest('.sess');
+      const sb=sess?sess.getBoundingClientRect():{bottom:window.innerHeight};
+      const csEnv=sess?parseFloat(getComputedStyle(sess).paddingBottom||0):0;
+      limitBottom = sb.bottom - csEnv - 6;
+    }
+    const maxCard=Math.max(120, Math.floor(limitBottom - cTop));
+    card.style.maxHeight = maxCard+'px';
+
+    // Bild an die (nun begrenzte) Kartenhöhe koppeln, damit es nie über die
+    // Kartenkante hinausragt – unabhängig davon, wie der Browser vh/dvh auflöst.
+    if(prev){
+      const maxImg=Math.max(60, maxCard - 4);
+      card.style.setProperty('--img-max', maxImg+'px');
+    }
     return;
   }
 
