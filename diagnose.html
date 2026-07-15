@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Display-Diagnose</title>
+<!-- Damit die Diagnose selbst als App startet, wenn man sie zum Startbildschirm hinzufügt -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  html,body{margin:0;background:#0a0c10;color:#eef2f7;font-family:system-ui,sans-serif}
+  .wrap{padding:18px;max-width:960px;margin:0 auto}
+  h1{color:#c8ff00;font-size:24px;margin:0 0 4px}
+  p.sub{color:#9aa6b8;margin:0 0 16px;font-size:14px}
+  .mode{margin:0 0 16px;padding:14px;border-radius:14px;border:2px solid #3d9bff;text-align:center}
+  .mode .n{font-size:26px;font-weight:800;color:#3d9bff}
+  .mode .l{color:#9aa6b8;font-size:13px;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:18px}
+  td{padding:10px 8px;border-bottom:1px solid #2a3240;vertical-align:top}
+  td.k{color:#9aa6b8;width:56%}
+  td.v{color:#c8ff00;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .big{margin:18px 0;padding:16px;border:2px solid #c8ff00;border-radius:14px;text-align:center}
+  .big .n{font-size:42px;font-weight:800;color:#c8ff00;line-height:1.1}
+  .big .l{color:#9aa6b8;font-size:14px;margin-top:6px}
+  .hint{margin-top:18px;padding:12px;border-radius:10px;background:#12151c;color:#9aa6b8;font-size:13px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Display-Diagnose</h1>
+  <p class="sub">Bitte GENAU SO öffnen, wie ProgressLab bei dir läuft — also im Standalone-Modus vom Startbildschirm. Foto genügt.</p>
+
+  <div class="mode">
+    <div class="n" id="mode">–</div>
+    <div class="l">Anzeigemodus</div>
+  </div>
+
+  <div class="big">
+    <div class="n" id="css">–</div>
+    <div class="l">window.innerWidth × innerHeight (CSS-Pixel)</div>
+  </div>
+
+  <table>
+    <tr><td class="k">window.innerWidth × innerHeight</td><td class="v" id="inner">–</td></tr>
+    <tr><td class="k">documentElement client W × H</td><td class="v" id="client">–</td></tr>
+    <tr><td class="k">visualViewport W × H</td><td class="v" id="vv">–</td></tr>
+    <tr><td class="k">screen.width × height</td><td class="v" id="screen">–</td></tr>
+    <tr><td class="k">screen.availWidth × availHeight</td><td class="v" id="avail">–</td></tr>
+    <tr><td class="k">100dvh gemessen</td><td class="v" id="dvh">–</td></tr>
+    <tr><td class="k">100vh gemessen</td><td class="v" id="vh">–</td></tr>
+    <tr><td class="k">100% (Body) gemessen</td><td class="v" id="pct">–</td></tr>
+    <tr><td class="k">devicePixelRatio</td><td class="v" id="dpr">–</td></tr>
+    <tr><td class="k">orientation</td><td class="v" id="ori">–</td></tr>
+    <tr><td class="k">User-Agent</td><td class="v" id="ua" style="font-size:11px;font-weight:400;color:#5f6c80">–</td></tr>
+  </table>
+
+  <div class="hint">
+    Am wichtigsten sind der <b>Anzeigemodus</b> (oben, blau) und die Zeilen <b>100dvh</b>, <b>100vh</b> und <b>innerHeight</b>.
+    Wenn diese Werte im Standalone-Modus voneinander abweichen, ist genau das die Ursache der Überlappung.
+  </div>
+
+  <!-- Mess-Sonden: unsichtbare Boxen mit dvh/vh/% Höhe, die wir auslesen -->
+  <div id="probeDvh" style="position:absolute;top:0;left:-9999px;height:100dvh"></div>
+  <div id="probeVh"  style="position:absolute;top:0;left:-9999px;height:100vh"></div>
+  <div id="probePct" style="position:absolute;top:0;left:-9999px;height:100%"></div>
+</div>
+
+<script>
+  function px(el){ return el ? Math.round(el.getBoundingClientRect().height) : '–'; }
+  function upd(){
+    var iw=window.innerWidth, ih=window.innerHeight;
+    document.getElementById('css').textContent = iw+' × '+ih;
+    document.getElementById('inner').textContent = iw+' × '+ih;
+    document.getElementById('client').textContent =
+      document.documentElement.clientWidth+' × '+document.documentElement.clientHeight;
+    if(window.visualViewport){
+      document.getElementById('vv').textContent =
+        Math.round(visualViewport.width)+' × '+Math.round(visualViewport.height);
+    } else { document.getElementById('vv').textContent = 'n/a'; }
+    document.getElementById('screen').textContent = screen.width+' × '+screen.height;
+    document.getElementById('avail').textContent = screen.availWidth+' × '+screen.availHeight;
+    document.getElementById('dvh').textContent = px(document.getElementById('probeDvh'))+' px';
+    document.getElementById('vh').textContent  = px(document.getElementById('probeVh'))+' px';
+    document.getElementById('pct').textContent = px(document.getElementById('probePct'))+' px';
+    document.getElementById('dpr').textContent = (window.devicePixelRatio||1);
+    document.getElementById('ori').textContent = (iw>ih?'quer (landscape)':'hoch (portrait)');
+    document.getElementById('ua').textContent = navigator.userAgent;
+
+    // Anzeigemodus bestimmen
+    var standalone = false, how = 'Browser-Tab';
+    if(window.matchMedia){
+      if(matchMedia('(display-mode: standalone)').matches){ standalone=true; how='Standalone (App/Vollbild)'; }
+      else if(matchMedia('(display-mode: fullscreen)').matches){ standalone=true; how='Fullscreen'; }
+      else if(matchMedia('(display-mode: minimal-ui)').matches){ how='Minimal-UI'; }
+    }
+    if(!standalone && ('standalone' in navigator) && navigator.standalone){ standalone=true; how='Standalone (iOS)'; }
+    document.getElementById('mode').textContent = how;
+    document.getElementById('mode').parentElement.style.borderColor = standalone ? '#37d99a' : '#3d9bff';
+  }
+  upd();
+  window.addEventListener('resize', upd);
+  if(window.visualViewport){ visualViewport.addEventListener('resize', upd); }
+  window.addEventListener('orientationchange', ()=>setTimeout(upd,300));
+</script>
+</body>
+</html>
