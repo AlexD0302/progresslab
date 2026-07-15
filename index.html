@@ -152,14 +152,18 @@ body.in-session.timer-on{--timer-space:78px}
 
 }
 
-/* ===== SEHR FLACHE DISPLAYS (z. B. Promethean-Panel: 1280 × 588) =====
-   Bei so geringer Höhe ist der fixe Platz unten (Nav + Timer = bis 174px)
-   der Hauptgrund für Überlappungen. Diese Regel schrumpft alles Feste unten,
-   macht Nav und Timer flacher und stellt sicher, dass NUR der Sätze-Bereich
-   scrollt – Timer, Punkte und Navigation bleiben immer frei sichtbar.
-   Bewusst OHNE dvh gerechnet, weil ältere Chromium-Builds auf solchen
-   Panels dvh nicht zuverlässig melden. */
-@media (max-height:640px){
+/* ===== FLACHE QUERFORMAT-DISPLAYS (z. B. Promethean-Panel: 1280 × 588–684) =====
+   Bei geringer Höhe ist der fixe Platz unten (Nav + Timer) der Hauptgrund für
+   Überlappungen. Diese Regel schrumpft alles Feste unten, macht Nav und Timer
+   flacher und stellt sicher, dass NUR der Sätze-Bereich scrollt – Timer, Punkte
+   und Navigation bleiben immer frei sichtbar.
+   Zwei Auslöser (Komma = ODER): breit-und-flach ODER breit-und-Standalone.
+   Der Standalone-Modus (zum Startbildschirm hinzugefügt) ist separat erfasst,
+   weil dort mancher Chromium eine größere, aber unzuverlässige Höhe meldet.
+   An die Breite (min-width:900px) gekoppelt, damit hohe Handys unberührt bleiben. */
+@media (min-width:900px) and (max-height:720px),
+       (min-width:900px) and (display-mode: standalone),
+       (min-width:900px) and (display-mode: fullscreen){
   /* Weniger Platz unten reservieren: Nav + Timer sind hier deutlich flacher. */
   body.in-session{--nav-space:66px;--timer-space:0px}
   body.in-session.timer-on{--timer-space:58px}
@@ -1614,16 +1618,33 @@ function fitSessImage(){
   const prev=card.querySelector('.ex-preview');
   if(!sets) return;
 
-  const flach = window.innerHeight <= 640;
+  // "Flaches Panel" = wenig vertikaler Platz UND breit (Querformat-Display wie
+  // das Promethean-Panel). Auch der Standalone-Modus (zum Startbildschirm
+  // hinzugefügt, ohne Adressleiste) zählt dazu: dort meldet der Chromium mancher
+  // Panels eine größere Höhe (z. B. 684 statt 600) und löst dvh unzuverlässig auf.
+  const standalone = !!(window.matchMedia && (
+      matchMedia('(display-mode: standalone)').matches ||
+      matchMedia('(display-mode: fullscreen)').matches
+  )) || (('standalone' in navigator) && navigator.standalone);
+  const breit = window.innerWidth >= 900;
+  // Schwelle 720px fängt flache Panels (588–684) ein, lässt echte Tablets (768+) aus.
+  const flach = breit && (window.innerHeight <= 720 || standalone);
 
-  // Auf flachen Panels ist die verlässlichste Höhe window.innerHeight.
-  // Manche älteren Browser (z. B. der Chromium mancher Promethean-Panels)
-  // lösen 100dvh/100vh zu groß auf, wodurch die Karte unter Timer und Nav läuft.
-  // Wir klemmen das Session-Layout deshalb hart auf die echte Fensterhöhe.
+  // Verlässlichste sichtbare Höhe bestimmen. Im Standalone-Modus kann innerHeight
+  // zu groß sein; visualViewport und clientHeight sind dann oft genauer. Wir nehmen
+  // den kleinsten plausiblen Wert (> 300), damit nichts unter Timer/Nav rutscht.
+  function echteHoehe(){
+    const cand=[window.innerHeight, document.documentElement.clientHeight];
+    if(window.visualViewport && window.visualViewport.height) cand.push(Math.round(window.visualViewport.height));
+    const gueltig=cand.filter(v=>v && v>300);
+    return gueltig.length? Math.min.apply(null, gueltig) : window.innerHeight;
+  }
+
+  // Auf flachen Panels klemmen wir das Session-Layout hart auf die echte Höhe.
   if(flach){
     const sess=card.closest('.sess');
     const appEl=document.getElementById('app');
-    const h=window.innerHeight;
+    const h=echteHoehe();
     if(appEl){ appEl.style.height=h+'px'; }
     if(sess){ sess.style.height=h+'px'; }
   } else {
