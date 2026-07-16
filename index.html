@@ -113,7 +113,17 @@ body.in-session.timer-on{--timer-space:78px}
    Reicht die Höhe nicht (kleiner Bildschirm, Windows-Skalierung), scrollt
    ausschließlich dieser Bereich – Timer, Punkte und Navigation bleiben sichtbar.
    flex-basis:0 ist entscheidend, damit die Begrenzung wirklich greift. */
-.ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+  /* Platz für den Scrollbalken reservieren, damit er das Häkchen (44px-Spalte
+     ganz rechts) nicht überdeckt. scrollbar-gutter:stable reserviert den Platz
+     nur dort, wo der Scrollbalken echten Raum braucht (klassische Scrollbars wie
+     im Panel-Chromium); bei Overlay-Scrollbars (Handy) bleibt es unsichtbar.
+     Der kleine padding-right ist nur ein optischer Mindestabstand zum Häkchen. */
+  scrollbar-gutter:stable;padding-right:2px}
+/* WebKit/ältere Chromium: schmaler, dezenter Scrollbalken neben dem Inhalt */
+.ex-sets::-webkit-scrollbar{width:6px}
+.ex-sets::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.ex-sets::-webkit-scrollbar-track{background:transparent}
 /* Notfall bei sehr flachem Fenster: die ganze Karte scrollt.
    Timer, Punkte und Navigation bleiben davon unberührt und immer sichtbar. */
 .ex-card.scroll-all{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
@@ -181,8 +191,10 @@ body.in-session.timer-on{--timer-space:78px}
   .ex-card{flex:1 1 auto;height:auto;max-height:100% !important;min-height:0}
   .ex-main{gap:16px;min-height:0}
   /* Bild bleibt innerhalb der Karte. Die Höhe kommt aus --img-max (per JS an die
-     Kartenhöhe gekoppelt) und überstimmt die max-height:none der breiten Regel. */
-  .ex-card .ex-preview{align-self:center !important;margin:0;min-height:0;
+     Kartenhöhe gekoppelt) und überstimmt die max-height:none der breiten Regel.
+     align-self:flex-start (statt center) verhindert, dass das vertikal zentrierte
+     Bild nach oben in den Kopfbereich mit den Muskelgruppen-Tags wandert. */
+  .ex-card .ex-preview{align-self:flex-start !important;margin:0;min-height:0;
     max-height:var(--img-max,100%) !important;overflow:hidden}
   .ex-card .ex-preview img{max-height:var(--img-max,100%) !important}
 
