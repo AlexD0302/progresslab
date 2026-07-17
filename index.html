@@ -2205,8 +2205,12 @@ function showPlanOverview(id){
   const perDay=p.days.map(d=>{
     const count={};
     d.exercises.forEach(e=>{
-      const m=exMeta(e.name);
-      const muscles=(m && Array.isArray(m.sm)) ? [...m.sm] : [];
+      const m=exMetaById(e.exId)||exMeta(e.name);
+      // Primär- UND Sekundärmuskeln zusammen zählen. Der Primärmuskel (pm bzw. die
+      // Hauptgruppe g) ist der wichtigste beanspruchte Muskel und darf nicht fehlen.
+      const prim = m ? (Array.isArray(m.pm)&&m.pm.length ? m.pm : (m.g?[m.g]:[])) : [];
+      const sec  = (m && Array.isArray(m.sm)) ? m.sm : [];
+      const muscles=[...prim, ...sec];
       if(!muscles.length){
         missing++;
         muscles.push((m&&m.g)||e.muscle||'—');   // Rückfall: wenigstens die Region
