@@ -484,6 +484,17 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .prev-cell:not(:empty){color:var(--accent-dim);font-weight:600}
 .total-grid{margin-top:3px}
 .total-cell{font-size:11px;color:var(--text-faint);text-align:center;font-weight:600}
+/* Satz-Volumen-Zeile: zuletzt vs. heute, direkt unter jedem Satz */
+.set-vol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
+  margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
+.set-vol:empty{margin-top:0;min-height:0}
+.sv-prev{color:var(--text-faint);font-weight:600}
+.sv-now{color:var(--accent-dim);font-weight:700}
+.sv-sep{color:var(--line);font-weight:400}
+.sv-delta{font-weight:700;padding:1px 5px;border-radius:5px;font-size:10px}
+.sv-delta.up{background:rgba(55,217,154,.14);color:var(--green)}
+.sv-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
+.sv-delta.same{color:var(--text-faint)}
 /* Eingabefeld mit angehängter Einheit */
 .in-unit{position:relative;display:flex;align-items:center}
 .in-unit .input{padding:10px 30px 10px 12px;text-align:center;width:100%}
@@ -755,6 +766,7 @@ function toRegion(g){ return REGION_OF[g] || (MUSCLES.includes(g)? g : 'Rumpf');
 const RAW = (window.EXDB_RAW||[]);
 let EXDB = [];        // kombinierte Sicht (eigene zuerst), via rebuildExDB() gefüllt
 let EXBYNAME = {};    // Name -> Datensatz
+let EXBYID = {};      // ID -> Datensatz (stabile Verknüpfung, überlebt Umbenennen)
 function customList(){ return (DB && Array.isArray(DB.customEx)) ? DB.customEx : []; }
 function allRaw(){ return customList().concat(RAW); } // eigene zuerst
 function rebuildExDB(){
@@ -762,10 +774,22 @@ function rebuildExDB(){
   // Primärgruppe auf Körperregion umschlüsseln (Datensatz nutzt feinere Gruppen)
   all.forEach(e=>{ e.g = toRegion(e.g); });
   EXDB = all.map(e=>({n:e.n, m:e.g, t:e.eq, _:e}));
-  EXBYNAME = {};
+  EXBYNAME = {}; EXBYID = {};
   all.forEach(e=>{ if(!(e.n in EXBYNAME)) EXBYNAME[e.n]=e; });
+  all.forEach(e=>{ if(e.id && !(e.id in EXBYID)) EXBYID[e.id]=e; });
 }
+// Metadaten per Name (Anzeige-Text). Bleibt für Altdaten/Anzeige erhalten.
 function exMeta(name){ return EXBYNAME[name]||null; }
+// Metadaten per ID (stabile Verknüpfung). Überlebt Umbenennen der Übung.
+function exMetaById(id){ return id ? (EXBYID[id]||null) : null; }
+// Universeller Lookup: bevorzugt die ID, fällt auf den Namen zurück.
+// Nimmt ein Objekt {exId?, name?} oder direkt (id, name).
+function resolveEx(ref, name){
+  if(ref && typeof ref==='object'){ name=ref.name; ref=ref.exId; }
+  return exMetaById(ref) || exMeta(name) || null;
+}
+// Liefert die stabile ID zu einem Übungsnamen (für Migration & neues Speichern).
+function exIdForName(name){ const m=exMeta(name); return m?m.id:null; }
 
 /* ---------- Storage ---------- */
 const KEY='progresslab.v1';
@@ -992,7 +1016,7 @@ function applyCloudData(row){
   DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
   DB.settings = (d.settings && typeof d.settings==='object') ? d.settings : DB.settings;
   DB.logs.sort((a,b)=>a.date-b.date);
-  rebuildExDB(); migrateMuscleNames();
+  rebuildExDB(); migrateMuscleNames(); migrateExerciseIds();
   saveNow();
   SYNC.rev = row.rev||0;
   SYNC.dirty=false;
@@ -1266,9 +1290,11 @@ function round(x,step){ return Math.round(x/step)*step; }
    Schlägt Gewicht/Wdh für den nächsten Satz vor, basierend auf
    der letzten protokollierten Leistung dieser Übung.
    ================================================================ */
-function lastPerf(exName){
+function lastPerf(exName, exId){
+  // Übung im Log per stabiler ID finden; Fallback auf den Namen (Altdaten).
+  const match=(e)=> (exId && e.exId===exId) || (e.name===exName);
   for(let i=DB.logs.length-1;i>=0;i--){
-    const ex=DB.logs[i].exercises.find(e=>e.name===exName);
+    const ex=DB.logs[i].exercises.find(match);
     if(ex && ex.sets.some(s=>s.done)) return {log:DB.logs[i], ex};
   }
   return null;
@@ -1281,21 +1307,21 @@ function lastSessionLog(dayName){
   }
   return null;
 }
-// Volumen einer Übung in einem Log (mit Hantel-Faktor)
-function exVolumeInLog(log, exName){
+// Volumen einer Übung in einem Log (mit Hantel-Faktor). Sucht per ID, Fallback Name.
+function exVolumeInLog(log, exName, exId){
   if(!log) return 0;
-  const e=log.exercises.find(x=>x.name===exName);
+  const e=log.exercises.find(x=> (exId && x.exId===exId) || x.name===exName);
   if(!e) return 0;
-  const f=exFactor(exName);
+  const f=exFactor(exName, exId);
   return e.sets.filter(s=>s.done!==false).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
 }
 // Volumen einer Übung in der laufenden Session (nur abgehakte Sätze)
 function exVolumeNow(ex){
-  const f=exFactor(ex.name);
+  const f=exFactor(ex.name, ex.exId);
   return ex.sets.filter(s=>s.done).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
 }
-function suggest(exName, targetReps, muscle){
-  const p=lastPerf(exName);
+function suggest(exName, targetReps, muscle, exId){
+  const p=lastPerf(exName, exId);
   const inc = isLower(muscle)?DB.settings.incrementLower:DB.settings.incrementUpper;
   if(!p){ return {weight:'', reps:targetReps, note:'Erstes Mal — taste dich heran'}; }
   const done=p.ex.sets.filter(s=>s.done);
@@ -1317,14 +1343,15 @@ function suggest(exName, targetReps, muscle){
 /* ---------- Volume / Stats helpers ---------- */
 function logVolume(log){
   return log.exercises.reduce((sum,ex)=>{
-    const f=exFactor(ex.name);
+    const f=exFactor(ex.name, ex.exId);
     return sum+ex.sets.filter(s=>s.done).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
   },0);
 }
 function est1RM(w,r){ r=+r; w=+w; if(!w||!r) return 0; return w*(1+r/30); } // Epley
 // Gewichts-Faktor einer Übung: 2 bei Kurzhantel-Übungen mit zwei Hanteln, sonst 1.
 // Das gespeicherte Satz-Gewicht ist immer das Gewicht EINER Hantel.
-function exFactor(name){ const m=exMeta(name); return (m && m.dumbbells===2) ? 2 : 1; }
+// Sucht per ID (stabil), Fallback auf den Namen.
+function exFactor(name, exId){ const m=exMetaById(exId)||exMeta(name); return (m && m.dumbbells===2) ? 2 : 1; }
 
 /* state: aktuelles Workout in Bearbeitung */
 let SESSION=null;
@@ -1529,11 +1556,18 @@ function startSession(plan, day){
     planId:plan?plan.id:null, planName:plan?plan.name:'Freies Training',
     dayName:day.name, date:Date.now(),
     exercises: day.exercises.map(ex=>{
-      const sg=suggest(ex.name, ex.reps, ex.muscle);
-      const prevSets=prevPerfSets(ex.name, day.name); // Sätze aus dem letzten Training (kann leer sein)
+      // Stabile Übungs-ID: aus dem Plan übernehmen, sonst per Name auflösen (Altpläne).
+      const exId = ex.exId || exIdForName(ex.name);
+      // Aktuellen Namen aus der Übungs-DB nehmen (falls die Übung umbenannt wurde);
+      // sonst den im Plan gespeicherten Namen.
+      const meta = exMetaById(exId);
+      const name = meta ? meta.n : ex.name;
+      const muscle = meta ? meta.g : ex.muscle;
+      const sg=suggest(name, ex.reps, muscle, exId);
+      const prevSets=prevPerfSets(name, day.name, exId); // Sätze aus dem letzten Training (kann leer sein)
       // Satzanzahl richtet sich nach dem letzten Training; ohne Vorgeschichte gilt der Plan
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
-      return {name:ex.name, muscle:ex.muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
+      return {exId, name, muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
         sets:Array.from({length:n},(_,i)=>({
           weight:'', reps:'', done:false, sug:sg,
           prev: prevSets[i] || null   // Ergebnis desselben Satzes im letzten Training
@@ -1544,15 +1578,15 @@ function startSession(plan, day){
 }
 // Liefert die abgehakten Sätze der Übung aus dem letzten Training (als {weight,reps}).
 // Bevorzugt das letzte Training DERSELBEN Einheit; sonst das letzte Vorkommen überhaupt.
-function prevPerfSets(exName, dayName){
+function prevPerfSets(exName, dayName, exId){
   if(dayName){
     const log=lastSessionLog(dayName);
-    const ex=log && log.exercises.find(e=>e.name===exName);
+    const ex=log && log.exercises.find(e=> (exId && e.exId===exId) || e.name===exName);
     if(ex && ex.sets.some(s=>s.done!==false)){
       return ex.sets.filter(s=>s.done!==false).map(s=>({weight:+s.weight||0, reps:+s.reps||0}));
     }
   }
-  const p=lastPerf(exName);
+  const p=lastPerf(exName, exId);
   if(!p) return [];
   return p.ex.sets.filter(s=>s.done).map(s=>({weight:+s.weight||0, reps:+s.reps||0}));
 }
@@ -1845,19 +1879,34 @@ function exerciseCard(ex,ei){
 function exRepsNow(ex){
   return ex.sets.filter(s=>s.done).reduce((a,s)=>a+(+s.reps||0),0);
 }
-function exRepsInLog(log, exName){
+function exRepsInLog(log, exName, exId){
   if(!log) return 0;
-  const e=log.exercises.find(x=>x.name===exName);
+  const e=log.exercises.find(x=> (exId && x.exId===exId) || x.name===exName);
   if(!e) return 0;
   return e.sets.filter(s=>s.done!==false).reduce((a,s)=>a+(+s.reps||0),0);
 }
 function volCompare(ex){
+  const exId=ex.exId;
   const prevLog=lastSessionLog(SESSION.dayName);
   let now=exVolumeNow(ex);
-  let prev=exVolumeInLog(prevLog, ex.name);
+  let prev=exVolumeInLog(prevLog, ex.name, exId);
+  // Fallback: Gibt es kein Training DERSELBEN Einheit (z. B. Einheit umbenannt,
+  // freies Training oder anderer Plan), nimm das letzte Vorkommen dieser Übung
+  // überhaupt – sonst bliebe der "Zuletzt"-Balken fälschlich leer.
+  let prevReps2=null;
+  if(!prev){
+    const lp=lastPerf(ex.name, exId);
+    if(lp){
+      const f=exFactor(ex.name, exId);
+      prev=lp.ex.sets.filter(s=>s.done!==false).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
+      prevReps2=lp.ex.sets.filter(s=>s.done!==false).reduce((a,s)=>a+(+s.reps||0),0);
+    }
+  }
   let unit='kg', title='Volumen';
   // Kein Gewicht im Spiel (Körpergewicht) -> Wiederholungen vergleichen
-  const nowReps=exRepsNow(ex), prevReps=exRepsInLog(prevLog, ex.name);
+  const nowReps=exRepsNow(ex);
+  let prevReps=exRepsInLog(prevLog, ex.name, exId);
+  if(!prevReps && prevReps2!=null) prevReps=prevReps2;
   if(now===0 && prev===0 && (nowReps>0 || prevReps>0)){
     now=nowReps; prev=prevReps; unit='Wdh'; title='Wiederholungen';
   }
@@ -1903,6 +1952,11 @@ function setRow(ex,ei,st,si){
       <span class="prev-cell">${st.prev.reps} Wdh</span>
       <span></span>
     </div>` : '';
+  // Satz-Volumen: zuletzt (aus dem letzten Training) und heute (live).
+  // f = Hantel-Faktor (2 bei zwei Hanteln), damit das Volumen zum Gesamtgewicht passt.
+  const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
+  const nowVol  = (+st.weight||0)*f*(+st.reps||0);
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol)}</div>`;
   const totalRow = f===2 ? `<div class="set-grid total-grid">
       <span></span>
       <span class="total-cell" id="tot-${ei}-${si}">${(+st.weight||0)>0?`gesamt ${(+st.weight||0)*2} kg`:''}</span>
@@ -1910,22 +1964,57 @@ function setRow(ex,ei,st,si){
     </div>` : '';
   const wInput = f===2
     ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
-    : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" onchange="setVal(${ei},${si},'weight',this.value)">`;
+    : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
+  const rInput = `<input class="input" inputmode="numeric" placeholder="${ex.targetReps||'–'}" value="${st.reps}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
     ${prevRow}
     <div class="set-grid">
       <span class="display" style="font-size:15px;color:var(--text-faint);text-align:center">${si+1}</span>
       <div class="in-unit">${wInput}<span class="unit">kg</span></div>
-      <div class="in-unit"><input class="input" inputmode="numeric" placeholder="${ex.targetReps||'–'}" value="${st.reps}" onchange="setVal(${ei},${si},'reps',this.value)"><span class="unit">Wdh</span></div>
+      <div class="in-unit">${rInput}<span class="unit">Wdh</span></div>
       <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:#0a0c10;border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
     </div>
+    ${volRow}
     ${totalRow}
   </div>`;
+}
+// Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%)"
+function setVolText(prevVol, nowVol){
+  const parts=[];
+  if(prevVol>0) parts.push(`<span class="sv-prev">zuletzt ${prevVol.toLocaleString('de-DE')} kg</span>`);
+  if(nowVol>0){
+    let d='';
+    if(prevVol>0){
+      const pct=Math.round((nowVol/prevVol-1)*100);
+      const cls=pct>0?'up':(pct<0?'down':'same');
+      d=` <span class="sv-delta ${cls}">${pct>0?'+':''}${pct}%</span>`;
+    }
+    parts.push(`<span class="sv-now">heute ${nowVol.toLocaleString('de-DE')} kg${d}</span>`);
+  }
+  return parts.join('<span class="sv-sep">·</span>');
+}
+// Live-Aktualisierung der Satz-Volumen-Zeile beim Eintippen
+function updateSetVol(ei,si){
+  const ex=SESSION.exercises[ei]; if(!ex) return;
+  const st=ex.sets[si]; if(!st) return;
+  // aktuelle Feldwerte übernehmen (damit die Anzeige sofort stimmt)
+  const block=document.querySelector(`.set-block[data-set="${ei}-${si}"]`);
+  if(block){
+    const inputs=block.querySelectorAll('.set-grid .in-unit .input');
+    if(inputs[0]) st.weight=inputs[0].value;
+    if(inputs[1]) st.reps=inputs[1].value;
+  }
+  const f=exFactor(ex.name);
+  const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
+  const nowVol  = (+st.weight||0)*f*(+st.reps||0);
+  const el=document.getElementById(`vol-${ei}-${si}`);
+  if(el) el.innerHTML=setVolText(prevVol, nowVol);
 }
 function updateTotal(ei,si,val){
   const el=document.getElementById(`tot-${ei}-${si}`); if(!el) return;
   const w=+val||0; el.textContent = w>0 ? `gesamt ${w*2} kg` : '';
   SESSION.exercises[ei].sets[si].weight=val; // Wert schon während der Eingabe halten
+  updateSetVol(ei,si); // Satz-Volumen mitziehen
 }
 function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=v; }
 function toggleSet(ei,si){
@@ -2034,10 +2123,11 @@ function addSet(ei){
 function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); renderView(); }
 function addExerciseToSession(){
   openExercisePicker(sel=>{
-    const sg=suggest(sel.n,10,sel.m);
-    const prevSets=prevPerfSets(sel.n, SESSION.dayName);
+    const exId=sel.id||exIdForName(sel.n);
+    const sg=suggest(sel.n,10,sel.m,exId);
+    const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3; // wie beim letzten Mal, sonst 3
-    SESSION.exercises.push({name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
+    SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
       sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',done:false,sug:sg,prev:prevSets[i]||null}))});
     SESSION.page=SESSION.exercises.length-1; // direkt zur neuen Übung
     closeModal(); renderView();
@@ -2048,7 +2138,7 @@ function cancelSession(){
 }
 function finishSession(){
   const s=SESSION;
-  const exercises=s.exercises.map(ex=>({name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
+  const exercises=s.exercises.map(ex=>({exId:ex.exId||exIdForName(ex.name),name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
     sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,done:true}))}))
     .filter(ex=>ex.sets.length);
   if(!exercises.length){ toast('Noch keine Sätze abgehakt'); return; }
@@ -2364,7 +2454,7 @@ function syncBuilderName(){ const el=document.getElementById('planName'); if(el)
 function addBuilderEx(di){
   syncBuilderName();
   openExercisePicker(sel=>{
-    BUILDER.days[di].exercises.push({name:sel.n,muscle:sel.m,sets:3,reps:10,rest:90});
+    BUILDER.days[di].exercises.push({exId:sel.id||exIdForName(sel.n),name:sel.n,muscle:sel.m,sets:3,reps:10,rest:90});
     renderBuilder(); // Picker schließt sich, Builder wird neu aufgebaut
     toast(sel.n+' hinzugefügt');
   });
@@ -2593,7 +2683,7 @@ function logEditAddSet(ei){ const s=LOGEDIT.exercises[ei].sets; const prev=s[s.l
 function logEditDelEx(ei){ LOGEDIT.exercises.splice(ei,1); refreshLogEdit(); }
 function logEditAddExercise(){
   openExercisePicker(sel=>{
-    LOGEDIT.exercises.push({name:sel.n,muscle:sel.m,targetReps:10,sets:[{weight:0,reps:0,done:true}]});
+    LOGEDIT.exercises.push({exId:sel.id||exIdForName(sel.n),name:sel.n,muscle:sel.m,targetReps:10,sets:[{weight:0,reps:0,done:true}]});
     renderLogEdit(); // Picker schließt, Editor kehrt zurück
     toast(sel.n+' hinzugefügt');
   });
@@ -2670,6 +2760,7 @@ function importData(ev){
         DB.logs.sort((a,b)=>a.date-b.date);
         rebuildExDB();
         migrateMuscleNames();   // alte Bezeichnungen aus älteren Backups umstellen
+        migrateExerciseIds();   // Übungs-IDs in wiederhergestellten Logs/Plänen nachtragen
         save(); go('stats'); toast('Backup wiederhergestellt ✓');
       });
   };
@@ -2688,14 +2779,23 @@ function viewStats(){
   // Volumen pro Muskel
   const perMuscle={};
   DB.logs.forEach(l=>l.exercises.forEach(e=>{
-    const f=exFactor(e.name);
+    const f=exFactor(e.name, e.exId);
     const v=e.sets.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
     perMuscle[e.muscle]=(perMuscle[e.muscle]||0)+v;
   }));
   const mArr=Object.entries(perMuscle).sort((a,b)=>b[1]-a[1]);
   const maxM=Math.max(...mArr.map(x=>x[1]),1);
-  // Übungen für 1RM-Fortschritt
-  const exNames=[...new Set(DB.logs.flatMap(l=>l.exercises.map(e=>e.name)))];
+  // Übungen für 1RM-Fortschritt: per stabiler ID gruppieren (Altdaten ohne ID per Name).
+  // So erscheint eine umbenannte Übung nur EINMAL, mit ihrer gesamten Historie.
+  const exMap=new Map();  // key = exId || ('name:'+name) -> {key, label}
+  DB.logs.forEach(l=>l.exercises.forEach(e=>{
+    const key = e.exId || ('name:'+e.name);
+    if(!exMap.has(key)){
+      const meta = e.exId ? exMetaById(e.exId) : null;
+      exMap.set(key, {key, label: meta ? meta.n : e.name});
+    }
+  }));
+  const exList=[...exMap.values()];
 
   return topbar('Your statistics')+`<div class="pad">
     <div class="row" style="gap:12px">
@@ -2737,7 +2837,7 @@ function viewStats(){
       <p class="faint" style="font-size:11.5px;margin-bottom:10px">Volumen (kg × Wdh) im Verlauf der Zeit</p>
       <div class="field" style="margin:4px 0 4px">
         <select class="input" id="strEx" onchange="renderExerciseProgress(this.value)">
-          ${exNames.map(n=>`<option>${esc(n)}</option>`).join('')}
+          ${exList.map(x=>`<option value="${escAttr(x.key)}">${esc(x.label)}</option>`).join('')}
         </select></div>
       <div id="strChart"></div>
     </div>
@@ -2745,12 +2845,17 @@ function viewStats(){
   </div>`;
 }
 // Fortschritt einer Übung: Volumen pro Training als Kurve + Tabelle aller Werte
-function renderExerciseProgress(name){
+function renderExerciseProgress(key){
   const el=document.getElementById('strChart'); if(!el) return;
+  // key ist entweder eine stabile exId oder 'name:<Name>' (Altdaten ohne ID).
+  const byName = key && key.indexOf('name:')===0;
+  const exId = byName ? null : key;
+  const name = byName ? key.slice(5) : (exMetaById(key) ? exMetaById(key).n : key);
   const rows=[];
-  const f=exFactor(name);
+  const f=exFactor(name, exId);
   DB.logs.forEach(l=>{
-    const e=l.exercises.find(x=>x.name===name);
+    // Übung im Log per ID finden (Altdaten per Name).
+    const e=l.exercises.find(x=> (exId && x.exId===exId) || x.name===name);
     if(e){
       const done=e.sets.filter(s=>s.done!==false);
       const vol=done.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
@@ -2888,7 +2993,7 @@ function refreshPickerList(){
   const el=document.getElementById('pickerList'); if(el) el.innerHTML=pickerListHTML(list);
   const c=document.getElementById('pickCount'); if(c) c.textContent=list.length;
 }
-function choosePick(name){ const e=EXDB.find(x=>x.n===name); if(e&&_pickCb) _pickCb(e); }
+function choosePick(name){ const e=EXDB.find(x=>x.n===name); if(e&&_pickCb) _pickCb({n:e.n, m:e.m, t:e.t, id:e._?e._.id:null, _:e._}); }
 
 /* ---- Exercise Detail (animierte Bildsequenz als „Video“) ---- */
 let _animTimer=null;
@@ -2996,6 +3101,27 @@ function migrateMuscleNames(){
     if(DB.settings.customMuscles.length!==before) changed=true;
   }
   if(changed){ rebuildExDB(); save(); }
+}
+// Einmalige Migration: trägt allen Übungen in bestehenden Logs und Plänen ihre
+// stabile exId nach (per Namensauflösung). Danach überlebt die Verknüpfung ein
+// Umbenennen der Übung. Läuft bei jedem Laden, ist aber idempotent (macht nichts,
+// wenn schon alle IDs gesetzt sind) und verändert Altdaten nicht destruktiv:
+// der Name bleibt als Anzeige-Text erhalten.
+function migrateExerciseIds(){
+  let changed=false, linked=0, unmatched=0;
+  const fix=(exArr)=>{
+    (exArr||[]).forEach(e=>{
+      if(e.exId) return;                 // schon verknüpft
+      const id=exIdForName(e.name);      // passende Übung per Namen suchen
+      if(id){ e.exId=id; linked++; changed=true; }
+      else { unmatched++; }              // keine Übung dieses Namens (mehr) vorhanden
+    });
+  };
+  (DB.logs||[]).forEach(l=>fix(l.exercises));
+  (DB.plans||[]).forEach(p=>(p.days||[]).forEach(d=>fix(d.exercises)));
+  if(changed){ save(); }
+  // Für Debug/Transparenz im Log (stört den Nutzer nicht)
+  if(linked||unmatched) console.log(`[Migration] Übungs-IDs verknüpft: ${linked}, ohne Treffer: ${unmatched}`);
 }
 const MAX_IMG_BYTES=1_500_000; // ~1,5 MB Warnschwelle für hochgeladene Bilder
 
@@ -3199,6 +3325,12 @@ function saveCustomExercise(isEdit){
     return;
   }
   rebuildExDB();
+  // Namen in Plänen an den (evtl. geänderten) Übungsnamen angleichen – per exId,
+  // damit umbenannte Übungen in Plänen sofort korrekt heißen. Logs bleiben bewusst
+  // unverändert (historische Genauigkeit: so hieß die Übung zum Trainingszeitpunkt).
+  (DB.plans||[]).forEach(p=>(p.days||[]).forEach(d=>(d.exercises||[]).forEach(e=>{
+    if(e.exId===c.id){ e.name=c.n; e.muscle=toRegion(c.g); }
+  })));
   save();
   MODAL_GUARD=null;      // Formular ist gespeichert, kein Schutz mehr nötig
   closeOverlay();
@@ -3275,6 +3407,7 @@ function confirmModal(title,msg,confirmLabel,onOk,onCancel){
    ================================================================ */
 rebuildExDB();
 migrateMuscleNames();   // alte Muskel-Bezeichnungen umstellen
+migrateExerciseIds();   // Übungs-IDs in bestehenden Logs/Plänen nachtragen
 renderNav();
 renderView();
 initCloud();            // Cloud-Sitzung wiederherstellen und abgleichen
