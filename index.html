@@ -478,7 +478,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .cal-wd{margin-bottom:6px}
 .cal-wdlbl{text-align:center;font-size:10.5px;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;color:var(--text-faint);padding:2px 0}
-.cal-cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+.cal-cell{position:relative;aspect-ratio:1;min-width:0;display:flex;align-items:center;justify-content:center;
   border-radius:10px;background:var(--surface-2);border:1px solid transparent}
 .cal-cell.empty{background:transparent}
 .cal-num{font-size:14px;font-weight:600;color:var(--text-dim);font-variant-numeric:tabular-nums}
@@ -2662,9 +2662,9 @@ function calendarHtml(){
 
   const wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
   let cells='';
-  // Leerzellen vor dem Ersten
-  for(let i=0;i<startWd;i++) cells+=`<div class="cal-cell empty"></div>`;
-  // Tageszellen
+  // Keine Leerzellen mehr: Der erste Tag wird per grid-column-start an die
+  // richtige Wochentagsspalte gesetzt. Das vermeidet, dass leere Platzhalter-
+  // zellen die Höhe der ersten Zeile aufblähen.
   for(let day=1;day<=daysInMonth;day++){
     const key=year+'-'+month+'-'+day;
     const dayLogs=byDay[key]||[];
@@ -2673,10 +2673,12 @@ function calendarHtml(){
     const cls=['cal-cell'];
     if(trained) cls.push('trained');
     if(isToday) cls.push('today');
+    // Nur der erste Tag bekommt die Spalten-Startposition (1-basiert: Mo=1..So=7)
+    const colStyle = day===1 ? ` style="grid-column-start:${startWd+1}"` : '';
     // Mehrere Trainings am selben Tag: kleiner Zähler
     const badge = dayLogs.length>1 ? `<span class="cal-badge">${dayLogs.length}</span>` : '';
     const onclick = trained ? ` onclick="openDayLogs('${key}')"` : '';
-    cells+=`<div class="${cls.join(' ')}"${onclick}>
+    cells+=`<div class="${cls.join(' ')}"${colStyle}${onclick}>
       <span class="cal-num">${day}</span>${badge}
     </div>`;
   }
