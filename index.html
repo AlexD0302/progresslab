@@ -462,6 +462,57 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .log-btn.danger{color:var(--red);border-color:rgba(255,92,92,.25)}
 .log-btn.danger:hover{background:rgba(255,92,92,.1);color:var(--red)}
 
+/* ============ VERLAUFS-KALENDER ============ */
+.cal-wrap{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);
+  padding:16px 14px;max-width:460px;margin:0 auto}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.cal-title{font-family:var(--font-display);font-size:21px;font-weight:700;letter-spacing:.01em;text-transform:capitalize}
+.cal-nav{width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;color:var(--text-dim);
+  font-size:20px;line-height:1;cursor:pointer;transition:all .12s;flex-shrink:0}
+.cal-nav:hover:not(:disabled){background:var(--surface-3);color:var(--text)}
+.cal-nav:active:not(:disabled){transform:scale(.94)}
+.cal-nav:disabled{opacity:.3;cursor:default}
+.cal-nav svg{width:18px;height:18px;stroke-width:2.5}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-wd{margin-bottom:6px}
+.cal-wdlbl{text-align:center;font-size:10.5px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text-faint);padding:2px 0}
+.cal-cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:10px;background:var(--surface-2);border:1px solid transparent}
+.cal-cell.empty{background:transparent}
+.cal-num{font-size:14px;font-weight:600;color:var(--text-dim);font-variant-numeric:tabular-nums}
+/* Trainingstag: dezent leuchtendes Grün */
+.cal-cell.trained{
+  background:var(--accent-glow);
+  border-color:rgba(200,255,0,.4);
+  cursor:pointer;
+  box-shadow:0 0 10px rgba(200,255,0,.22), inset 0 0 8px rgba(200,255,0,.08);
+  transition:transform .12s, box-shadow .2s;
+}
+.cal-cell.trained .cal-num{color:var(--accent);font-weight:700}
+.cal-cell.trained:hover{
+  box-shadow:0 0 16px rgba(200,255,0,.4), inset 0 0 10px rgba(200,255,0,.14);
+  transform:translateY(-1px);
+}
+.cal-cell.trained:active{transform:scale(.95)}
+/* Heutiger Tag: Ring, auch ohne Training erkennbar */
+.cal-cell.today{border-color:var(--text-dim)}
+.cal-cell.today.trained{border-color:var(--accent)}
+.cal-cell.today .cal-num{color:var(--text)}
+.cal-cell.today.trained .cal-num{color:var(--accent)}
+/* Zähler bei mehreren Trainings am selben Tag */
+.cal-badge{position:absolute;top:3px;right:4px;min-width:15px;height:15px;padding:0 4px;
+  display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;
+  background:var(--accent);color:var(--bg);border-radius:8px;line-height:1}
+/* Monats-Zusammenfassung unter dem Kalender */
+.cal-summary{display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)}
+.cal-sum-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.cal-sum-num{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--accent);line-height:1}
+.cal-sum-lbl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint)}
+.cal-empty-month{margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft);
+  text-align:center;font-size:12.5px;color:var(--text-faint)}
+
 /* Detail-/Editor-Ansicht eines Trainings */
 .det-ex{background:transparent;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
 .det-grid{display:grid;grid-template-columns:44px 1fr 1fr;gap:10px;align-items:center;padding:5px 2px;font-size:13.5px}
@@ -2573,32 +2624,121 @@ function refreshExList(){
 /* ================================================================
    VIEW: HISTORY
    ================================================================ */
+// Aktuell angezeigter Monat im Verlaufs-Kalender (Offset 0 = aktueller Monat).
+let HIST_MONTH=null; // {year, month} – wird beim ersten Rendern gesetzt
 function viewHistory(){
-  const logs=[...DB.logs].reverse();
-  return topbar('Training history')+`<div class="pad">
-    ${logs.length? logs.map(l=>historyCard(l)).join('') : `<div class="empty">${I.history}
-      <h3>Noch kein Training</h3><p style="font-size:13.5px">Deine abgeschlossenen Einheiten erscheinen hier.</p></div>`}
+  if(!DB.logs.length) return topbar('Training history')+`<div class="pad"><div class="empty">${I.history}
+    <h3>Noch kein Training</h3><p style="font-size:13.5px">Deine abgeschlossenen Einheiten erscheinen hier.</p></div></div>`;
+  const now=new Date();
+  if(!HIST_MONTH) HIST_MONTH={year:now.getFullYear(), month:now.getMonth()};
+  return topbar('Training history')+`<div class="pad">${calendarHtml()}</div>`;
+}
+// Gruppiert alle Logs nach Kalendertag (lokale Zeit): 'YYYY-M-D' -> [logs]
+function logsByDay(){
+  const map={};
+  DB.logs.forEach(l=>{
+    const d=new Date(l.date);
+    const key=d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+    (map[key]||(map[key]=[])).push(l);
+  });
+  return map;
+}
+function calendarHtml(){
+  const {year, month}=HIST_MONTH;
+  const byDay=logsByDay();
+  const first=new Date(year, month, 1);
+  const daysInMonth=new Date(year, month+1, 0).getDate();
+  // Wochenstart Montag: JS getDay() 0=So..6=Sa -> in Mo..So umrechnen
+  let startWd=first.getDay(); startWd=(startWd===0)?6:startWd-1;
+  const monthName=first.toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  const today=new Date();
+  const todayKey=today.getFullYear()+'-'+today.getMonth()+'-'+today.getDate();
+
+  // Gibt es überhaupt frühere/spätere Logs? (für Pfeil-Deaktivierung)
+  const monthStart=new Date(year,month,1).getTime();
+  const monthEnd=new Date(year,month+1,1).getTime();
+  const hasOlder=DB.logs.some(l=>l.date<monthStart);
+  const hasNewer=DB.logs.some(l=>l.date>=monthEnd);
+
+  const wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let cells='';
+  // Leerzellen vor dem Ersten
+  for(let i=0;i<startWd;i++) cells+=`<div class="cal-cell empty"></div>`;
+  // Tageszellen
+  for(let day=1;day<=daysInMonth;day++){
+    const key=year+'-'+month+'-'+day;
+    const dayLogs=byDay[key]||[];
+    const trained=dayLogs.length>0;
+    const isToday=(key===todayKey);
+    const cls=['cal-cell'];
+    if(trained) cls.push('trained');
+    if(isToday) cls.push('today');
+    // Mehrere Trainings am selben Tag: kleiner Zähler
+    const badge = dayLogs.length>1 ? `<span class="cal-badge">${dayLogs.length}</span>` : '';
+    const onclick = trained ? ` onclick="openDayLogs('${key}')"` : '';
+    cells+=`<div class="${cls.join(' ')}"${onclick}>
+      <span class="cal-num">${day}</span>${badge}
+    </div>`;
+  }
+
+  // Monats-Zusammenfassung
+  const monthLogs=DB.logs.filter(l=>l.date>=monthStart && l.date<monthEnd);
+  const mVol=monthLogs.reduce((a,l)=>a+logVolume(l),0);
+  const trainDays=new Set(monthLogs.map(l=>{const d=new Date(l.date);return d.getDate();})).size;
+
+  return `<div class="cal-wrap">
+    <div class="cal-head">
+      <button class="cal-nav" onclick="histShiftMonth(-1)" ${hasOlder?'':'disabled'} aria-label="Vorheriger Monat">${I.chevronL}</button>
+      <div class="cal-title">${monthName}</div>
+      <button class="cal-nav" onclick="histShiftMonth(1)" ${hasNewer?'':'disabled'} aria-label="Nächster Monat">${I.chevron}</button>
+    </div>
+    <div class="cal-grid cal-wd">${wd.map(d=>`<div class="cal-wdlbl">${d}</div>`).join('')}</div>
+    <div class="cal-grid">${cells}</div>
+    ${monthLogs.length?`<div class="cal-summary">
+      <div class="cal-sum-item"><span class="cal-sum-num">${trainDays}</span><span class="cal-sum-lbl">Trainingstage</span></div>
+      <div class="cal-sum-item"><span class="cal-sum-num">${monthLogs.length}</span><span class="cal-sum-lbl">Einheiten</span></div>
+      <div class="cal-sum-item"><span class="cal-sum-num">${(mVol/1000).toFixed(1)}<span style="font-size:13px;color:var(--text-dim)">t</span></span><span class="cal-sum-lbl">Volumen</span></div>
+    </div>`:`<div class="cal-empty-month">In diesem Monat kein Training</div>`}
   </div>`;
 }
-function historyCard(l){
-  const vol=logVolume(l);
-  const sets=l.exercises.reduce((a,e)=>a+e.sets.length,0);
-  return `<div class="card" style="margin-bottom:12px">
-    <div class="row between">
-      <div><div class="display" style="font-size:19px">${esc(l.dayName)}</div>
-      <div class="faint" style="font-size:12px">${fmtDate(l.date)} · ${fmtDay(l.date)}</div></div>
-    </div>
-    <div class="row wrap" style="gap:8px;margin:12px 0 14px">
-      <span class="chip">${l.exercises.length} Übungen</span>
-      <span class="chip">${sets} Sätze</span>
-      <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${vol.toLocaleString('de-DE')} kg</span>
-    </div>
-    <div class="log-actions">
-      <button class="log-btn" onclick="showLogDetail('${l.id}')">${I.list}<span>Details</span></button>
-      <button class="log-btn" onclick="editLog('${l.id}')">${I.edit}<span>Bearbeiten</span></button>
-      <button class="log-btn danger" onclick="deleteLog('${l.id}')">${I.trash}<span>Löschen</span></button>
-    </div>
-  </div>`;
+function histShiftMonth(dir){
+  let {year, month}=HIST_MONTH;
+  month+=dir;
+  if(month<0){ month=11; year--; }
+  else if(month>11){ month=0; year++; }
+  HIST_MONTH={year, month};
+  renderView();
+}
+// Öffnet die Trainings eines Tages. Bei einem Training direkt die Details,
+// bei mehreren eine kleine Auswahl.
+function openDayLogs(key){
+  const byDay=logsByDay();
+  const logs=byDay[key]||[];
+  if(!logs.length) return;
+  if(logs.length===1){ showLogDetail(logs[0].id); return; }
+  // Mehrere: Auswahlliste
+  const d=new Date(logs[0].date);
+  const dateStr=d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  openModal(`<div class="grab"></div>
+    <h2>${logs.length} Trainings</h2>
+    <p class="faint" style="font-size:12.5px;margin:4px 0 16px">${dateStr}</p>
+    ${logs.map(l=>{
+      const vol=logVolume(l);
+      const sets=l.exercises.reduce((a,e)=>a+e.sets.length,0);
+      return `<div class="card" style="padding:13px 15px;margin-bottom:10px;cursor:pointer" onclick="closeModal();showLogDetail('${l.id}')">
+        <div class="row between">
+          <div class="display" style="font-size:17px">${esc(l.dayName)}</div>
+          <span class="faint" style="font-size:11px">${new Date(l.date).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}</span>
+        </div>
+        <div class="row wrap" style="gap:8px;margin-top:10px">
+          <span class="chip">${l.exercises.length} Übungen</span>
+          <span class="chip">${sets} Sätze</span>
+          <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${vol.toLocaleString('de-DE')} kg</span>
+        </div>
+      </div>`;
+    }).join('')}
+    <button class="btn ghost" style="margin-top:4px" onclick="closeModal()">Schließen</button>
+  `, true);
 }
 function deleteLog(id){ confirmModal('Eintrag löschen?','','Löschen',()=>{ DB.logs=DB.logs.filter(l=>l.id!==id); save(); renderView(); }); }
 
@@ -2633,7 +2773,11 @@ function showLogDetail(id){
         </div>`).join('')}
       </div>`;
     }).join('')}
-    <button class="btn ghost" style="margin-top:16px" onclick="closeModal()">Schließen</button>`);
+    <div class="log-actions" style="margin-top:16px">
+      <button class="log-btn" onclick="closeModal();editLog('${l.id}')">${I.edit}<span>Bearbeiten</span></button>
+      <button class="log-btn danger" onclick="closeModal();deleteLog('${l.id}')">${I.trash}<span>Löschen</span></button>
+    </div>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Schließen</button>`);
 }
 
 /* ---- Bearbeiten eines vergangenen Trainings ---- */
