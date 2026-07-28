@@ -190,17 +190,18 @@ body.in-session.timer-on{--timer-space:78px}
   /* Karte darf schrumpfen; Bild nicht auf volle Höhe zwingen. */
   .ex-card{flex:1 1 auto;height:auto;max-height:100% !important;min-height:0}
   .ex-main{gap:16px;min-height:0}
-  /* Bild bleibt innerhalb der Karte. Die Höhe kommt aus --img-max (per JS an die
-     Kartenhöhe gekoppelt) und überstimmt die max-height:none der breiten Regel.
-     align-self:flex-start (statt center) verhindert, dass das vertikal zentrierte
-     Bild nach oben in den Kopfbereich mit den Muskelgruppen-Tags wandert.
-     width:fit-content + overflow:visible: die Box umschließt das Bild exakt und
-     beschneidet es nicht mehr – dadurch bleiben die abgerundeten Ecken unten
-     sichtbar (der Radius sitzt zusätzlich direkt auf dem Bild). */
-  .ex-card .ex-preview{align-self:flex-start !important;margin:0;min-height:0;
-    max-height:var(--img-max,100%) !important;overflow:visible;
-    width:fit-content;max-width:48%;height:auto}
-  .ex-card .ex-preview img{max-height:var(--img-max,100%) !important;
+  /* Konsistenter Bildrahmen: streckt sich auf die Höhe des Hauptbereichs
+     (align-self:stretch). Dadurch ist er per Definition nie höher als die Karte
+     erlaubt (kein Abschneiden möglich) und für jede Übung gleich groß – egal
+     welches Format das Bild hat. Das Bild schwimmt zentriert darin, mit etwas
+     Luft zum Kartenrahmen. Der Hauptbereich beginnt unterhalb der Kopfzeile,
+     daher können die Muskelgruppen-Tags nicht überlappt werden. */
+  .ex-card .ex-preview{align-self:stretch !important;margin:0;min-height:0;
+    flex:0 0 44%;max-width:48%;width:auto;height:auto;
+    max-height:100% !important;
+    display:flex;align-items:center;justify-content:center;
+    padding:4px 4px 8px;overflow:hidden}
+  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
     border-radius:12px;display:block}
 
   /* Die Sätze scrollen zuverlässig innerhalb der rechten Spalte. */
@@ -352,7 +353,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .rest-timer{position:fixed;left:50%;transform:translateX(-50%) translateY(140%);
   bottom:calc(84px + env(safe-area-inset-bottom));
   width:calc(100% - 40px);max-width:480px;z-index:60;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;
   box-shadow:0 8px 30px rgba(0,0,0,.5);opacity:0;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .3s}
 .rest-timer.show{transform:translateX(-50%) translateY(0);opacity:1}
 .rt-bar{height:4px;background:var(--surface-3)}
@@ -515,12 +516,21 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 
 /* Detail-/Editor-Ansicht eines Trainings */
 .det-ex{background:transparent;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
-.det-grid{display:grid;grid-template-columns:44px 1fr 1fr;gap:10px;align-items:center;padding:5px 2px;font-size:13.5px}
-.det-grid.det-grid-edit{grid-template-columns:44px 1fr 1fr 40px}
+.det-grid{display:grid;grid-template-columns:44px 1fr 1fr 48px;gap:10px;align-items:center;padding:5px 2px;font-size:13.5px}
+.det-grid.det-grid-edit{grid-template-columns:44px 1fr 1fr 48px 40px}
 .det-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;border-bottom:1px solid var(--line-soft);padding-bottom:7px;margin-bottom:3px}
 
 /* Trainings-Satz-Grid */
-.set-grid{display:grid;grid-template-columns:26px 1fr 1fr 44px;gap:8px;align-items:center}
+.set-grid{display:grid;grid-template-columns:24px 1fr 1fr 50px 44px;gap:8px;align-items:center}
+/* RIR-Auswahl (Reps in Reserve): kompaktes Feld in der eigenen Spalte */
+.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;width:100%;
+  -webkit-appearance:none;appearance:none;background-image:none}
+/* Schmale Bildschirme: engere feste Spalten, damit kg/Wdh genug Platz behalten */
+@media (max-width:420px){
+  .set-grid{gap:6px;grid-template-columns:20px 1fr 1fr 46px 44px}
+  .in-unit .input{padding:10px 24px 10px 8px}
+  .in-unit .unit{right:7px;font-size:10px}
+}
 .set-head{font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:6px;padding:0 2px}
 .set-block{margin-bottom:10px}
 /* Großes, zentriertes Vorschaubild über der Satz-Tabelle */
@@ -1627,7 +1637,7 @@ function startSession(plan, day){
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
       return {exId, name, muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
         sets:Array.from({length:n},(_,i)=>({
-          weight:'', reps:'', done:false, sug:sg,
+          weight:'', reps:'', rir:'', done:false, sug:sg,
           prev: prevSets[i] || null   // Ergebnis desselben Satzes im letzten Training
         }))};
     })
@@ -1641,12 +1651,12 @@ function prevPerfSets(exName, dayName, exId){
     const log=lastSessionLog(dayName);
     const ex=log && log.exercises.find(e=> (exId && e.exId===exId) || e.name===exName);
     if(ex && ex.sets.some(s=>s.done!==false)){
-      return ex.sets.filter(s=>s.done!==false).map(s=>({weight:+s.weight||0, reps:+s.reps||0}));
+      return ex.sets.filter(s=>s.done!==false).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
     }
   }
   const p=lastPerf(exName, exId);
   if(!p) return [];
-  return p.ex.sets.filter(s=>s.done).map(s=>({weight:+s.weight||0, reps:+s.reps||0}));
+  return p.ex.sets.filter(s=>s.done).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
 }
 function startFreestyle(){ SESSION={planId:null,planName:'Freies Training',dayName:'Freies Training',date:Date.now(),exercises:[]}; go('today'); }
 
@@ -1805,12 +1815,10 @@ function fitSessImage(){
     const maxCard=Math.max(120, Math.floor(limitBottom - cTop));
     card.style.maxHeight = maxCard+'px';
 
-    // Bild an die (nun begrenzte) Kartenhöhe koppeln, damit es nie über die
-    // Kartenkante hinausragt – unabhängig davon, wie der Browser vh/dvh auflöst.
-    if(prev){
-      const maxImg=Math.max(60, maxCard - 4);
-      card.style.setProperty('--img-max', maxImg+'px');
-    }
+    // Bildgröße regelt jetzt das CSS strukturell (align-self:stretch auf dem
+    // Rahmen): Er ist immer exakt so hoch wie der Hauptbereich – kein Abschneiden
+    // möglich. Die frühere Pixel-Berechnung entfällt; nur Altwerte aufräumen.
+    if(prev){ card.style.removeProperty('--img-max'); }
     return;
   }
 
@@ -1923,7 +1931,7 @@ function exerciseCard(ex,ei){
       <div class="ex-col">
         <div class="ex-sets">
           <div class="set-grid set-head">
-            <span>#</span><span>KG</span><span>WDH</span><span></span></div>
+            <span>#</span><span>KG</span><span>WDH</span><span style="text-align:center">RIR</span><span></span></div>
           ${ex.sets.map((st,si)=>setRow(ex,ei,st,si)).join('')}
           <button class="add-set" onclick="addSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
         </div>
@@ -2008,6 +2016,7 @@ function setRow(ex,ei,st,si){
       <span></span>
       <span class="prev-cell">${st.prev.weight} kg</span>
       <span class="prev-cell">${st.prev.reps} Wdh</span>
+      <span class="prev-cell">${(st.prev.rir!=null&&st.prev.rir!=='')?('RIR '+st.prev.rir):''}</span>
       <span></span>
     </div>` : '';
   // Satz-Volumen: zuletzt (aus dem letzten Training) und heute (live).
@@ -2018,8 +2027,13 @@ function setRow(ex,ei,st,si){
   const totalRow = f===2 ? `<div class="set-grid total-grid">
       <span></span>
       <span class="total-cell" id="tot-${ei}-${si}">${(+st.weight||0)>0?`gesamt ${(+st.weight||0)*2} kg`:''}</span>
-      <span></span><span></span>
+      <span></span><span></span><span></span>
     </div>` : '';
+  // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
+  const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR">
+      <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
+      ${[0,1,2,3,4,5].map(v=>`<option value="${v}"${String(st.rir)===String(v)?' selected':''}>${v}</option>`).join('')}
+    </select>`;
   const wInput = f===2
     ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
     : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
@@ -2030,6 +2044,7 @@ function setRow(ex,ei,st,si){
       <span class="display" style="font-size:15px;color:var(--text-faint);text-align:center">${si+1}</span>
       <div class="in-unit">${wInput}<span class="unit">kg</span></div>
       <div class="in-unit">${rInput}<span class="unit">Wdh</span></div>
+      ${rirSel}
       <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:#0a0c10;border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
     </div>
     ${volRow}
@@ -2176,7 +2191,7 @@ function restAlert(){
 }
 function addSet(ei){
   const ex=SESSION.exercises[ei]; const prev=ex.sets[ex.sets.length-1];
-  ex.sets.push({weight:'',reps:'',done:false,sug:prev?prev.sug:null,prev:null}); renderView();
+  ex.sets.push({weight:'',reps:'',rir:'',done:false,sug:prev?prev.sug:null,prev:null}); renderView();
 }
 function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); renderView(); }
 function addExerciseToSession(){
@@ -2186,7 +2201,7 @@ function addExerciseToSession(){
     const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3; // wie beim letzten Mal, sonst 3
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
-      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',done:false,sug:sg,prev:prevSets[i]||null}))});
+      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'',done:false,sug:sg,prev:prevSets[i]||null}))});
     SESSION.page=SESSION.exercises.length-1; // direkt zur neuen Übung
     closeModal(); renderView();
   });
@@ -2197,7 +2212,7 @@ function cancelSession(){
 function finishSession(){
   const s=SESSION;
   const exercises=s.exercises.map(ex=>({exId:ex.exId||exIdForName(ex.name),name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
-    sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,done:true}))}))
+    sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:(x.rir===''||x.rir==null)?null:+x.rir,done:true}))}))
     .filter(ex=>ex.sets.length);
   if(!exercises.length){ toast('Noch keine Sätze abgehakt'); return; }
   DB.logs.push({id:uid(),date:s.date,planName:s.planName,dayName:s.dayName,exercises});
@@ -2767,11 +2782,12 @@ function showLogDetail(id){
             <div class="faint" style="font-size:11px">${esc(e.muscle||'')} · ${evol.toLocaleString('de-DE')} kg${f===2?' · 2 Hanteln':''}</div></div>
           </div>
         </div>
-        <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span></div>
+        <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span><span>RIR</span></div>
         ${e.sets.map((s,i)=>`<div class="det-grid">
           <span class="num" style="color:var(--text-faint)">${i+1}</span>
           <span class="num" style="font-weight:600">${s.weight} kg${f===2?` <span style="color:var(--text-faint);font-weight:400">(ges. ${(+s.weight||0)*2} kg)</span>`:''}</span>
           <span class="num" style="font-weight:600">${s.reps}</span>
+          <span class="num" style="color:var(--text-dim)">${(s.rir!=null&&s.rir!=='')?s.rir:'–'}</span>
         </div>`).join('')}
       </div>`;
     }).join('')}
@@ -2823,11 +2839,12 @@ function logEditBody(){
         </div>
         <button class="chip" onclick="logEditDelEx(${ei})" style="padding:6px 9px">${I.trash}</button>
       </div>
-      <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span><span></span></div>
+      <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span><span>RIR</span><span></span></div>
       ${e.sets.map((s,si)=>`<div class="det-grid det-grid-edit">
         <span class="num" style="color:var(--text-faint);text-align:center">${si+1}</span>
         <input class="input" style="padding:8px;text-align:center" inputmode="decimal" value="${s.weight}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].weight=+this.value||0">
         <input class="input" style="padding:8px;text-align:center" inputmode="numeric" value="${s.reps}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].reps=+this.value||0">
+        <input class="input" style="padding:8px 4px;text-align:center" inputmode="numeric" placeholder="–" value="${(s.rir!=null&&s.rir!=='')?s.rir:''}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].rir=(this.value===''?null:+this.value)">
         <button class="chip" onclick="logEditDelSet(${ei},${si})" style="padding:6px 8px;justify-self:end">${I.trash}</button>
       </div>`).join('')}
       <button class="add-set" onclick="logEditAddSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
