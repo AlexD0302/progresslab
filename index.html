@@ -483,17 +483,22 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
   border-radius:10px;background:var(--surface-2);border:1px solid transparent}
 .cal-cell.empty{background:transparent}
 .cal-num{font-size:14px;font-weight:600;color:var(--text-dim);font-variant-numeric:tabular-nums}
-/* Trainingstag: dezent leuchtendes Grün */
+/* Trainingstag: läuft von unten grün voll – der Füllstand (--fill) zeigt, wie
+   viele der geplanten Übungen absolviert wurden (100 % = ganzer Tag leuchtet). */
 .cal-cell.trained{
-  background:var(--accent-glow);
+  background:var(--surface-2);
   border-color:rgba(200,255,0,.4);
   cursor:pointer;
-  box-shadow:0 0 10px rgba(200,255,0,.22), inset 0 0 8px rgba(200,255,0,.08);
+  overflow:hidden;
+  box-shadow:0 0 10px rgba(200,255,0,.22);
   transition:transform .12s, box-shadow .2s;
 }
-.cal-cell.trained .cal-num{color:var(--accent);font-weight:700}
+.cal-cell.trained::before{content:"";position:absolute;left:0;right:0;bottom:0;
+  height:var(--fill,100%);background:var(--accent-glow);
+  box-shadow:inset 0 0 8px rgba(200,255,0,.08);pointer-events:none}
+.cal-cell.trained .cal-num{position:relative;z-index:1;color:var(--accent);font-weight:700}
 .cal-cell.trained:hover{
-  box-shadow:0 0 16px rgba(200,255,0,.4), inset 0 0 10px rgba(200,255,0,.14);
+  box-shadow:0 0 16px rgba(200,255,0,.4);
   transform:translateY(-1px);
 }
 .cal-cell.trained:active{transform:scale(.95)}
@@ -522,8 +527,10 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 
 /* Trainings-Satz-Grid */
 .set-grid{display:grid;grid-template-columns:24px 1fr 1fr 50px 44px;gap:8px;align-items:center}
-/* RIR-Auswahl (Reps in Reserve): kompaktes Feld in der eigenen Spalte */
-.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;width:100%;
+/* RIR-Auswahl (Reps in Reserve): kompaktes Feld in der eigenen Spalte.
+   select.input.rir-sel überstimmt die select.input-Regel mit dem Pfeil-Icon –
+   bei so einem schmalen Feld würde der Pfeil die Zahl überlagern. */
+select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;width:100%;
   -webkit-appearance:none;appearance:none;background-image:none}
 /* Schmale Bildschirme: engere feste Spalten, damit kg/Wdh genug Platz behalten */
 @media (max-width:420px){
@@ -549,6 +556,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .set-vol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
   margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
 .set-vol:empty{margin-top:0;min-height:0}
+.sv-total{color:var(--text-dim);font-weight:700}
 .sv-prev{color:var(--text-faint);font-weight:600}
 .sv-now{color:var(--accent-dim);font-weight:700}
 .sv-sep{color:var(--line);font-weight:400}
@@ -2023,12 +2031,8 @@ function setRow(ex,ei,st,si){
   // f = Hantel-Faktor (2 bei zwei Hanteln), damit das Volumen zum Gesamtgewicht passt.
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol)}</div>`;
-  const totalRow = f===2 ? `<div class="set-grid total-grid">
-      <span></span>
-      <span class="total-cell" id="tot-${ei}-${si}">${(+st.weight||0)>0?`gesamt ${(+st.weight||0)*2} kg`:''}</span>
-      <span></span><span></span><span></span>
-    </div>` : '';
+  const totalKg = f===2 ? (+st.weight||0)*2 : 0;
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg)}</div>`;
   // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
   const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
@@ -2048,12 +2052,14 @@ function setRow(ex,ei,st,si){
       <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:#0a0c10;border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
     </div>
     ${volRow}
-    ${totalRow}
   </div>`;
 }
 // Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%)"
-function setVolText(prevVol, nowVol){
+function setVolText(prevVol, nowVol, totalKg){
   const parts=[];
+  // Bei 2-Hantel-Übungen: Gesamtgewicht (beide Hanteln) in derselben Zeile,
+  // damit alles auf einer Höhe steht statt in einer versetzten Extra-Zeile.
+  if(totalKg>0) parts.push(`<span class="sv-total">gesamt ${totalKg} kg</span>`);
   if(prevVol>0) parts.push(`<span class="sv-prev">zuletzt ${prevVol.toLocaleString('de-DE')} kg</span>`);
   if(nowVol>0){
     let d='';
@@ -2080,14 +2086,13 @@ function updateSetVol(ei,si){
   const f=exFactor(ex.name);
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
+  const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const el=document.getElementById(`vol-${ei}-${si}`);
-  if(el) el.innerHTML=setVolText(prevVol, nowVol);
+  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg);
 }
 function updateTotal(ei,si,val){
-  const el=document.getElementById(`tot-${ei}-${si}`); if(!el) return;
-  const w=+val||0; el.textContent = w>0 ? `gesamt ${w*2} kg` : '';
   SESSION.exercises[ei].sets[si].weight=val; // Wert schon während der Eingabe halten
-  updateSetVol(ei,si); // Satz-Volumen mitziehen
+  updateSetVol(ei,si); // Gesamtgewicht + Satz-Volumen stehen zusammen in der Info-Zeile
 }
 function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=v; }
 function toggleSet(ei,si){
@@ -2215,7 +2220,7 @@ function finishSession(){
     sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:(x.rir===''||x.rir==null)?null:+x.rir,done:true}))}))
     .filter(ex=>ex.sets.length);
   if(!exercises.length){ toast('Noch keine Sätze abgehakt'); return; }
-  DB.logs.push({id:uid(),date:s.date,planName:s.planName,dayName:s.dayName,exercises});
+  DB.logs.push({id:uid(),date:s.date,planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises});
   save(); SESSION=null; closeRest(); toast('Training gespeichert 💪'); go('history');
 }
 
@@ -2658,6 +2663,22 @@ function logsByDay(){
   });
   return map;
 }
+// Erfüllungsgrad eines Trainingstages: absolvierte Übungen / geplante Übungen
+// der Einheit. Ohne zuordenbaren Plan (freies Training, gelöschter Plan) gilt 100 %.
+// Bei mehreren Trainings am Tag zählt das beste.
+function dayCompletion(dayLogs){
+  let best=0;
+  dayLogs.forEach(l=>{
+    let pct=1;
+    const plan=(l.planId && DB.plans.find(p=>p.id===l.planId)) || DB.plans.find(p=>p.name===l.planName);
+    const day=plan && (plan.days||[]).find(d=>d.name===l.dayName);
+    if(day && day.exercises && day.exercises.length){
+      pct=Math.min(1, (l.exercises||[]).length / day.exercises.length);
+    }
+    best=Math.max(best, pct);
+  });
+  return best;
+}
 function calendarHtml(){
   const {year, month}=HIST_MONTH;
   const byDay=logsByDay();
@@ -2688,8 +2709,12 @@ function calendarHtml(){
     const cls=['cal-cell'];
     if(trained) cls.push('trained');
     if(isToday) cls.push('today');
-    // Nur der erste Tag bekommt die Spalten-Startposition (1-basiert: Mo=1..So=7)
-    const colStyle = day===1 ? ` style="grid-column-start:${startWd+1}"` : '';
+    // Nur der erste Tag bekommt die Spalten-Startposition (1-basiert: Mo=1..So=7);
+    // Trainingstage zusätzlich den Füllstand (wie voll der Tag "grün vollläuft").
+    const styles=[];
+    if(day===1) styles.push(`grid-column-start:${startWd+1}`);
+    if(trained) styles.push(`--fill:${Math.round(dayCompletion(dayLogs)*100)}%`);
+    const colStyle = styles.length ? ` style="${styles.join(';')}"` : '';
     // Mehrere Trainings am selben Tag: kleiner Zähler
     const badge = dayLogs.length>1 ? `<span class="cal-badge">${dayLogs.length}</span>` : '';
     const onclick = trained ? ` onclick="openDayLogs('${key}')"` : '';
