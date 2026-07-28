@@ -71,12 +71,12 @@ body.in-session.timer-on{--timer-space:78px}
 }
 .sess-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
 .sess-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
-  padding:7px 11px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);color:var(--text-dim);transition:all .12s}
+  padding:7px 11px;border-radius:9px;background:transparent;border:1px solid var(--line);color:var(--text-dim);transition:all .12s}
 .sess-btn svg{width:14px;height:14px;stroke-width:2.4}
 .sess-btn.solid{background:var(--accent);border-color:var(--accent);color:#0a0c10}
 .sess-btn.danger{color:var(--red);border-color:rgba(255,92,92,.3)}
 .sess-btn:active{transform:scale(.95)}
-.sess-vol{flex-shrink:0;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:11px 14px}
+.sess-vol{flex-shrink:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:11px 14px}
 .sess-bar{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden}
 .sess-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
 /* Vergleichsbalken pro Übung: heute vs. letztes Training derselben Einheit */
@@ -577,8 +577,35 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
   text-align:center;padding:18px 12px;margin-top:0 !important}
 .stat-num{font-size:30px;line-height:1.15;display:flex;align-items:baseline;justify-content:center;gap:1px}
 .stat-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+/* Zeitraum-Umschalter der Statistik */
+.seg{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:4px}
+.seg-btn{flex:1;padding:8px 6px;border-radius:9px;background:transparent;border:none;
+  color:var(--text-faint);font-size:12.5px;font-weight:700;letter-spacing:.02em;transition:all .15s}
+.seg-btn.on{background:var(--accent-glow);color:var(--accent)}
+.seg-btn:active{transform:scale(.97)}
+/* Wochenvergleich */
+.wk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.wk-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.wk-val{font-family:var(--font-display);font-size:20px;font-weight:800;line-height:1}
+.wk-lbl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-faint)}
+.wk-delta{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px}
+.wk-delta.up{background:rgba(55,217,154,.14);color:var(--green)}
+.wk-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
+.wk-delta.same{background:var(--surface-3);color:var(--text-faint)}
+/* Sätze pro Muskelgruppe: Balken mit 10–20-Zielzone (Wochenansicht) */
+.spm-track{position:relative;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden}
+.spm-zone{position:absolute;top:0;bottom:0;background:rgba(200,255,0,.12);
+  border-left:1px solid rgba(200,255,0,.35);border-right:1px solid rgba(200,255,0,.35)}
+.spm-fill{position:relative;height:100%;background:var(--accent);border-radius:4px}
+/* PR-Tabelle */
+.pr-row{display:grid;grid-template-columns:1.5fr 0.9fr 0.9fr 0.8fr;gap:8px;align-items:center;
+  padding:9px 4px;font-size:13px;border-bottom:1px solid var(--line-soft)}
+.pr-row:last-child{border-bottom:none}
+.pr-row.pr-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600}
+.pr-row span:nth-child(n+2){text-align:right}
+.pr-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .prog-table{margin-top:14px}
-.prog-row{display:grid;grid-template-columns:1.4fr 0.7fr 1fr 1.2fr;gap:8px;align-items:center;padding:9px 4px;font-size:13px;border-bottom:1px solid var(--line-soft)}
+.prog-row{display:grid;grid-template-columns:1.4fr 0.55fr 0.85fr 0.6fr 1fr;gap:8px;align-items:center;padding:9px 4px;font-size:13px;border-bottom:1px solid var(--line-soft)}
 .prog-row:last-child{border-bottom:none}
 .prog-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600}
 .prog-row span:nth-child(n+2){text-align:right}
@@ -2966,24 +2993,91 @@ function importData(ev){
   reader.readAsText(file);
 }
 
+/* ---- Statistik-Helfer ---- */
+let STATS_RANGE='week';   // 'week' | 'month' | 'all'
+function setStatsRange(r){ STATS_RANGE=r; renderView(); }
+// Montag 00:00 der Woche, in der ts liegt (konsistent mit dem Kalender)
+function weekStartTs(ts){ const d=new Date(ts); const wd=(d.getDay()+6)%7; d.setHours(0,0,0,0); return d.getTime()-wd*86400000; }
+function logDoneSets(l){ return l.exercises.reduce((a,e)=>a+e.sets.filter(x=>x.done!==false).length,0); }
+// Durchschnittlicher RIR über alle Sätze der Logs (null, wenn nie angegeben)
+function avgRir(logs){
+  let sum=0,n=0;
+  logs.forEach(l=>l.exercises.forEach(e=>e.sets.forEach(x=>{
+    if(x.done!==false && x.rir!=null && x.rir!==''){ sum+=+x.rir; n++; }
+  })));
+  return n? sum/n : null;
+}
+// Harte (abgehakte) Sätze pro Muskelgruppe (Primärmuskel der Übung)
+function setsPerMuscle(logs){
+  const m={};
+  logs.forEach(l=>l.exercises.forEach(e=>{
+    const n=e.sets.filter(x=>x.done!==false).length;
+    if(n) m[e.muscle||'—']=(m[e.muscle||'—']||0)+n;
+  }));
+  return m;
+}
+// Persönliche Rekorde je Übung: schwerster Satz + bestes geschätztes 1RM (Epley)
+function computePRs(){
+  const map=new Map();
+  DB.logs.forEach(l=>l.exercises.forEach(e=>{
+    const key=e.exId||('name:'+e.name);
+    const meta=e.exId?exMetaById(e.exId):null;
+    const f=exFactor(e.name, e.exId);
+    let r=map.get(key);
+    if(!r){ r={key, label:(meta?meta.n:e.name), topW:0, topWr:0, topWd:0, e1:0, e1w:0, e1r:0, e1d:0}; map.set(key,r); }
+    if(meta) r.label=meta.n; // aktueller Name
+    e.sets.forEach(x=>{
+      if(x.done===false) return;
+      const w=(+x.weight||0)*f, reps=+x.reps||0;
+      if(w>r.topW || (w===r.topW && reps>r.topWr)){ r.topW=w; r.topWr=reps; r.topWd=l.date; }
+      const e1=est1RM(w,reps);
+      if(e1>r.e1){ r.e1=e1; r.e1w=w; r.e1r=reps; r.e1d=l.date; }
+    });
+  }));
+  return [...map.values()].filter(x=>x.topW>0).sort((a,b)=>b.e1-a.e1);
+}
+// Delta-Chip für den Wochenvergleich (neutral = kein Gut/Schlecht, z. B. bei RIR)
+function deltaChip(cur, prev, unit, neutral){
+  if(cur==null && prev==null) return '';
+  const d=(cur||0)-(prev||0);
+  const cls = neutral ? 'same' : (d>0?'up':(d<0?'down':'same'));
+  const txt = (d>0?'+':'')+(unit==='t'? (d/1000).toFixed(1)+'t' : (Math.round(d*10)/10)+(unit||''));
+  return `<span class="wk-delta ${cls}">${txt}</span>`;
+}
 function viewStats(){
   if(!DB.logs.length) return topbar('Statistics')+`<div class="pad"><div class="empty">${I.stats}
     <h3>Keine Daten</h3><p style="font-size:13.5px">Trainiere ein paar Mal — dann zeigen wir deinen Fortschritt.</p></div>
     ${backupCard()}</div>`;
-  const totalVol=DB.logs.reduce((a,l)=>a+logVolume(l),0);
-  const totalSets=DB.logs.reduce((a,l)=>a+l.exercises.reduce((b,e)=>b+e.sets.length,0),0);
-  // Volumen letzte 8 Sessions
+  // Zeitraum-Filter: Woche (ab Montag) / Monat / Gesamt
+  const now=new Date();
+  const thisWeekFrom=weekStartTs(Date.now());
+  const monthFrom=new Date(now.getFullYear(),now.getMonth(),1).getTime();
+  const from = STATS_RANGE==='week'? thisWeekFrom : (STATS_RANGE==='month'? monthFrom : 0);
+  const rangeLogs=DB.logs.filter(l=>l.date>=from);
+  const rEinheiten=rangeLogs.length;
+  const rVol=rangeLogs.reduce((a,l)=>a+logVolume(l),0);
+  const rSets=rangeLogs.reduce((a,l)=>a+logDoneSets(l),0);
+  const rangeLabel = STATS_RANGE==='week'?'diese Woche':(STATS_RANGE==='month'?'dieser Monat':'gesamt');
+
+  // Wochenvergleich: diese vs. letzte Woche
+  const lastWeekFrom=thisWeekFrom-7*86400000;
+  const twLogs=DB.logs.filter(l=>l.date>=thisWeekFrom);
+  const lwLogs=DB.logs.filter(l=>l.date>=lastWeekFrom && l.date<thisWeekFrom);
+  const tw={e:twLogs.length, s:twLogs.reduce((a,l)=>a+logDoneSets(l),0), v:twLogs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(twLogs)};
+  const lw={e:lwLogs.length, s:lwLogs.reduce((a,l)=>a+logDoneSets(l),0), v:lwLogs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(lwLogs)};
+
+  // Volumen letzte 8 Sessions (zeitraumunabhängiger Trend)
   const recent=DB.logs.slice(-8);
   const maxV=Math.max(...recent.map(logVolume),1);
-  // Volumen pro Muskel
-  const perMuscle={};
-  DB.logs.forEach(l=>l.exercises.forEach(e=>{
-    const f=exFactor(e.name, e.exId);
-    const v=e.sets.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
-    perMuscle[e.muscle]=(perMuscle[e.muscle]||0)+v;
-  }));
-  const mArr=Object.entries(perMuscle).sort((a,b)=>b[1]-a[1]);
-  const maxM=Math.max(...mArr.map(x=>x[1]),1);
+
+  // Harte Sätze pro Muskelgruppe im gewählten Zeitraum
+  const spm=setsPerMuscle(rangeLogs);
+  const mArr=Object.entries(spm).sort((a,b)=>b[1]-a[1]);
+  // Skala: in der Wochenansicht bis mind. 22, damit die 10–20-Zielzone sichtbar ist
+  const maxM=Math.max(...mArr.map(x=>x[1]), STATS_RANGE==='week'?22:1);
+
+  // Persönliche Rekorde
+  const prs=computePRs();
   // Übungen für 1RM-Fortschritt: per stabiler ID gruppieren (Altdaten ohne ID per Name).
   // So erscheint eine umbenannte Übung nur EINMAL, mit ihrer gesamten Historie.
   const exMap=new Map();  // key = exId || ('name:'+name) -> {key, label}
@@ -2997,16 +3091,33 @@ function viewStats(){
   const exList=[...exMap.values()];
 
   return topbar('Your statistics')+`<div class="pad">
-    <div class="row" style="gap:12px;align-items:stretch">
+    <div class="seg">
+      <button class="seg-btn ${STATS_RANGE==='week'?'on':''}" onclick="setStatsRange('week')">Woche</button>
+      <button class="seg-btn ${STATS_RANGE==='month'?'on':''}" onclick="setStatsRange('month')">Monat</button>
+      <button class="seg-btn ${STATS_RANGE==='all'?'on':''}" onclick="setStatsRange('all')">Gesamt</button>
+    </div>
+
+    <div class="row" style="gap:12px;align-items:stretch;margin-top:12px">
       <div class="card stat-tile">
-        <div class="display stat-num" style="color:var(--accent)">${DB.logs.length}</div>
+        <div class="display stat-num" style="color:var(--accent)">${rEinheiten}</div>
         <div class="faint stat-lbl">Einheiten</div></div>
       <div class="card stat-tile">
-        <div class="display stat-num">${(totalVol/1000).toFixed(1)}<span style="font-size:15px;color:var(--text-dim)">t</span></div>
-        <div class="faint stat-lbl">Volumen</div></div>
-      <div class="card stat-tile">
-        <div class="display stat-num">${totalSets}</div>
+        <div class="display stat-num">${rSets}</div>
         <div class="faint stat-lbl">Sätze</div></div>
+      <div class="card stat-tile">
+        <div class="display stat-num">${(rVol/1000).toFixed(1)}<span style="font-size:15px;color:var(--text-dim)">t</span></div>
+        <div class="faint stat-lbl">Volumen</div></div>
+    </div>
+    <p class="faint" style="font-size:10.5px;text-align:center;margin:6px 0 0;letter-spacing:.04em;text-transform:uppercase">${rangeLabel}</p>
+
+    <div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:12px">Diese Woche vs. letzte Woche</div>
+      <div class="wk-grid">
+        <div class="wk-item"><span class="wk-val">${tw.e}</span>${deltaChip(tw.e,lw.e,'')}<span class="wk-lbl">Einheiten</span></div>
+        <div class="wk-item"><span class="wk-val">${tw.s}</span>${deltaChip(tw.s,lw.s,'')}<span class="wk-lbl">Sätze</span></div>
+        <div class="wk-item"><span class="wk-val">${(tw.v/1000).toFixed(1)}t</span>${deltaChip(tw.v,lw.v,'t')}<span class="wk-lbl">Volumen</span></div>
+        <div class="wk-item"><span class="wk-val">${tw.r!=null?tw.r.toFixed(1):'–'}</span>${(tw.r!=null&&lw.r!=null)?deltaChip(tw.r,lw.r,'',true):''}<span class="wk-lbl">Ø RIR</span></div>
+      </div>
     </div>
 
     <div class="card" style="margin-top:14px">
@@ -3022,13 +3133,16 @@ function viewStats(){
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:14px">Volumen pro Muskelgruppe</div>
-      ${mArr.map(([m,v])=>`<div style="margin-bottom:11px">
+      <div class="eyebrow" style="margin-bottom:4px">Sätze pro Muskelgruppe</div>
+      <p class="faint" style="font-size:11px;margin-bottom:12px">Harte Sätze nach Primärmuskel · ${rangeLabel}${STATS_RANGE==='week'?' · Richtwert 10–20/Woche':''}</p>
+      ${mArr.length? mArr.map(([m,v])=>`<div style="margin-bottom:11px">
         <div class="row between" style="margin-bottom:4px"><span style="font-size:13px;font-weight:600">${m}</span>
-        <span class="faint num" style="font-size:12px">${(v/1000).toFixed(1)}t</span></div>
-        <div style="height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${v/maxM*100}%;background:var(--accent);border-radius:4px"></div></div>
-      </div>`).join('')}
+        <span class="faint num" style="font-size:12px">${v}×</span></div>
+        <div class="spm-track">
+          ${STATS_RANGE==='week'?`<div class="spm-zone" style="left:${10/maxM*100}%;width:${10/maxM*100}%"></div>`:''}
+          <div class="spm-fill" style="width:${v/maxM*100}%"></div>
+        </div>
+      </div>`).join('') : `<p class="faint" style="font-size:12.5px">Keine Trainings im Zeitraum.</p>`}
     </div>
 
     <div class="card" style="margin-top:14px">
@@ -3039,6 +3153,18 @@ function viewStats(){
           ${exList.map(x=>`<option value="${escAttr(x.key)}">${esc(x.label)}</option>`).join('')}
         </select></div>
       <div id="strChart"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:4px">Persönliche Rekorde</div>
+      <p class="faint" style="font-size:11px;margin-bottom:10px">Schwerster Satz und bestes geschätztes 1RM je Übung</p>
+      <div class="pr-row pr-head"><span>Übung</span><span>Top-Satz</span><span>e1RM</span><span>Datum</span></div>
+      ${prs.map(r=>`<div class="pr-row">
+        <span class="pr-name">${esc(r.label)}</span>
+        <span class="num">${r.topW}×${r.topWr}</span>
+        <span class="num" style="color:var(--accent);font-weight:700">${Math.round(r.e1)} kg</span>
+        <span class="faint num" style="font-size:11.5px">${new Date(r.e1d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
+      </div>`).join('')}
     </div>
     ${backupCard()}
   </div>`;
@@ -3060,7 +3186,9 @@ function renderExerciseProgress(key){
       const vol=done.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
       const topW=done.reduce((m,s)=>Math.max(m,(+s.weight||0)*f),0);
       const setStr=done.map(s=>`${(+s.weight||0)*f}×${+s.reps||0}`).join(', ');
-      if(vol>0) rows.push({date:l.date, vol, topW, sets:done.length, setStr});
+      const rirVals=done.filter(s=>s.rir!=null&&s.rir!=='').map(s=>+s.rir);
+      const rir=rirVals.length? rirVals.reduce((a,b)=>a+b,0)/rirVals.length : null;
+      if(vol>0) rows.push({date:l.date, vol, topW, sets:done.length, setStr, rir});
     }
   });
   if(rows.length<1){ el.innerHTML=`<div class="faint" style="font-size:12.5px;padding:14px 0">Für diese Übung liegen noch keine Trainingsdaten vor.</div>`; return; }
@@ -3090,11 +3218,12 @@ function renderExerciseProgress(key){
 
   // Tabelle aller Werte (neueste zuerst)
   const table=`<div class="prog-table">
-    <div class="prog-row prog-head"><span>Datum</span><span>Sätze</span><span>Top-kg</span><span>Volumen</span></div>
+    <div class="prog-row prog-head"><span>Datum</span><span>Sätze</span><span>Top-kg</span><span>Ø RIR</span><span>Volumen</span></div>
     ${[...rows].reverse().map(r=>`<div class="prog-row" title="${esc(r.setStr)}">
       <span>${fmtDate(r.date)}</span>
       <span class="num">${r.sets}</span>
       <span class="num">${r.topW} kg</span>
+      <span class="num faint">${r.rir!=null? (Math.round(r.rir*10)/10) : '–'}</span>
       <span class="num" style="font-weight:700;color:var(--accent-dim)">${r.vol.toLocaleString('de-DE')} kg</span>
     </div>`).join('')}
   </div>`;
