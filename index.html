@@ -228,6 +228,43 @@ body.in-session.timer-on{--timer-space:78px}
   .rt-body{padding:7px 11px}
   .rt-time{font-size:20px}
   .rt-ico svg{width:20px;height:20px}
+
+  /* ---- Kompakte Sätze: Ziel ist, dass 3 Sätze ohne Scrollen sichtbar sind ----
+     Die eigene "zuletzt"-Zeile entfällt; ihr Inhalt steht kompakt in der
+     Info-Zeile darunter. Das spart pro Satz eine komplette Zeile. */
+  .ex-card .prev-grid{display:none}
+  .set-vol .sv-prevset{display:inline}
+  .set-vol .sv-prev .sv-word{display:none}
+
+  /* Engere Abstände rund um die Sätze */
+  .ex-card .set-block{margin-bottom:5px}
+  .set-vol{margin-top:2px;gap:5px;min-height:13px}
+  .ex-card .in-unit .input{padding:9px 26px 9px 9px}
+  .ex-card .set-grid{gap:7px}
+  .set-head{padding-bottom:4px;margin-bottom:2px}
+
+  /* Vergleichsbalken kompakter, damit die Sätze mehr Platz behalten */
+  .ex-col .vc{margin-top:7px;padding-top:7px}
+  .vc-title{margin-bottom:5px}
+  .vc-row{margin-bottom:3px}
+}
+
+/* Noch flachere Panels (Browser-Tab-Modus, ~588–620px): zusätzlich sparen,
+   damit auch mit laufendem Timer möglichst 3 Sätze sichtbar bleiben. */
+@media (min-width:900px) and (max-height:620px){
+  .ex-card .ex-sec{display:none}            /* Sekundärmuskel-Tags ausblenden */
+  .ex-card .set-block{margin-bottom:4px}
+  .ex-card .in-unit .input{padding:8px 26px 8px 9px}
+  .ex-card .add-set{margin-top:4px;padding:7px}
+  .ex-col .vc{margin-top:5px;padding-top:5px}
+  .vc-title{margin-bottom:3px}
+  /* Das Häkchen bestimmt mit seinen fest gesetzten 44px die Zeilenhöhe –
+     hier etwas kleiner, bleibt aber gut treffbar. */
+  .ex-card .set-grid{grid-template-columns:20px 1fr 1fr 46px 40px}
+  .ex-card .set-grid > button.chip{width:40px !important;height:40px !important}
+  /* Läuft die Pause, nimmt der Timer Platz weg. Dann tritt der Vergleichsbalken
+     zurück, damit die Sätze sichtbar bleiben – nach der Pause ist er wieder da. */
+  body.timer-on .ex-col .vc{display:none}
 }
 
 /* Punkte + Pfeile */
@@ -267,7 +304,9 @@ body.in-session.timer-on{--timer-space:78px}
 /* Kompaktere Abstände im Training, damit alles auf einen Bildschirm passt */
 .ex-card{padding:14px 16px}
 .ex-card .set-block{margin-bottom:8px}
-.ex-card .add-set{margin-top:6px;padding:9px}
+/* flex-shrink:0 – der Button steht außerhalb des Scrollbereichs und soll
+   immer in voller Höhe sichtbar bleiben. */
+.ex-card .add-set{margin-top:6px;padding:9px;flex-shrink:0}
 
 .view{display:none;animation:fade .25s ease}
 .view.active{display:block}
@@ -556,6 +595,9 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
 .set-vol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
   margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
 .set-vol:empty{margin-top:0;min-height:0}
+/* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
+   eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
+.sv-prevset{display:none;color:var(--accent-dim);font-weight:600}
 .sv-total{color:var(--text-dim);font-weight:700}
 .sv-prev{color:var(--text-faint);font-weight:600}
 .sv-now{color:var(--accent-dim);font-weight:700}
@@ -1968,8 +2010,10 @@ function exerciseCard(ex,ei){
           <div class="set-grid set-head">
             <span>#</span><span>KG</span><span>WDH</span><span style="text-align:center">RIR</span><span></span></div>
           ${ex.sets.map((st,si)=>setRow(ex,ei,st,si)).join('')}
-          <button class="add-set" onclick="addSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
         </div>
+        <!-- Steht bewusst AUSSERHALB von .ex-sets: so bleibt der Button beim
+             Scrollen der Sätze immer sichtbar. -->
+        <button class="add-set" onclick="addSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
         ${volCompare(ex)}
       </div>
     </div>
@@ -2059,7 +2103,7 @@ function setRow(ex,ei,st,si){
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg)}</div>`;
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev)}</div>`;
   // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
   const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
@@ -2082,12 +2126,19 @@ function setRow(ex,ei,st,si){
   </div>`;
 }
 // Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%)"
-function setVolText(prevVol, nowVol, totalKg){
+function setVolText(prevVol, nowVol, totalKg, prev){
   const parts=[];
-  // Bei 2-Hantel-Übungen: Gesamtgewicht (beide Hanteln) in derselben Zeile,
-  // damit alles auf einer Höhe steht statt in einer versetzten Extra-Zeile.
-  if(totalKg>0) parts.push(`<span class="sv-total">gesamt ${totalKg} kg</span>`);
-  if(prevVol>0) parts.push(`<span class="sv-prev">zuletzt ${prevVol.toLocaleString('de-DE')} kg</span>`);
+  // Kompaktfassung der "zuletzt"-Zeile für flache Panels: dort wird die eigene
+  // prev-Zeile ausgeblendet und ihr Inhalt hier mit angezeigt – spart pro Satz
+  // eine komplette Zeile Höhe.
+  if(prev){
+    const rirTxt=(prev.rir!=null&&prev.rir!=='')?` · RIR ${prev.rir}`:'';
+    parts.push(`<span class="sv-prevset">zuletzt ${prev.weight}×${prev.reps}${rirTxt}</span>`);
+  }
+  // Reihenfolge bewusst gruppiert: erst alles zum letzten Training, dann alles
+  // zum heutigen Satz – sonst stünde das heutige Gesamtgewicht mitten zwischen
+  // den "zuletzt"-Werten.
+  if(prevVol>0) parts.push(`<span class="sv-prev"><span class="sv-word">zuletzt </span>${prevVol.toLocaleString('de-DE')} kg</span>`);
   if(nowVol>0){
     let d='';
     if(prevVol>0){
@@ -2097,6 +2148,8 @@ function setVolText(prevVol, nowVol, totalKg){
     }
     parts.push(`<span class="sv-now">heute ${nowVol.toLocaleString('de-DE')} kg${d}</span>`);
   }
+  // Bei 2-Hantel-Übungen: Gesamtgewicht beider Hanteln zum heutigen Satz.
+  if(totalKg>0) parts.push(`<span class="sv-total">gesamt ${totalKg} kg</span>`);
   return parts.join('<span class="sv-sep">·</span>');
 }
 // Live-Aktualisierung der Satz-Volumen-Zeile beim Eintippen
@@ -2115,7 +2168,7 @@ function updateSetVol(ei,si){
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const el=document.getElementById(`vol-${ei}-${si}`);
-  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg);
+  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg, st.prev);
 }
 function updateTotal(ei,si,val){
   SESSION.exercises[ei].sets[si].weight=val; // Wert schon während der Eingabe halten
