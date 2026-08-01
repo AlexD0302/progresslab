@@ -686,6 +686,8 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .ex-tags{display:flex;flex-wrap:wrap;gap:5px}
 .ex-tag{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--surface-3);color:var(--text-dim);white-space:nowrap}
 .ex-tag-m{background:var(--accent-glow);color:var(--accent-dim)}
+/* Primärmuskel: kräftiger als Sekundärmuskeln, aber schwächer als die Region */
+.ex-tag-p{background:var(--surface-3);color:var(--text);border:1px solid var(--line)}
 .ex-info{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;color:var(--text-faint);border-radius:9px;background:var(--surface);border:1px solid var(--line-soft)}
 .ex-info svg{width:20px;height:20px;stroke-width:2}
 .ex-info:hover{color:var(--accent);border-color:var(--accent-dim)}
@@ -900,14 +902,20 @@ const I = {
    Eigene Übungen (DB.customEx) haben dasselbe Schema + custom:true und werden eingemischt.
    Adapter EXDB stellt {n,m,t,_} bereit; _ enthält den vollständigen Datensatz. */
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
-const MUSCLES = ['Brust','Rücken','Schultern','Arme','Beine','Rumpf'];
+const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
+// Ordnet jeden Einzelmuskel seiner Körperregion zu (für Filter und Statistik).
 const REGION_OF = {
-  'Brust':'Brust', 'Rücken':'Rücken', 'Schultern':'Schultern',
-  'Bizeps':'Arme', 'Trizeps':'Arme', 'Unterarme':'Arme',
-  'Beine':'Beine', 'Gesäß':'Beine', 'Waden':'Beine',
-  'Bauch':'Rumpf', 'Nacken':'Rumpf'
+  'Chest':'Chest', 'Upper Chest':'Chest', 'Mid Chest':'Chest', 'Lower Chest':'Chest',
+  'Back':'Back', 'Lats':'Back', 'Upper Back':'Back', 'Mid Back':'Back',
+  'Lower Back':'Back', 'Traps':'Back',
+  'Shoulders':'Shoulders', 'Front Delts':'Shoulders', 'Side Delts':'Shoulders', 'Rear Delts':'Shoulders',
+  'Arms':'Arms', 'Biceps':'Arms', 'Triceps':'Arms', 'Forearms':'Arms',
+  'Brachialis':'Arms', 'Brachioradialis':'Arms',
+  'Legs':'Legs', 'Quads':'Legs', 'Hamstrings':'Legs', 'Glutes':'Legs',
+  'Calves':'Legs', 'Adductors':'Legs', 'Abductors':'Legs',
+  'Core':'Core', 'Abs':'Core', 'Obliques':'Core', 'Serratus':'Core', 'Neck':'Core'
 };
-function toRegion(g){ return REGION_OF[g] || (MUSCLES.includes(g)? g : 'Rumpf'); }
+function toRegion(g){ return REGION_OF[g] || (MUSCLES.includes(g)? g : 'Core'); }
 const RAW = (window.EXDB_RAW||[]);
 let EXDB = [];        // kombinierte Sicht (eigene zuerst), via rebuildExDB() gefüllt
 let EXBYNAME = {};    // Name -> Datensatz
@@ -1161,7 +1169,7 @@ function applyCloudData(row){
   DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
   DB.settings = (d.settings && typeof d.settings==='object') ? d.settings : DB.settings;
   DB.logs.sort((a,b)=>a.date-b.date);
-  rebuildExDB(); migrateMuscleNames(); migrateExerciseIds();
+  rebuildExDB(); migrateToEnglish(); migrateMuscleNames(); migrateExerciseIds();
   saveNow();
   SYNC.rev = row.rev||0;
   SYNC.dirty=false;
@@ -1427,7 +1435,8 @@ function fmtDate(ts){
   return d.toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'});
 }
 function fmtDay(ts){ return new Date(ts).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}); }
-function isLower(m){ return ['Beine','Gesäß','Waden'].includes(m); }
+// Unterkörper: bestimmt, ob beim Vorschlag der große oder kleine Gewichtssprung gilt.
+function isLower(m){ return ['Legs','Quads','Hamstrings','Glutes','Calves','Adductors','Abductors'].includes(m); }
 function round(x,step){ return Math.round(x/step)*step; }
 
 /* ================================================================
@@ -2699,14 +2708,15 @@ function exListHTML(list){
     const img=e._.img&&e._.img[0];
     const isCustom=!!e._.custom;
     const sec=(e._.sm||[]).slice(0,3);
+    const prim=(e._.pm||[]).filter(m=>m!==e.m);   // Primärmuskeln (Region nicht doppelt)
     return `<div class="ex-row" onclick='showExercise("${escAttr(e.n)}")'>
       <div class="ex-thumb${img?'':' noimg'}">${img?`<img loading="lazy" src="${img}" alt="" onerror="this.parentNode.classList.add('noimg')">`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
           <span class="ex-tag ex-tag-m">${esc(e.m)}</span>
+          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(m)}</span>`).join('')}
           <span class="ex-tag">${esc(e.t)}</span>
-
         </div>
         ${sec.length?`<div class="ex-sec" style="margin-top:4px">${sec.map(s=>`<span class="ex-sec-tag">${esc(s)}</span>`).join('')}${(e._.sm||[]).length>3?`<span class="ex-sec-tag">+${(e._.sm||[]).length-3}</span>`:''}</div>`:''}
       </div>
@@ -3038,6 +3048,7 @@ function importData(ev){
         if(d.settings && typeof d.settings==='object') DB.settings=Object.assign(DB.settings||{},d.settings);
         DB.logs.sort((a,b)=>a.date-b.date);
         rebuildExDB();
+        migrateToEnglish();     // zuerst: Regionen/Muskeln/Namen auf Englisch
         migrateMuscleNames();   // alte Bezeichnungen aus älteren Backups umstellen
         migrateExerciseIds();   // Übungs-IDs in wiederhergestellten Logs/Plänen nachtragen
         save(); go('stats'); toast('Backup wiederhergestellt ✓');
@@ -3355,12 +3366,14 @@ function pickerListHTML(list){
   return list.slice(0,CAP).map(e=>{
     const img=e._.img[0]||'';
     const isCustom=!!e._.custom;
+    const prim=(e._.pm||[]).filter(m=>m!==e.m);   // Primärmuskeln (Region nicht doppelt)
     return `<div class="ex-row" onclick='choosePick("${escAttr(e.n)}")'>
       <div class="ex-thumb${img?'':' noimg'}">${img?`<img loading="lazy" src="${img}" alt="" onerror="this.parentNode.classList.add('noimg')">`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
           <span class="ex-tag ex-tag-m">${esc(e.m)}</span>
+          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(m)}</span>`).join('')}
           <span class="ex-tag">${esc(e.t)}</span>
 
         </div>
@@ -3451,9 +3464,12 @@ let CUSTOM=null; // Arbeitsobjekt im Formular
 const CUSTOM_EQUIP=['Langhantel','Kurzhantel','Maschine','Kabelzug','Körpergewicht','Kettlebell','SZ-Stange','Ohne Gerät','Sonstiges'];
 // Feste Auswahl spezifischer Muskeln für Sekundär-Angabe (eigene Übungen)
 const SECONDARY_MUSCLES=[
-  'Obere Brust','Untere Brust','Latissimus','Oberer Rücken','Unterer Rücken','Trapez',
-  'Vordere Schulter','Seitliche Schulter','Hintere Schulter','Bizeps','Trizeps','Unterarme',
-  'Bauch','Seitlicher Bauch','Gesäß','Quadrizeps','Adduktoren','Waden','Nacken'
+  'Upper Chest','Mid Chest','Lower Chest',
+  'Lats','Upper Back','Mid Back','Lower Back','Traps',
+  'Front Delts','Side Delts','Rear Delts',
+  'Biceps','Triceps','Brachialis','Brachioradialis','Forearms',
+  'Abs','Obliques','Serratus','Neck',
+  'Quads','Hamstrings','Glutes','Calves','Adductors','Abductors'
 ];
 // Alte Bezeichnungen in gespeicherten Übungen auf die neuen umstellen
 const MUSCLE_RENAMES={'Brust (oberer)':'Obere Brust','Brust (unterer)':'Untere Brust'};
@@ -3472,7 +3488,9 @@ function migrateMuscleNames(){
   }));
   (DB.customEx||[]).forEach(e=>{
     const r=toRegion(e.g);
-    if(r!==e.g){ e.g=r; e.pm=[r]; changed=true; }
+    // Nur die Körperregion (g) normalisieren. pm bleibt unangetastet – dort stehen
+    // die echten Primärmuskeln, die früher fälschlich durch die Region ersetzt wurden.
+    if(r!==e.g){ e.g=r; changed=true; }
   });
   if(DB.settings && Array.isArray(DB.settings.customMuscles)){
     const before=DB.settings.customMuscles.length;
@@ -3482,6 +3500,144 @@ function migrateMuscleNames(){
     if(DB.settings.customMuscles.length!==before) changed=true;
   }
   if(changed){ rebuildExDB(); save(); }
+}
+/* ================================================================
+   MIGRATION AUF ENGLISCHE TAXONOMIE
+   Übersetzt Regionen und Muskeln, trennt Primär- von Sekundärmuskeln
+   und benennt die Übungen englisch. Läuft einmalig und ist idempotent:
+   Bereits umgestellte Daten bleiben unverändert.
+   ================================================================ */
+// Deutsch -> Englisch für Regionen und Einzelmuskeln
+const EN_MUSCLE={
+  'Brust':'Chest','Rücken':'Back','Schultern':'Shoulders','Arme':'Arms','Beine':'Legs','Rumpf':'Core',
+  'Obere Brust':'Upper Chest','Mittlere Brust':'Mid Chest','Untere Brust':'Lower Chest',
+  'Brust (oberer)':'Upper Chest','Brust (unterer)':'Lower Chest',
+  'Latissimus':'Lats','Oberer Rücken':'Upper Back','Mittlerer Rücken':'Mid Back',
+  'Unterer Rücken':'Lower Back','Trapez':'Traps','Nacken':'Neck',
+  'Vordere Schulter':'Front Delts','Seitliche Schulter':'Side Delts','Hintere Schulter':'Rear Delts',
+  'Bizeps':'Biceps','Trizeps':'Triceps','Unterarme':'Forearms',
+  'Brachialis':'Brachialis','Brachioradialis':'Brachioradialis',
+  'Bauch':'Abs','Seitlicher Bauch':'Obliques','Sägemuskel':'Serratus',
+  'Quadrizeps':'Quads','Beinbeuger':'Hamstrings','Gesäß':'Glutes','Waden':'Calves',
+  'Adduktoren':'Adductors','Abduktoren':'Abductors'
+};
+function toEnMuscle(m){ return EN_MUSCLE[m] || m; }
+
+// Neue Einteilung je Übung (Schlüssel = stabile Übungs-ID).
+// name = englischer Übungsname, pm = Primärmuskeln, sm = Sekundärmuskeln,
+// g = Körperregion (nach dem Primärmuskel, nicht nach dem Gerät).
+const EX_RECLASSIFY={
+  // ── Chest ──
+  'Incline Dumbbell Press':      {pm:['Upper Chest'], sm:['Front Delts','Triceps'], g:'Chest'},
+  'Flat Dumbbell Press':         {pm:['Mid Chest'], sm:['Front Delts','Triceps'], g:'Chest'},
+  'Dumbbell Fly':                {pm:['Mid Chest'], sm:['Front Delts'], g:'Chest'},
+  // ── Back ──
+  'One-Arm Dumbbell Row':        {pm:['Lats','Mid Back'], sm:['Upper Back','Rear Delts','Biceps','Forearms'], g:'Back'},
+  'Two-Arm Dumbbell Row':        {pm:['Lats','Mid Back'], sm:['Upper Back','Rear Delts','Biceps','Lower Back'], g:'Back'},
+  'Dumbbell Pullover':           {pm:['Lats'], sm:['Lower Chest','Serratus','Triceps'], g:'Back'},
+  // ── Shoulders ──
+  'Dumbbell Shoulder Press':     {pm:['Front Delts'], sm:['Side Delts','Triceps','Traps'], g:'Shoulders'},
+  'Dumbbell Lateral Raise':      {pm:['Side Delts'], sm:['Front Delts','Traps'], g:'Shoulders'},
+  'Dumbbell Front Raise':        {pm:['Front Delts'], sm:['Side Delts','Upper Chest'], g:'Shoulders'},
+  'Dumbbell Reverse Fly':        {pm:['Rear Delts'], sm:['Upper Back','Traps'], g:'Shoulders'},
+  // ── Arms ──
+  'Incline Dumbbell Curl':       {pm:['Biceps'], sm:['Brachialis'], g:'Arms'},
+  'Concentration Curl':          {pm:['Biceps'], sm:['Brachialis'], g:'Arms'},
+  'Preacher Curl':               {pm:['Biceps'], sm:['Brachialis','Brachioradialis'], g:'Arms'},
+  'Hammer Curl':                 {pm:['Brachioradialis','Brachialis'], sm:['Biceps'], g:'Arms'},
+  'Skull Crusher':               {pm:['Triceps'], sm:[], g:'Arms'},
+  'Dumbbell Triceps Kickback':   {pm:['Triceps'], sm:['Rear Delts'], g:'Arms'},
+  'Close-Grip Dumbbell Press':   {pm:['Triceps'], sm:['Mid Chest','Front Delts'], g:'Arms'},
+  // ── Legs ──
+  'Goblet Squat':                {pm:['Quads'], sm:['Glutes','Adductors','Abs'], g:'Legs'},
+  'Dumbbell Lunge':              {pm:['Quads','Glutes'], sm:['Hamstrings','Adductors','Calves'], g:'Legs'},
+  'Bulgarian Split Squat':       {pm:['Quads','Glutes'], sm:['Hamstrings','Adductors'], g:'Legs'},
+  'Romanian Dumbbell Deadlift':  {pm:['Hamstrings','Glutes'], sm:['Lower Back','Forearms'], g:'Legs'},
+  'Stiff-Leg Dumbbell Deadlift': {pm:['Hamstrings'], sm:['Glutes','Lower Back'], g:'Legs'},
+  'Standing Dumbbell Calf Raise':{pm:['Calves'], sm:[], g:'Legs'},
+  'Seated Dumbbell Calf Raise':  {pm:['Calves'], sm:[], g:'Legs'}
+};
+// Alter deutscher Übungsname -> neuer englischer Name
+const EX_RENAME={
+  'Schrägbankdrücken mit KH':'Incline Dumbbell Press',
+  'Flachbankdrücken mit KH':'Flat Dumbbell Press',
+  'Fliegende mit KH':'Dumbbell Fly',
+  'KH-Rudern beidarmig':'Two-Arm Dumbbell Row',
+  'Überzüge mit einer KH':'Dumbbell Pullover',
+  'Schulterdrücken mit KH':'Dumbbell Shoulder Press',
+  'Seitheben mit KH':'Dumbbell Lateral Raise',
+  'Frontheben mit KH':'Dumbbell Front Raise',
+  'Fliegende rückwärts':'Dumbbell Reverse Fly',
+  'Incline Dumbbell Curls':'Incline Dumbbell Curl',
+  'Konzentrationscurls':'Concentration Curl',
+  'Hammer-Curls':'Hammer Curl',
+  'Hammer Curls':'Hammer Curl',
+  'Kickbacks mit KH':'Dumbbell Triceps Kickback',
+  'Enges KH-Drücken':'Close-Grip Dumbbell Press',
+  'Goblet Squats':'Goblet Squat',
+  'KH-Ausfallschritte':'Dumbbell Lunge',
+  'Bulgarian Split Squats':'Bulgarian Split Squat',
+  'Rumänisches KH-Kreuzheben':'Romanian Dumbbell Deadlift',
+  'KH-Kreuzheben (gestreckt)':'Stiff-Leg Dumbbell Deadlift',
+  'Wadenheben mit KH':'Standing Dumbbell Calf Raise',
+  'Wadenheben sitzend':'Seated Dumbbell Calf Raise'
+};
+function migrateToEnglish(){
+  let changed=false;
+
+  // 1) Übungen: umbenennen, Region/Muskeln übersetzen, Primär/Sekundär neu setzen
+  (DB.customEx||[]).forEach(e=>{
+    const newName=EX_RENAME[e.n];
+    if(newName){ e.n=newName; changed=true; }
+    if(e.g && EN_MUSCLE[e.g]){ e.g=EN_MUSCLE[e.g]; changed=true; }
+    if(Array.isArray(e.pm)){
+      const t=e.pm.map(toEnMuscle);
+      if(t.join('|')!==e.pm.join('|')){ e.pm=t; changed=true; }
+    }
+    if(Array.isArray(e.sm)){
+      const t=e.sm.map(toEnMuscle);
+      if(t.join('|')!==e.sm.join('|')){ e.sm=t; changed=true; }
+    }
+    // Feste Neueinteilung anwenden (nach dem Umbenennen greift der englische Name)
+    const rc=EX_RECLASSIFY[e.n];
+    if(rc){
+      const pmNew=rc.pm.join('|'), smNew=rc.sm.join('|');
+      if((e.pm||[]).join('|')!==pmNew){ e.pm=rc.pm.slice(); changed=true; }
+      if((e.sm||[]).join('|')!==smNew){ e.sm=rc.sm.slice(); changed=true; }
+      if(e.g!==rc.g){ e.g=rc.g; changed=true; }
+    }
+  });
+
+  // Index neu aufbauen, damit exMetaById unten die neuen Namen/Regionen kennt
+  rebuildExDB();
+
+  // 2) Regionen in Plänen und Logs übersetzen (dort steht die Körperregion)
+  (DB.plans||[]).forEach(p=>(p.days||[]).forEach(d=>(d.exercises||[]).forEach(e=>{
+    if(e.muscle && EN_MUSCLE[e.muscle]){ e.muscle=EN_MUSCLE[e.muscle]; changed=true; }
+    // Anzeigenamen im Plan aktualisieren. Bevorzugt über die stabile exId – so
+    // werden auch abweichende Altnamen erfasst, die in keiner Umbenennungsliste stehen.
+    const meta=e.exId?exMetaById(e.exId):null;
+    if(meta && e.name!==meta.n){ e.name=meta.n; changed=true; }
+    else if(!meta && e.name && EX_RENAME[e.name]){ e.name=EX_RENAME[e.name]; changed=true; }
+    // Region am Primärmuskel der Übung ausrichten (z. B. Enges Drücken -> Arms)
+    if(meta && meta.g && e.muscle!==meta.g){ e.muscle=meta.g; changed=true; }
+  })));
+  (DB.logs||[]).forEach(l=>(l.exercises||[]).forEach(e=>{
+    if(e.muscle && EN_MUSCLE[e.muscle]){ e.muscle=EN_MUSCLE[e.muscle]; changed=true; }
+    // Übungsnamen in Logs bleiben historisch stehen – nur die Region wird übersetzt,
+    // damit die Statistik nicht in "Beine" und "Legs" zerfällt.
+  }));
+
+  // 3) Eigene Muskeln in den Einstellungen übersetzen und Duplikate entfernen
+  if(DB.settings && Array.isArray(DB.settings.customMuscles)){
+    const before=DB.settings.customMuscles.join('|');
+    DB.settings.customMuscles=DB.settings.customMuscles
+      .map(toEnMuscle)
+      .filter((m,i,a)=>!SECONDARY_MUSCLES.includes(m) && a.indexOf(m)===i);
+    if(DB.settings.customMuscles.join('|')!==before) changed=true;
+  }
+
+  if(changed){ rebuildExDB(); save(); console.log('[Migration] Auf englische Taxonomie umgestellt'); }
 }
 // Einmalige Migration: trägt allen Übungen in bestehenden Logs und Plänen ihre
 // stabile exId nach (per Namensauflösung). Danach überlebt die Verknüpfung ein
@@ -3787,6 +3943,7 @@ function confirmModal(title,msg,confirmLabel,onOk,onCancel){
    INIT
    ================================================================ */
 rebuildExDB();
+migrateToEnglish();     // zuerst: Regionen/Muskeln/Übungsnamen auf Englisch
 migrateMuscleNames();   // alte Muskel-Bezeichnungen umstellen
 migrateExerciseIds();   // Übungs-IDs in bestehenden Logs/Plänen nachtragen
 renderNav();
