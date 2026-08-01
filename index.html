@@ -953,7 +953,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.7.1';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3244,8 +3244,8 @@ function viewStats(){
     ? kennz(DB.logs.filter(l=>l.date>=per.prevFrom && l.date<per.prevTo))
     : null;
 
-  // Volumen letzte 8 Sessions (zeitraumunabhängiger Trend)
-  const recent=DB.logs.slice(-8);
+  // Volumen der letzten 7 Einheiten (zeitraumunabhängiger Trend)
+  const recent=DB.logs.slice(-7);
   const maxV=Math.max(...recent.map(logVolume),1);
 
   // Harte Sätze pro Muskelgruppe im gewählten Zeitraum
@@ -3300,7 +3300,8 @@ function viewStats(){
     </div>`:''}
 
     <div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:16px">Volumen pro Einheit</div>
+      <div class="eyebrow" style="margin-bottom:4px">Volumen pro Einheit</div>
+      <p class="faint" style="font-size:11px;margin-bottom:14px">${recent.length===1?'Letztes Training':`Die letzten ${recent.length} Trainings`}</p>
       <div style="display:flex;align-items:flex-end;gap:6px;height:130px">
         ${recent.map(l=>{const v=logVolume(l);const h=Math.max(v/maxV*100,4);
           return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%">
