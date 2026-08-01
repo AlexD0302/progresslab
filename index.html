@@ -768,6 +768,11 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .ov-track{height:7px;background:var(--surface-3);border-radius:4px;overflow:hidden}
 .ov-fill{height:100%;border-radius:4px;background:var(--text-faint);opacity:.7}
 .ov-fill.acc{background:var(--accent);opacity:1}
+/* Sekundärbelastung: gedämpft, damit sie sich klar von der Hauptbelastung abhebt */
+.ov-fill.sec{background:var(--accent-dim);opacity:.55}
+/* Unterüberschrift "Primär" / "Sekundär" innerhalb einer Einheit */
+.ov-sub{font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+  color:var(--text-faint);margin-bottom:6px}
 .ov-val{font-size:11.5px;font-weight:700;color:var(--text);text-align:right}
 .ov-note{font-size:11.5px;line-height:1.5;color:var(--text-dim);background:var(--surface-2);
   border:1px solid var(--line-soft);border-left:3px solid var(--accent-dim);
@@ -942,7 +947,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.5.1';
+const APP_VERSION='1.6.0';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1767,7 +1772,7 @@ function startSession(plan, day){
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
       return {exId, name, muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
         sets:Array.from({length:n},(_,i)=>({
-          weight:'', reps:'', rir:'', done:false, sug:sg,
+          weight:'', reps:'', rir:'0', done:false, sug:sg,   // RIR startet bei 0
           prev: prevSets[i] || null   // Ergebnis desselben Satzes im letzten Training
         }))};
     })
@@ -2343,7 +2348,7 @@ function restAlert(){
 }
 function addSet(ei){
   const ex=SESSION.exercises[ei]; const prev=ex.sets[ex.sets.length-1];
-  ex.sets.push({weight:'',reps:'',rir:'',done:false,sug:prev?prev.sug:null,prev:null}); renderView();
+  ex.sets.push({weight:'',reps:'',rir:'0',done:false,sug:prev?prev.sug:null,prev:null}); renderView();
 }
 function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); renderView(); }
 function addExerciseToSession(){
@@ -2353,7 +2358,7 @@ function addExerciseToSession(){
     const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3; // wie beim letzten Mal, sonst 3
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
-      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'',done:false,sug:sg,prev:prevSets[i]||null}))});
+      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,sug:sg,prev:prevSets[i]||null}))});
     SESSION.page=SESSION.exercises.length-1; // direkt zur neuen Übung
     closeModal(); renderView();
   });
@@ -2418,62 +2423,78 @@ function planCard(p){
 /* ---- Plan-Übersicht: wie oft wird welcher Muskel je Einheit beansprucht? ---- */
 function showPlanOverview(id){
   const p=DB.plans.find(x=>x.id===id); if(!p) return;
-  let missing=0;   // Übungen ohne hinterlegte beanspruchte Muskeln
-  // Zählung je Einheit: Muskel -> Anzahl Übungen, in denen er vorkommt
+  let missing=0;   // Übungen ohne hinterlegte Muskeln
+  // Getrennte Zählung je Einheit: wie oft kommt ein Muskel als PRIMÄR bzw. als
+  // SEKUNDÄR vor? Vorher wurde beides zusammengeworfen – das war irreführend,
+  // weil ein nur unterstützend beteiligter Muskel genauso stark wirkte.
   const perDay=p.days.map(d=>{
-    const count={};
+    const cP={}, cS={};
     d.exercises.forEach(e=>{
       const m=exMetaById(e.exId)||exMeta(e.name);
-      // Primär- UND Sekundärmuskeln zusammen zählen. Der Primärmuskel (pm bzw. die
-      // Hauptgruppe g) ist der wichtigste beanspruchte Muskel und darf nicht fehlen.
       const prim = m ? (Array.isArray(m.pm)&&m.pm.length ? m.pm : (m.g?[m.g]:[])) : [];
       const sec  = (m && Array.isArray(m.sm)) ? m.sm : [];
-      const muscles=[...prim, ...sec];
-      if(!muscles.length){
+      if(!prim.length && !sec.length){
         missing++;
-        muscles.push((m&&m.g)||e.muscle||'—');   // Rückfall: wenigstens die Region
+        const fallback=(m&&m.g)||e.muscle||'—';
+        cP[fallback]=(cP[fallback]||0)+1;        // Rückfall: wenigstens die Region
+        return;
       }
-      [...new Set(muscles)].forEach(x=>{ count[x]=(count[x]||0)+1; });
+      [...new Set(prim)].forEach(x=>{ cP[x]=(cP[x]||0)+1; });
+      // Ein Muskel, der bereits primär zählt, wird nicht zusätzlich sekundär gezählt
+      [...new Set(sec)].filter(x=>!prim.includes(x)).forEach(x=>{ cS[x]=(cS[x]||0)+1; });
     });
-    return {name:d.name, exCount:d.exercises.length, count};
+    return {name:d.name, exCount:d.exercises.length, cP, cS};
   });
   // Gesamtzählung über den ganzen Plan
-  const total={};
-  perDay.forEach(d=>Object.entries(d.count).forEach(([m,n])=>{ total[m]=(total[m]||0)+n; }));
-  const totalArr=Object.entries(total).sort((a,b)=>b[1]-a[1]);
-  const maxT=Math.max(...totalArr.map(x=>x[1]),1);
+  const tP={}, tS={};
+  perDay.forEach(d=>{
+    Object.entries(d.cP).forEach(([m,n])=>{ tP[m]=(tP[m]||0)+n; });
+    Object.entries(d.cS).forEach(([m,n])=>{ tS[m]=(tS[m]||0)+n; });
+  });
+
+  // Ein Balkenblock. Die Skala gilt für Primär und Sekundär gemeinsam, damit
+  // gleiche Zahlen auch gleich lange Balken ergeben.
+  const block=(count, max, sekundaer)=>{
+    const arr=Object.entries(count).sort((a,b)=>b[1]-a[1]);
+    if(!arr.length) return `<div class="faint" style="font-size:11.5px;padding:2px 0 6px">–</div>`;
+    return arr.map(([m,n])=>`<div class="ov-row">
+      <span class="ov-lbl">${esc(m)}</span>
+      <div class="ov-track"><div class="ov-fill ${sekundaer?'sec':'acc'}" style="width:${Math.round(n/max*100)}%"></div></div>
+      <span class="ov-val">${n}×</span>
+    </div>`).join('');
+  };
+  const maxOf=(...objs)=>Math.max(1, ...objs.flatMap(o=>Object.values(o)));
 
   openModal(`<div class="grab"></div>
     <h2>${esc(p.name)}</h2>
-    <p class="faint" style="font-size:12px;margin:4px 0 14px">Wie oft wird welcher Muskel beansprucht?</p>
+    <p class="faint" style="font-size:12px;margin:4px 0 14px">Wie oft wird welcher Muskel beansprucht? Getrennt nach Haupt- und Nebenbelastung.</p>
     ${missing?`<div class="ov-note">
-      Bei ${missing} ${missing===1?'Übung':'Übungen'} sind noch keine beanspruchten Muskeln hinterlegt.
+      Bei ${missing} ${missing===1?'Übung':'Übungen'} sind noch keine Muskeln hinterlegt.
       Dort wird ersatzweise die Körperregion gezählt. Trage die Muskeln in der Übung nach, um eine genauere Übersicht zu erhalten.
     </div>`:''}
 
     ${perDay.map(d=>{
-      const arr=Object.entries(d.count).sort((a,b)=>b[1]-a[1]);
-      const maxD=Math.max(...arr.map(x=>x[1]),1);
+      const maxD=maxOf(d.cP, d.cS);
       return `<div class="card" style="padding:13px 15px;margin-bottom:10px">
         <div class="row between" style="margin-bottom:10px">
           <span style="font-weight:700;font-size:14px">${esc(d.name)}</span>
           <span class="faint" style="font-size:11px">${d.exCount} Übungen</span>
         </div>
-        ${arr.length? arr.map(([m,n])=>`<div class="ov-row">
-          <span class="ov-lbl">${esc(m)}</span>
-          <div class="ov-track"><div class="ov-fill" style="width:${Math.round(n/maxD*100)}%"></div></div>
-          <span class="ov-val">${n}×</span>
-        </div>`).join('') : `<div class="faint" style="font-size:12px">Noch keine Übungen.</div>`}
+        ${d.exCount? `
+          <div class="ov-sub">Primär</div>
+          ${block(d.cP, maxD, false)}
+          <div class="ov-sub" style="margin-top:10px">Sekundär</div>
+          ${block(d.cS, maxD, true)}
+        ` : `<div class="faint" style="font-size:12px">Noch keine Übungen.</div>`}
       </div>`;
     }).join('')}
 
-    ${totalArr.length?`<div class="card" style="padding:13px 15px;margin-bottom:10px;border-color:var(--accent-dim)">
+    ${(Object.keys(tP).length||Object.keys(tS).length)?`<div class="card" style="padding:13px 15px;margin-bottom:10px;border-color:var(--accent-dim)">
       <div class="eyebrow" style="margin-bottom:10px;color:var(--accent-dim)">Gesamter Plan</div>
-      ${totalArr.map(([m,n])=>`<div class="ov-row">
-        <span class="ov-lbl">${esc(m)}</span>
-        <div class="ov-track"><div class="ov-fill acc" style="width:${Math.round(n/maxT*100)}%"></div></div>
-        <span class="ov-val">${n}×</span>
-      </div>`).join('')}
+      <div class="ov-sub">Primär</div>
+      ${block(tP, maxOf(tP,tS), false)}
+      <div class="ov-sub" style="margin-top:10px">Sekundär</div>
+      ${block(tS, maxOf(tP,tS), true)}
     </div>`:''}
 
     <button class="btn ghost" style="margin-top:4px" onclick="closeModal()">Schließen</button>
