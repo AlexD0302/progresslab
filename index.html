@@ -692,8 +692,10 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .empty h3{color:var(--text-dim);font-size:19px;margin-bottom:6px}
 
 /* ---- exercise picker rows ---- */
-.ex-row{display:flex;align-items:center;gap:14px;padding:10px;margin-bottom:10px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s}
-.ex-row:hover{background:var(--surface-3);border-color:var(--line)}
+/* Übungszeilen wie die übrigen Listenzeilen der App (Plan-Editor, Trainings-
+   details): transparent mit Rahmen statt eigener Hintergrundfarbe. */
+.ex-row{display:flex;align-items:center;gap:14px;padding:10px;margin-bottom:10px;background:transparent;border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s}
+.ex-row:hover{background:var(--surface-2);border-color:var(--accent-dim)}
 .ex-row:active{transform:scale(.99)}
 .ex-thumb{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;background:#fff;display:grid;place-items:center}
 .ex-row .ex-thumb{width:104px;height:104px;border-radius:12px}
@@ -729,10 +731,12 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .filt-caret.up svg{transform:rotate(-90deg)}
 .filt-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600;margin:2px 0 6px}
 .filt-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-/* eingeklappt: nur die Muskel-Chips (erste .filt-chips) sichtbar, auf 2 Zeilen begrenzt; Gerät ausgeblendet */
-.filt-wrap:not(.open) .filt-label:nth-of-type(2),
-.filt-wrap:not(.open) .filt-chips:nth-of-type(2){display:none}
-.filt-wrap:not(.open) .filt-chips:first-of-type{max-height:74px;overflow:hidden}
+/* Eingeklappt: nur die erste Filtergruppe (Körperregion) sichtbar, auf 2 Zeilen
+   begrenzt. Bewusst über .filt-group statt über nth-of-type – letzteres zählt
+   alle <div>-Geschwister und traf dadurch die falsche Gruppe. */
+.filt-group{margin-bottom:2px}
+.filt-wrap:not(.open) .filt-group:not(:first-child){display:none}
+.filt-wrap:not(.open) .filt-group:first-child .filt-chips{max-height:74px;overflow:hidden}
 .filt-wrap.open{padding-bottom:2px}
 
 /* Plan-Builder: Drag & Drop Übungszeilen */
@@ -938,7 +942,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.5.1';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2735,15 +2739,19 @@ function viewExercises(){
     </div>
 
     <div class="filt-wrap ${_exFiltersOpen?'open':''}">
-      <div class="filt-label">Körperregion</div>
-      <div class="filt-chips">
-        <span class="chip ${!_exMuscle?'on':''}" onclick="_exMuscle='';renderView()">Alle</span>
-        ${MUSCLES.map(m=>`<span class="chip ${_exMuscle===m?'on':''}" onclick="_exMuscle='${esc(m)}';renderView()">${m}</span>`).join('')}
+      <div class="filt-group">
+        <div class="filt-label">Körperregion</div>
+        <div class="filt-chips">
+          <span class="chip ${!_exMuscle?'on':''}" onclick="_exMuscle='';renderView()">Alle</span>
+          ${MUSCLES.map(m=>`<span class="chip ${_exMuscle===m?'on':''}" onclick="_exMuscle='${esc(m)}';renderView()">${m}</span>`).join('')}
+        </div>
       </div>
-      <div class="filt-label">Gerät</div>
-      <div class="filt-chips">
-        <span class="chip ${!_exEquip?'on':''}" onclick="_exEquip='';renderView()">Alle</span>
-        ${equipList().map(q=>`<span class="chip ${_exEquip===q?'on':''}" onclick="_exEquip='${esc(q)}';renderView()">${esc(q)}</span>`).join('')}
+      <div class="filt-group">
+        <div class="filt-label">Gerät</div>
+        <div class="filt-chips">
+          <span class="chip ${!_exEquip?'on':''}" onclick="_exEquip='';renderView()">Alle</span>
+          ${equipList().map(q=>`<span class="chip ${_exEquip===q?'on':''}" onclick="_exEquip='${esc(q)}';renderView()">${esc(q)}</span>`).join('')}
+        </div>
       </div>
     </div>
 
@@ -3409,19 +3417,25 @@ function renderPicker(){
         </button>
       </div>
       <div class="filt-wrap ${_filtersOpen?'open':''}">
-        <div class="filt-label">Körperregion</div>
-        <div class="filt-chips">
-          <span class="chip ${!_pickMuscle?'on':''}" onclick="_pickMuscle='';renderPicker()">Alle</span>
-          ${MUSCLES.map(m=>`<span class="chip ${_pickMuscle===m?'on':''}" onclick="_pickMuscle='${m}';renderPicker()">${m}</span>`).join('')}
+        <div class="filt-group">
+          <div class="filt-label">Körperregion</div>
+          <div class="filt-chips">
+            <span class="chip ${!_pickMuscle?'on':''}" onclick="_pickMuscle='';renderPicker()">Alle</span>
+            ${MUSCLES.map(m=>`<span class="chip ${_pickMuscle===m?'on':''}" onclick="_pickMuscle='${m}';renderPicker()">${m}</span>`).join('')}
+          </div>
         </div>
-        <div class="filt-label">Muskel</div>
-        <input class="input filt-msearch" placeholder="Muskelgruppe suchen…" value="${esc(_pickMuscleSearch)}"
-          oninput="_pickMuscleSearch=this.value;refreshMuscleChips()">
-        <div class="filt-chips" id="pickMuscleChips">${muscleChipsHTML()}</div>
-        <div class="filt-label">Gerät</div>
-        <div class="filt-chips">
-          <span class="chip ${!_pickEquip?'on':''}" onclick="_pickEquip='';renderPicker()">Alle</span>
-          ${equipList().map(q=>`<span class="chip ${_pickEquip===q?'on':''}" onclick="_pickEquip='${esc(q)}';renderPicker()">${esc(q)}</span>`).join('')}
+        <div class="filt-group">
+          <div class="filt-label">Muskel</div>
+          <input class="input filt-msearch" placeholder="Muskelgruppe suchen…" value="${esc(_pickMuscleSearch)}"
+            oninput="_pickMuscleSearch=this.value;refreshMuscleChips()">
+          <div class="filt-chips" id="pickMuscleChips">${muscleChipsHTML()}</div>
+        </div>
+        <div class="filt-group">
+          <div class="filt-label">Gerät</div>
+          <div class="filt-chips">
+            <span class="chip ${!_pickEquip?'on':''}" onclick="_pickEquip='';renderPicker()">Alle</span>
+            ${equipList().map(q=>`<span class="chip ${_pickEquip===q?'on':''}" onclick="_pickEquip='${esc(q)}';renderPicker()">${esc(q)}</span>`).join('')}
+          </div>
         </div>
       </div>
     </div>
