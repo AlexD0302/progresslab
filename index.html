@@ -657,8 +657,14 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
   border-left:1px solid rgba(200,255,0,.35);border-right:1px solid rgba(200,255,0,.35)}
 .spm-fill{position:relative;height:100%;background:var(--accent);border-radius:4px}
 /* PR-Tabelle */
-.pr-row{display:grid;grid-template-columns:1.5fr 0.9fr 0.9fr 0.8fr;gap:8px;align-items:center;
+.pr-row{display:grid;grid-template-columns:1.35fr 1.05fr 0.8fr 0.7fr;gap:8px;align-items:center;
   padding:9px 4px;font-size:13px;border-bottom:1px solid var(--line-soft)}
+@media (max-width:430px){
+  .pr-row{grid-template-columns:1.2fr 1fr 0.75fr 0.65fr;gap:5px;font-size:12px;align-items:start}
+  /* Auf schmalen Displays den Übungsnamen lieber umbrechen als abschneiden */
+  .pr-row .pr-name{white-space:normal;line-height:1.25}
+  .pr-row span:nth-child(n+2){padding-top:1px}
+}
 .pr-row:last-child{border-bottom:none}
 .pr-row.pr-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600}
 .pr-row span:nth-child(n+2){text-align:right}
@@ -947,7 +953,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3147,8 +3153,29 @@ function importData(ev){
 }
 
 /* ---- Statistik-Helfer ---- */
-let STATS_RANGE='week';   // 'week' | 'month' | 'all'
+let STATS_RANGE='week';   // 'week' | 'month' | 'year' | 'all'
 function setStatsRange(r){ STATS_RANGE=r; renderView(); }
+/* Liefert den gewählten Zeitraum und den unmittelbar davorliegenden gleich
+   langen Vergleichszeitraum. Bei "Gesamt" gibt es keinen Vorzeitraum. */
+function statsPeriod(range){
+  const now=new Date(), y=now.getFullYear(), mo=now.getMonth();
+  if(range==='week'){
+    const cur=weekStartTs(Date.now());
+    return {from:cur, prevFrom:cur-7*86400000, prevTo:cur,
+            titel:'Diese Woche vs. letzte Woche', kurz:'diese Woche'};
+  }
+  if(range==='month'){
+    const cur=new Date(y,mo,1).getTime();
+    return {from:cur, prevFrom:new Date(y,mo-1,1).getTime(), prevTo:cur,
+            titel:'Dieser Monat vs. letzter Monat', kurz:'dieser Monat'};
+  }
+  if(range==='year'){
+    const cur=new Date(y,0,1).getTime();
+    return {from:cur, prevFrom:new Date(y-1,0,1).getTime(), prevTo:cur,
+            titel:'Dieses Jahr vs. letztes Jahr', kurz:'dieses Jahr'};
+  }
+  return {from:0, prevFrom:null, prevTo:null, titel:'', kurz:'gesamt'};
+}
 // Montag 00:00 der Woche, in der ts liegt (konsistent mit dem Kalender)
 function weekStartTs(ts){ const d=new Date(ts); const wd=(d.getDay()+6)%7; d.setHours(0,0,0,0); return d.getTime()-wd*86400000; }
 function logDoneSets(l){ return l.exercises.reduce((a,e)=>a+e.sets.filter(x=>x.done!==false).length,0); }
@@ -3201,23 +3228,21 @@ function viewStats(){
   if(!DB.logs.length) return topbar('Statistics')+`<div class="pad"><div class="empty">${I.stats}
     <h3>Keine Daten</h3><p style="font-size:13.5px">Trainiere ein paar Mal — dann zeigen wir deinen Fortschritt.</p></div>
     ${backupCard()}</div>`;
-  // Zeitraum-Filter: Woche (ab Montag) / Monat / Gesamt
-  const now=new Date();
-  const thisWeekFrom=weekStartTs(Date.now());
-  const monthFrom=new Date(now.getFullYear(),now.getMonth(),1).getTime();
-  const from = STATS_RANGE==='week'? thisWeekFrom : (STATS_RANGE==='month'? monthFrom : 0);
-  const rangeLogs=DB.logs.filter(l=>l.date>=from);
+  // Zeitraum-Filter: Woche (ab Montag) / Monat / Jahr / Gesamt
+  const per=statsPeriod(STATS_RANGE);
+  const rangeLogs=DB.logs.filter(l=>l.date>=per.from);
   const rEinheiten=rangeLogs.length;
   const rVol=rangeLogs.reduce((a,l)=>a+logVolume(l),0);
   const rSets=rangeLogs.reduce((a,l)=>a+logDoneSets(l),0);
-  const rangeLabel = STATS_RANGE==='week'?'diese Woche':(STATS_RANGE==='month'?'dieser Monat':'gesamt');
+  const rangeLabel = per.kurz;
 
-  // Wochenvergleich: diese vs. letzte Woche
-  const lastWeekFrom=thisWeekFrom-7*86400000;
-  const twLogs=DB.logs.filter(l=>l.date>=thisWeekFrom);
-  const lwLogs=DB.logs.filter(l=>l.date>=lastWeekFrom && l.date<thisWeekFrom);
-  const tw={e:twLogs.length, s:twLogs.reduce((a,l)=>a+logDoneSets(l),0), v:twLogs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(twLogs)};
-  const lw={e:lwLogs.length, s:lwLogs.reduce((a,l)=>a+logDoneSets(l),0), v:lwLogs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(lwLogs)};
+  // Vergleich mit dem vorherigen, gleich langen Zeitraum
+  const kennz=(logs)=>({e:logs.length, s:logs.reduce((a,l)=>a+logDoneSets(l),0),
+                        v:logs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(logs)});
+  const tw=kennz(rangeLogs);
+  const lw=per.prevFrom!=null
+    ? kennz(DB.logs.filter(l=>l.date>=per.prevFrom && l.date<per.prevTo))
+    : null;
 
   // Volumen letzte 8 Sessions (zeitraumunabhängiger Trend)
   const recent=DB.logs.slice(-8);
@@ -3247,6 +3272,7 @@ function viewStats(){
     <div class="seg">
       <button class="seg-btn ${STATS_RANGE==='week'?'on':''}" onclick="setStatsRange('week')">Woche</button>
       <button class="seg-btn ${STATS_RANGE==='month'?'on':''}" onclick="setStatsRange('month')">Monat</button>
+      <button class="seg-btn ${STATS_RANGE==='year'?'on':''}" onclick="setStatsRange('year')">Jahr</button>
       <button class="seg-btn ${STATS_RANGE==='all'?'on':''}" onclick="setStatsRange('all')">Gesamt</button>
     </div>
 
@@ -3263,15 +3289,15 @@ function viewStats(){
     </div>
     <p class="faint" style="font-size:10.5px;text-align:center;margin:6px 0 0;letter-spacing:.04em;text-transform:uppercase">${rangeLabel}</p>
 
-    <div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:12px">Diese Woche vs. letzte Woche</div>
+    ${lw?`<div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:12px">${per.titel}</div>
       <div class="wk-grid">
         <div class="wk-item"><span class="wk-val">${tw.e}</span>${deltaChip(tw.e,lw.e,'')}<span class="wk-lbl">Einheiten</span></div>
         <div class="wk-item"><span class="wk-val">${tw.s}</span>${deltaChip(tw.s,lw.s,'')}<span class="wk-lbl">Sätze</span></div>
         <div class="wk-item"><span class="wk-val">${(tw.v/1000).toFixed(1)}t</span>${deltaChip(tw.v,lw.v,'t')}<span class="wk-lbl">Volumen</span></div>
         <div class="wk-item"><span class="wk-val">${tw.r!=null?tw.r.toFixed(1):'–'}</span>${(tw.r!=null&&lw.r!=null)?deltaChip(tw.r,lw.r,'',true):''}<span class="wk-lbl">Ø RIR</span></div>
       </div>
-    </div>
+    </div>`:''}
 
     <div class="card" style="margin-top:14px">
       <div class="eyebrow" style="margin-bottom:16px">Volumen pro Einheit</div>
@@ -3309,12 +3335,16 @@ function viewStats(){
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:4px">Persönliche Rekorde</div>
-      <p class="faint" style="font-size:11px;margin-bottom:10px">Schwerster Satz und bestes geschätztes 1RM je Übung</p>
-      <div class="pr-row pr-head"><span>Übung</span><span>Top-Satz</span><span>e1RM</span><span>Datum</span></div>
+      <div class="eyebrow" style="margin-bottom:4px">Bestleistungen</div>
+      <p class="faint" style="font-size:11px;margin-bottom:4px">Dein bisher bestes Ergebnis je Übung – aus allen Trainings.</p>
+      <p class="faint" style="font-size:11px;margin-bottom:12px;line-height:1.5">
+        <b style="color:var(--text-dim)">Bester Satz</b>: das höchste Gewicht, das du geschafft hast (mit den dabei erreichten Wiederholungen).<br>
+        <b style="color:var(--text-dim)">Max. 1×</b>: das Gewicht, das du rechnerisch für <b>eine einzige</b> Wiederholung schaffen würdest – geschätzt aus Gewicht und Wiederholungen. Damit lassen sich Sätze mit unterschiedlichen Wiederholungszahlen vergleichen.
+      </p>
+      <div class="pr-row pr-head"><span>Übung</span><span>Bester Satz</span><span>Max. 1×</span><span>Wann</span></div>
       ${prs.map(r=>`<div class="pr-row">
         <span class="pr-name">${esc(r.label)}</span>
-        <span class="num">${r.topW}×${r.topWr}</span>
+        <span class="num">${r.topW} kg × ${r.topWr}</span>
         <span class="num" style="color:var(--accent);font-weight:700">${Math.round(r.e1)} kg</span>
         <span class="faint num" style="font-size:11.5px">${new Date(r.e1d).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})}</span>
       </div>`).join('')}
