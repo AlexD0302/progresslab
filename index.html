@@ -793,6 +793,16 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .cx-imgmode{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:3px}
 .sec-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:none}
 .sec-chips .chip{cursor:pointer}
+/* Suchfeld über den Muskel-Kacheln im Übungs-Picker */
+.filt-msearch{margin:0 0 8px;padding:8px 10px;font-size:13px}
+/* Bei vielen Muskeln nicht den halben Bildschirm füllen: eigener Scrollbereich */
+#pickMuscleChips{max-height:132px;overflow-y:auto;scrollbar-width:thin;
+  scrollbar-gutter:stable;padding-right:2px}
+#pickMuscleChips::-webkit-scrollbar{width:6px}
+#pickMuscleChips::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+#pickMuscleChips::-webkit-scrollbar-track{background:transparent}
+/* Primärmuskel-Kacheln: ausgewählt kräftiger als die Sekundärauswahl */
+.sec-chips .chip-prim.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 /* eigene Muskeln: mit kleinem Entfernen-Kreuz */
 .sec-chips .chip.own{padding-right:5px;gap:3px}
 .chip-x{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;
@@ -928,7 +938,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.4.1';
+const APP_VERSION='1.5.0';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3349,6 +3359,7 @@ function renderExerciseProgress(key){
    EXERCISE PICKER  (mit Thumbnails, Geräte-Filter, Detailansicht)
    ================================================================ */
 let _pickCb=null, _pickSearch='', _pickMuscle='', _pickEquip='', _pickOwn=false, _filtersOpen=false;
+let _pickMuscleDetail='', _pickMuscleSearch='';   // Filter auf einzelne Muskeln
 // Geräte-Filter: die feste Auswahlliste, ergänzt um alles, was in eigenen Übungen vorkommt
 function equipList(){
   const base=(typeof CUSTOM_EQUIP!=='undefined')?CUSTOM_EQUIP:[];
@@ -3356,7 +3367,7 @@ function equipList(){
   return [...new Set([...base, ...used])].sort();
 }
 
-function openExercisePicker(cb){ _pickCb=cb; _pickSearch=''; _pickMuscle=''; _pickEquip=''; _pickOwn=false; _filtersOpen=false; renderPicker(); }
+function openExercisePicker(cb){ _pickCb=cb; _pickSearch=''; _pickMuscle=''; _pickEquip=''; _pickOwn=false; _filtersOpen=false; _pickMuscleDetail=''; _pickMuscleSearch=''; renderPicker(); }
 
 function filterList(){
   const t=(_pickSearch||'').toLowerCase().trim();
@@ -3364,6 +3375,12 @@ function filterList(){
     if(_pickOwn && !e._.custom) return false;
     if(_pickMuscle && e.m!==_pickMuscle) return false;
     if(_pickEquip && e.t!==_pickEquip) return false;
+    // Filter auf einen einzelnen Muskel: zählt als Treffer, wenn er primär
+    // ODER sekundär beansprucht wird.
+    if(_pickMuscleDetail){
+      const alle=(e._.pm||[]).concat(e._.sm||[]);
+      if(!alle.includes(_pickMuscleDetail)) return false;
+    }
     if(t){
       const hay=(e.n+' '+e.m+' '+e._.pm.join(' ')+' '+e._.sm.join(' ')+' '+e.t).toLowerCase();
       if(!hay.includes(t)) return false;
@@ -3375,7 +3392,7 @@ function renderPicker(){
   MODAL_GUARD=null;   // Auswahlliste, nichts zu schützen
   const list=filterList();
   const ownCount=customList().length;
-  const activeFilters = (_pickMuscle?1:0)+(_pickEquip?1:0);
+  const activeFilters = (_pickMuscle?1:0)+(_pickEquip?1:0)+(_pickMuscleDetail?1:0);
   openModal(`<div class="grab"></div>
     <div class="pick-head">
       <div class="row between" style="margin-bottom:2px"><h2>Übung wählen</h2>
@@ -3397,6 +3414,10 @@ function renderPicker(){
           <span class="chip ${!_pickMuscle?'on':''}" onclick="_pickMuscle='';renderPicker()">Alle</span>
           ${MUSCLES.map(m=>`<span class="chip ${_pickMuscle===m?'on':''}" onclick="_pickMuscle='${m}';renderPicker()">${m}</span>`).join('')}
         </div>
+        <div class="filt-label">Muskel</div>
+        <input class="input filt-msearch" placeholder="Muskelgruppe suchen…" value="${esc(_pickMuscleSearch)}"
+          oninput="_pickMuscleSearch=this.value;refreshMuscleChips()">
+        <div class="filt-chips" id="pickMuscleChips">${muscleChipsHTML()}</div>
         <div class="filt-label">Gerät</div>
         <div class="filt-chips">
           <span class="chip ${!_pickEquip?'on':''}" onclick="_pickEquip='';renderPicker()">Alle</span>
@@ -3431,6 +3452,29 @@ function pickerListHTML(list){
       <button class="ex-info" onclick='event.stopPropagation();showExercise("${escAttr(e.n)}")' title="Details">${I.info}</button>
     </div>`;
   }).join('') + (list.length>CAP?`<div class="faint" style="text-align:center;padding:14px;font-size:12px">${list.length-CAP} weitere — bitte Suche oder Filter nutzen.</div>`:'');
+}
+// Alle Muskeln, die in den Übungen tatsächlich vorkommen (primär oder sekundär)
+function pickerMuscleOptions(){
+  const set=new Set();
+  EXDB.forEach(e=>{ (e._.pm||[]).forEach(m=>set.add(m)); (e._.sm||[]).forEach(m=>set.add(m)); });
+  return [...set].sort((a,b)=>a.localeCompare(b,'de'));
+}
+function muscleChipsHTML(){
+  const q=(_pickMuscleSearch||'').toLowerCase().trim();
+  const opts=pickerMuscleOptions().filter(m=>!q || m.toLowerCase().includes(q));
+  return `<span class="chip ${!_pickMuscleDetail?'on':''}" onclick="setPickMuscleDetail('')">Alle</span>`
+    + opts.map(m=>`<span class="chip ${_pickMuscleDetail===m?'on':''}" onclick="setPickMuscleDetail('${escAttr(m)}')">${esc(m)}</span>`).join('')
+    + (opts.length?'':`<span class="faint" style="font-size:12px;padding:4px 2px">Kein Muskel gefunden.</span>`);
+}
+// Nur die Kacheln neu zeichnen – so bleibt der Fokus im Suchfeld erhalten.
+function refreshMuscleChips(){
+  const el=document.getElementById('pickMuscleChips');
+  if(el) el.innerHTML=muscleChipsHTML();
+  refreshPickerList();
+}
+function setPickMuscleDetail(m){
+  _pickMuscleDetail = (_pickMuscleDetail===m) ? '' : m;
+  renderPicker();
 }
 function refreshPickerList(){
   const list=filterList();
@@ -3721,10 +3765,15 @@ function openCustomExercise(id){
   };
   if(CUSTOM.dumbbells!==1 && CUSTOM.dumbbells!==2) CUSTOM.dumbbells = 2;
   if(!Array.isArray(CUSTOM.sm)) CUSTOM.sm=[];
+  if(!Array.isArray(CUSTOM.pm)) CUSTOM.pm=[];
   // Alle bekannten Muskeln (eingebaute + selbst hinzugefügte) sind Kacheln.
   // Sollte eine Übung noch einen Muskel enthalten, der (noch) keine Kachel ist, wird er ergänzt.
   CUSTOM.sm.forEach(m=>{ if(!allMuscles().includes(m)) addCustomMuscle(m, true); });
+  CUSTOM.pm.forEach(m=>{ if(!allMuscles().includes(m)) addCustomMuscle(m, true); });
   CUSTOM._smChips = CUSTOM.sm.slice();
+  // Primärmuskeln: bei Altdaten stand hier teils nur die Körperregion – die
+  // ist keine Muskel-Kachel und wird daher nicht vorausgewählt.
+  CUSTOM._pmChips = CUSTOM.pm.filter(m=>allMuscles().includes(m));
   if(!CUSTOM.imgMode) CUSTOM.imgMode = (CUSTOM.img[0]&&/^https?:/i.test(CUSTOM.img[0]))?'url':'file';
   CUSTOM._isEdit = !!id;
   renderCustomForm(!!id);
@@ -3763,6 +3812,7 @@ function deleteCustomMuscle(name){
     DB.settings.customMuscles = customMuscles().filter(m=>m!==name);
     // aus der aktuellen Auswahl nehmen
     if(CUSTOM && Array.isArray(CUSTOM._smChips)) CUSTOM._smChips=CUSTOM._smChips.filter(m=>m!==name);
+    if(CUSTOM && Array.isArray(CUSTOM._pmChips)) CUSTOM._pmChips=CUSTOM._pmChips.filter(m=>m!==name);
     save();
     renderCustomForm(!!(CUSTOM&&CUSTOM._isEdit));
   });
@@ -3770,7 +3820,22 @@ function deleteCustomMuscle(name){
 function toggleSecMuscle(m){
   const arr=CUSTOM._smChips||(CUSTOM._smChips=[]);
   const i=arr.indexOf(m);
-  if(i>=0) arr.splice(i,1); else arr.push(m);
+  if(i>=0) arr.splice(i,1);
+  else {
+    arr.push(m);
+    // Ein Muskel kann nicht gleichzeitig primär und sekundär sein
+    CUSTOM._pmChips=(CUSTOM._pmChips||[]).filter(x=>x!==m);
+  }
+  renderCustomForm(!!CUSTOM._isEdit);
+}
+function togglePrimMuscle(m){
+  const arr=CUSTOM._pmChips||(CUSTOM._pmChips=[]);
+  const i=arr.indexOf(m);
+  if(i>=0) arr.splice(i,1);
+  else {
+    arr.push(m);
+    CUSTOM._smChips=(CUSTOM._smChips||[]).filter(x=>x!==m);
+  }
   renderCustomForm(!!CUSTOM._isEdit);
 }
 function renderCustomForm(isEdit){
@@ -3785,7 +3850,17 @@ function renderCustomForm(isEdit){
       <select class="input" id="cxMuscle" onchange="CUSTOM.g=this.value">
         ${MUSCLES.map(m=>`<option ${c.g===m?'selected':''}>${m}</option>`).join('')}
       </select></div>
-    <div class="field"><label>Beanspruchte Muskeln <span class="faint" style="font-weight:400">(mehrere möglich)</span></label>
+    <div class="field"><label>Primärmuskeln <span class="faint" style="font-weight:400">(Hauptbelastung, mehrere möglich)</span></label>
+      <div class="sec-chips">
+        ${allMuscles().map(m=>{
+          const on=(c._pmChips||[]).includes(m);
+          const own=customMuscles().includes(m);
+          return `<span class="chip chip-prim ${on?'on':''} ${own?'own':''}" onclick="togglePrimMuscle('${escAttr(m)}')">${esc(m)}</span>`;
+        }).join('')}
+      </div>
+      ${(c._pmChips||[]).length?'':`<p class="faint" style="font-size:11px;margin-top:8px">Ohne Auswahl wird die Körperregion als Primärmuskel gespeichert.</p>`}
+    </div>
+    <div class="field"><label>Sekundärmuskeln <span class="faint" style="font-weight:400">(unterstützend, mehrere möglich)</span></label>
       <div class="sec-chips">
         ${allMuscles().map(m=>{
           const on=(c._smChips||[]).includes(m);
@@ -3888,7 +3963,8 @@ function saveCustomExercise(isEdit){
   c.ins = txt.split('\n').map(s=>s.trim()).filter(Boolean);
   delete c._insText;
   // primärer Muskel = Gruppe (wie gewünscht: eine Hauptmuskelgruppe)
-  c.pm = [c.g];
+  // Gewählte Primärmuskeln übernehmen; ohne Auswahl gilt die Körperregion.
+  c.pm = (c._pmChips && c._pmChips.length) ? c._pmChips.slice() : [c.g];
   c.bench = (c.bench||'').trim();
   // Anzahl Hanteln: nur bei Kurzhantel relevant; sonst immer 1 (kein Faktor)
   c.dumbbells = (c.eq==='Kurzhantel' && c.dumbbells===2) ? 2 : 1;
