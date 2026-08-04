@@ -675,6 +675,74 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
 /* Versionszeile unter "Daten & Backup" */
 .app-version{margin-top:16px;padding-top:12px;border-top:1px solid var(--line-soft);
   text-align:center;font-size:10.5px;letter-spacing:.05em;color:var(--text-faint)}
+
+/* ============ KÖRPERMASSE ============ */
+.body-card{display:flex;flex-direction:column;align-items:center;padding:18px 16px 16px}
+.body-fig{width:100%;max-width:230px;height:auto;display:block}
+/* Grundzustand aller Körperteile */
+.body-fig .body-fill{fill:var(--surface-2)}
+.body-fig .body-outline{fill:none;stroke:var(--text-dim);stroke-width:1.4;
+  stroke-linejoin:round;stroke-linecap:round;pointer-events:none}
+.body-fig .body-deko{fill:none;stroke:var(--line);stroke-width:1;pointer-events:none}
+/* Messstellen: anklickbar, leuchten beim Überfahren auf */
+.body-fig .body-reg{fill:transparent;stroke:var(--line);stroke-width:1;
+  cursor:pointer;transition:fill .15s}
+.body-fig .body-reg:hover{fill:var(--accent-glow);stroke:var(--accent-dim)}
+.body-fig .body-reg.on{fill:var(--accent);stroke:var(--accent);opacity:.95}
+/* Maßlinie: zeigt, auf welcher Höhe gemessen wird */
+.body-fig .mess-linie{pointer-events:none}
+/* Dunkler Halo darunter, damit die Linie auch auf heller Markierung lesbar bleibt */
+.body-fig .mess-linie line.halo{stroke:var(--bg);stroke-width:4.6;stroke-linecap:round;
+  vector-effect:non-scaling-stroke;opacity:.85}
+.body-fig .mess-linie line{stroke:#ff3b3b;stroke-width:2;stroke-linecap:round;
+  vector-effect:non-scaling-stroke}
+.body-fig .mess-linie line.tick{stroke-width:2.6}
+.body-fig .mess-linie line.tick.halo{stroke:var(--bg);stroke-width:5}
+.body-fig .mess-linie path{fill:#ff3b3b;stroke:var(--bg);stroke-width:.8}
+.body-cap{text-align:center;margin-top:12px;max-width:280px}
+.body-cap-t{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent)}
+.body-cap-h{font-size:11.5px;color:var(--text-faint);margin-top:3px;line-height:1.45}
+/* Werteliste */
+.ms-head{display:grid;grid-template-columns:1fr 74px 52px 46px;gap:8px;padding:0 10px 7px;
+  font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600;
+  border-bottom:1px solid var(--line-soft);margin-bottom:8px}
+.ms-head span:not(:first-child){text-align:right}
+.ms-prev{text-align:right;font-size:12px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.ms-row{display:grid;grid-template-columns:1fr 74px 52px 46px;align-items:center;gap:8px;
+  padding:11px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;
+  cursor:pointer;transition:border-color .15s,background .15s}
+.ms-row:hover{background:var(--surface-2);border-color:var(--accent-dim)}
+.ms-row:active{transform:scale(.995)}
+.ms-row.on{border-color:var(--accent);background:var(--accent-glow)}
+.ms-lbl{font-size:13.5px;font-weight:600}
+.ms-val{font-family:var(--font-display);font-size:16px;font-weight:700;text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.ms-unit{font-size:11px;color:var(--text-faint);font-weight:600;margin-left:2px}
+.ms-empty{color:var(--text-faint);font-weight:400}
+.ms-diff{text-align:right}
+/* Verlauf */
+.ms-hist{border:1px solid var(--line-soft);border-radius:12px;padding:11px 12px;margin-bottom:8px}
+.ms-hist-vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ms-pill{font-size:11px;padding:3px 8px;border-radius:7px;background:var(--surface-2);
+  color:var(--text-faint);white-space:nowrap}
+.ms-pill b{color:var(--text);font-weight:700}
+.ms-del{width:30px;height:30px;display:grid;place-items:center;background:transparent;
+  border:1px solid var(--line);border-radius:8px;color:var(--text-faint);flex-shrink:0}
+.ms-del:hover{color:var(--red);border-color:rgba(255,92,92,.35)}
+.ms-del svg{width:14px;height:14px}
+/* Figur im Eingabefenster kleiner */
+.ms-modal-fig{display:flex;justify-content:center;margin:0 0 14px}
+.ms-modal-fig .body-fig{max-width:150px}
+/* Eigenes Bild statt gezeichneter Figur */
+.body-img{width:100%;max-width:230px;height:auto;display:block;border-radius:12px}
+.ms-modal-fig .body-img{max-width:150px}
+.body-imgerr{font-size:11.5px;color:var(--red);padding:10px;text-align:center}
+/* Sechs Reiter: etwas enger, damit alles in eine Zeile passt */
+.nav button{min-width:0}
+@media (max-width:430px){
+  .nav button span{font-size:9px}
+  .nav button{padding:7px 1px}
+}
 .prog-table{margin-top:14px}
 .prog-row{display:grid;grid-template-columns:1.4fr 0.55fr 0.85fr 0.6fr 1fr;gap:8px;align-items:center;padding:9px 4px;font-size:13px;border-bottom:1px solid var(--line-soft)}
 .prog-row:last-child{border-bottom:none}
@@ -922,6 +990,7 @@ const I = {
   plans:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18" stroke-linecap="round"/></svg>',
   history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5M12 7v5l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   stats:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" stroke-linecap="round"/></svg>',
+  body:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="4.2" r="2.2"/><path d="M12 6.6v7M12 6.6 7 9.4M12 6.6l5 2.8M12 13.6 8.6 21M12 13.6 15.4 21" stroke-linecap="round"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>',
   dumb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11" stroke-linecap="round"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -958,7 +1027,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.11.1';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1050,9 +1119,9 @@ let DB = load();
 function load(){
   try{
     const raw = localStorage.getItem(KEY);
-    if(raw){ const d=JSON.parse(raw); if(!Array.isArray(d.customEx)) d.customEx=[]; return d; }
+    if(raw){ const d=JSON.parse(raw); if(!Array.isArray(d.customEx)) d.customEx=[]; if(!Array.isArray(d.measurements)) d.measurements=[]; return d; }
   }catch(e){}
-  return {plans:[],logs:[],settings:{unit:'kg',incrementUpper:2.5,incrementLower:5},customEx:[]};
+  return {plans:[],logs:[],settings:{unit:'kg',incrementUpper:2.5,incrementLower:5},customEx:[],measurements:[]};
 }
 let saveTimer, pushTimer;
 function save(){
@@ -1226,6 +1295,7 @@ function applyCloudData(row){
   DB.plans    = Array.isArray(d.plans)? d.plans : [];
   DB.logs     = Array.isArray(d.logs)?  d.logs  : [];
   DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
+  DB.measurements = Array.isArray(d.measurements)? d.measurements : [];
   DB.settings = (d.settings && typeof d.settings==='object') ? d.settings : DB.settings;
   DB.logs.sort((a,b)=>a.date-b.date);
   rebuildExDB(); migrateToEnglish(); migrateMuscleNames(); migrateExerciseIds();
@@ -1578,6 +1648,7 @@ const TABS=[
   {id:'exercises',label:'Übungen',icon:I.dumb},
   {id:'history',label:'Verlauf',icon:I.history},
   {id:'stats',label:'Statistik',icon:I.stats},
+  {id:'body',label:'Maße',icon:I.body},
 ];
 let current='today';
 
@@ -1595,6 +1666,9 @@ function renderView(){
   else if(current==='history') app.innerHTML=viewHistory();
   else if(current==='stats'){ app.innerHTML=viewStats();
     const sel=document.getElementById('strEx'); if(sel&&sel.value) renderExerciseProgress(sel.value);
+  }
+  else if(current==='body'){ app.innerHTML=viewBody();
+    const sel=document.getElementById('msSel'); if(sel&&sel.value) renderMeasureChart(sel.value);
   }
   // Trainings-Modus: feste Bildschirmhöhe, kein Scrollen
   const inSession = !!(SESSION && current==='today');
@@ -3012,6 +3086,334 @@ function showLogDetail(id){
     <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Schließen</button>`);
 }
 
+
+/* ================================================================
+   KÖRPERMASSE
+   Eigene SVG-Figur (Vorderansicht). Der Muskel bzw. die Stelle, die
+   gerade gemessen wird, wird farblich hervorgehoben.
+   Seitenangaben sind anatomisch: "rechts" ist die rechte Körperhälfte
+   der Person und erscheint auf der Grafik daher LINKS.
+   ================================================================ */
+const BODY_METRICS=[
+  {key:'weight',   label:'Körpergewicht',      unit:'kg', region:'',         hint:'Am besten morgens, nüchtern.'},
+  {key:'neck',     label:'Hals',               unit:'cm', region:'neck',     hint:'Unterhalb des Kehlkopfs messen.'},
+  {key:'shoulders',label:'Schultern',          unit:'cm', region:'shoulders',hint:'Rundum über die breiteste Stelle.'},
+  {key:'chest',    label:'Brust',              unit:'cm', region:'chest',    hint:'Auf Brustwarzenhöhe, locker ausgeatmet.'},
+  {key:'bicepsR',  label:'Bizeps rechts',      unit:'cm', region:'bicepsR',  hint:'Angespannt, an der dicksten Stelle.'},
+  {key:'bicepsL',  label:'Bizeps links',       unit:'cm', region:'bicepsL',  hint:'Angespannt, an der dicksten Stelle.'},
+  {key:'forearmR', label:'Unterarm rechts',    unit:'cm', region:'forearmR', hint:'Etwa eine Handbreit unter dem Ellenbogen.'},
+  {key:'forearmL', label:'Unterarm links',     unit:'cm', region:'forearmL', hint:'Etwa eine Handbreit unter dem Ellenbogen.'},
+  {key:'waist',    label:'Taille',             unit:'cm', region:'waist',    hint:'Schmalste Stelle, meist über dem Bauchnabel.'},
+  {key:'hips',     label:'Hüfte',              unit:'cm', region:'hips',     hint:'Über die breiteste Stelle des Gesäßes.'},
+  {key:'thighR',   label:'Oberschenkel rechts',unit:'cm', region:'thighR',   hint:'Etwa eine Handbreit unter dem Schritt.'},
+  {key:'thighL',   label:'Oberschenkel links', unit:'cm', region:'thighL',   hint:'Etwa eine Handbreit unter dem Schritt.'},
+  {key:'calfR',    label:'Wade rechts',        unit:'cm', region:'calfR',    hint:'An der dicksten Stelle, Fuß am Boden.'},
+  {key:'calfL',    label:'Wade links',         unit:'cm', region:'calfL',    hint:'An der dicksten Stelle, Fuß am Boden.'}
+];
+let BODY_ACTIVE='';   // gerade ausgewählte Messstelle
+/* Eigene Bilder: pro Messstelle kann ein Bild-Link hinterlegt werden.
+   Ist einer gesetzt, wird er statt der gezeichneten Figur angezeigt. */
+function bodyImages(){
+  if(!DB.settings) DB.settings={};
+  if(!DB.settings.bodyImages || typeof DB.settings.bodyImages!=='object') DB.settings.bodyImages={};
+  return DB.settings.bodyImages;
+}
+function bodyImgFor(region){ const u=bodyImages()[region||'_none']; return (u&&u.trim())?u.trim():''; }
+// Figur ODER hinterlegtes Bild
+function bodyVisual(region, interaktiv){
+  const url=bodyImgFor(region);
+  if(url) return `<img class="body-img" src="${escAttr(url)}" alt=""
+    onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\'body-imgerr\'>Bild nicht ladbar</div>')">`;
+  return bodySvg(region, {interaktiv:!!interaktiv});
+}
+
+/* Körpergrafik: aus der Vorlage in Vektorflächen umgezeichnet.
+   Jede Messstelle ist eine eigene Fläche – dadurch reagiert sie auf
+   Überfahren und Anklicken. Seiten anatomisch: rechte Körperhälfte links im Bild. */
+const BODY_VIEWBOX="-16 0 332 448";
+const BODY_SIL="M197.9,423.4L194.5,422.3L191.5,418.5L187.9,416.1L186.7,411.2L182.8,408.7L181.1,406.3L181.5,394.6L180.3,392.0L180.7,384.4L179.2,370.5L175.1,355.8L170.5,346.4L170.9,338.8L173.2,324.9L172.8,318.1L167.9,311.7L164.5,302.6L164.1,299.2L165.3,298.9L165.3,297.4L163.8,294.0L161.5,282.7L160.7,271.4L159.4,271.2L157.7,268.3L152.4,251.0L151.7,245.7L151.5,232.7L147.9,232.9L147.2,249.9L146.0,255.5L142.3,266.8L140.4,271.0L138.9,271.4L138.9,277.0L137.8,284.2L136.2,292.1L134.4,297.7L134.4,299.6L135.1,300.0L134.4,305.3L131.3,312.4L126.8,318.1L126.4,326.0L128.7,339.6L128.7,346.4L128.0,349.0L124.6,355.0L120.8,368.2L118.9,384.0L119.3,390.8L117.8,395.7L118.5,406.3L116.8,408.7L112.1,411.9L111.4,416.5L108.2,418.5L105.7,421.7L103.3,423.4L101.4,423.4L99.5,422.3L95.4,422.3L92.7,420.8L89.1,416.8L91.0,413.1L98.9,405.5L102.7,398.0L105.0,395.0L107.2,383.7L106.5,373.1L103.1,350.1L103.1,332.4L104.6,324.1L108.7,313.6L108.7,308.3L109.9,303.8L110.6,294.7L108.7,289.8L106.5,277.8L105.7,249.9L108.4,226.1L113.3,205.4L114.8,193.7L116.3,192.6L115.5,187.7L118.2,170.4L117.8,160.9L109.1,142.1L107.6,137.6L107.2,131.5L105.5,131.3L105.0,131.9L103.1,135.3L90.3,151.1L86.9,154.1L86.9,155.7L82.7,160.9L77.8,171.9L74.8,176.0L66.7,184.5L58.4,190.9L53.3,197.1L54.1,205.0L51.4,210.3L50.7,219.7L50.1,220.3L47.7,219.7L47.3,211.8L45.2,211.6L44.3,212.2L43.2,214.8L43.9,217.8L42.0,221.6L42.4,228.8L38.4,232.3L37.1,230.3L36.0,225.8L37.1,213.3L38.3,209.9L42.4,201.3L44.7,194.5L46.2,193.7L46.5,190.3L52.2,178.3L57.1,165.5L63.1,154.9L72.9,143.6L75.2,142.8L75.2,140.6L78.2,130.4L81.2,124.4L83.9,121.0L87.2,118.3L87.2,116.5L91.0,104.4L94.8,96.1L100.6,89.9L108.5,86.9L116.1,86.1L116.3,84.4L119.5,82.0L128.9,78.2L134.9,74.1L136.2,73.9L136.6,59.5L135.5,57.7L135.1,54.3L131.3,52.0L130.2,48.2L130.6,43.0L134.0,41.1L134.0,37.7L132.1,37.3L131.0,33.9L131.0,26.4L133.6,19.6L136.4,16.4L139.1,14.9L144.3,13.8L155.3,13.8L159.0,14.5L163.2,16.4L166.4,20.4L168.7,27.1L168.7,33.2L167.1,38.1L165.6,38.4L165.6,41.1L169.0,43.3L169.4,47.9L168.7,51.3L166.2,53.7L164.5,54.3L164.5,56.2L162.6,59.9L162.6,61.4L163.4,61.8L163.0,73.9L164.7,74.1L170.7,78.2L180.2,82.0L183.4,84.4L183.5,86.1L186.9,86.1L195.2,88.0L199.0,89.9L203.7,94.2L208.2,102.9L212.4,116.1L212.4,118.0L216.5,121.7L221.0,129.3L224.1,137.6L224.8,142.1L226.1,142.3L235.0,152.3L239.1,157.9L242.1,163.6L248.9,181.3L253.8,191.5L253.5,193.7L255.0,194.1L256.8,200.1L262.5,212.9L263.6,225.8L262.1,231.4L261.2,232.3L259.7,230.1L258.5,230.1L257.2,228.8L257.6,221.6L255.7,217.8L255.7,216.3L256.5,216.0L255.7,212.6L254.4,211.6L252.9,211.6L252.3,212.2L252.3,219.3L251.4,220.3L249.9,220.3L248.9,219.3L247.8,208.4L245.5,204.6L246.7,197.1L245.5,196.4L243.7,193.0L232.9,184.1L224.4,174.9L221.4,170.4L217.3,160.9L213.1,155.7L213.1,154.1L209.4,150.8L202.6,141.7L196.9,135.7L194.5,131.7L192.8,131.9L190.5,142.1L181.8,160.6L181.5,170.4L184.1,188.4L183.4,192.2L184.3,192.4L184.9,193.7L187.1,209.2L189.4,217.1L192.4,232.5L192.4,240.5L194.3,255.2L193.2,278.1L190.9,289.4L189.0,294.3L190.9,313.6L194.7,322.6L196.5,332.4L196.5,350.1L192.8,376.5L192.8,385.2L194.3,394.2L198.8,401.0L200.7,405.9L209.0,413.4L210.5,416.8L205.8,421.5L203.5,422.7L200.1,422.3L197.9,423.4Z";
+const BODY_DEKO=[
+  'M167.0,38.3L166.0,29.0L164.5,26.4L161.7,24.3L154.1,26.9L146.2,26.9L137.6,24.3L134.0,27.9L132.3,37.5L130.6,29.4L131.3,24.9L133.6,19.6L137.6,15.6L144.3,13.8L155.3,13.8L162.1,15.6L166.4,20.4L168.7,27.1L168.7,33.2L167.0,38.3Z',
+  'M151.1,67.3L145.9,66.5L139.1,62.0L136.2,59.2L135.1,54.3L132.3,53.0L130.6,50.1L130.2,44.1L131.2,42.4L134.0,41.1L134.0,31.7L135.1,28.3L137.6,25.8L146.2,28.1L154.1,28.1L162.1,25.8L165.3,30.5L165.6,41.1L168.1,42.4L169.4,44.5L168.7,51.3L164.5,54.3L163.8,58.4L160.9,61.6L155.3,65.8L151.1,67.3Z',
+  'M38.8,232.3L37.1,230.3L36.0,225.8L37.1,213.3L45.2,193.9L48.2,197.7L53.3,198.2L54.1,205.0L51.8,208.8L51.1,218.6L50.1,220.3L47.7,219.7L47.3,211.8L45.6,211.2L44.3,212.2L39.4,222.0L40.1,230.7L38.8,232.3Z',
+  'M261.2,232.3L259.9,231.0L260.2,222.0L255.7,212.6L253.6,211.2L252.3,212.2L252.3,219.3L249.9,220.3L248.6,217.5L247.8,208.4L245.5,204.6L246.7,198.6L251.8,197.3L254.4,193.9L262.5,212.9L263.6,225.8L261.2,232.3Z',
+  'M120.6,321.3L116.1,320.5L112.5,315.5L108.7,312.4L110.4,296.4L113.1,297.9L117.6,297.6L120.8,305.3L124.4,308.1L129.6,306.6L135.1,300.0L133.6,307.5L129.8,314.7L126.3,318.7L120.6,321.3Z',
+  'M182.0,321.3L175.6,320.2L170.5,315.8L166.0,307.5L164.3,299.1L169.2,306.2L173.0,308.1L175.3,308.1L177.5,307.0L179.2,304.5L182.0,297.6L186.2,297.9L189.4,296.6L190.9,312.4L182.0,321.3Z'
+];
+const BODY_REGIONS={
+  neck:'M150.0,91.4L143.6,86.9L134.0,85.9L136.6,80.3L136.4,61.2L142.8,66.1L148.1,68.4L154.1,67.7L163.4,61.8L163.0,81.0L165.6,85.9L158.7,86.1L154.9,87.2L150.0,91.4Z',
+  shoulders:'M129.6,87.2L122.9,85.0L116.3,84.4L124.0,79.7L131.2,77.1L134.9,74.1L134.7,82.9L132.7,85.7L129.6,87.2Z M171.1,87.2L168.1,86.5L165.3,83.7L164.1,81.0L164.3,74.1L170.0,77.8L180.2,82.0L183.4,84.4L176.8,85.0L171.1,87.2Z M87.8,116.6L92.5,100.6L96.3,93.8L100.6,89.9L105.5,87.6L112.7,86.1L122.5,86.1L127.6,87.8L121.0,91.4L104.0,110.2L98.4,113.6L92.0,114.8L87.8,116.6Z M212.2,116.6L208.0,114.8L200.5,113.3L195.6,110.2L178.6,91.4L172.0,87.8L176.8,86.1L186.9,86.1L195.2,88.0L199.0,89.9L203.7,94.2L207.1,100.3L212.2,116.6Z',
+  chest:'M130.0,128.3L124.7,128.3L118.7,126.8L115.3,124.9L107.4,117.0L100.8,113.8L106.3,109.9L117.0,96.9L124.7,90.3L131.9,87.6L142.5,87.6L146.2,89.5L149.1,92.3L149.1,114.2L146.0,119.8L141.0,124.6L136.8,126.8L130.0,128.3Z M174.9,128.3L169.6,128.3L162.8,126.8L157.2,123.4L152.4,118.3L150.2,111.9L150.2,93.8L150.9,91.6L153.8,89.1L159.0,87.2L165.1,87.2L174.9,90.3L182.2,96.5L193.3,109.9L198.8,113.4L190.7,118.2L183.2,125.7L174.9,128.3Z M150.0,127.6L147.0,125.3L141.9,125.5L146.4,121.4L149.6,115.5L153.6,121.7L157.7,125.1L152.3,125.3L150.0,127.6Z',
+  bicepsR:'M83.7,155.5L78.4,155.1L76.3,153.4L74.8,150.4L75.2,140.6L78.2,130.4L82.3,122.9L87.8,117.8L95.4,115.1L102.5,115.5L105.0,117.2L106.5,120.6L106.8,125.1L105.7,130.8L103.1,135.3L90.3,151.1L86.7,154.3L83.7,155.5Z',
+  bicepsL:'M220.1,155.5L216.7,155.5L212.2,153.6L194.7,132.3L193.2,127.8L193.2,120.6L196.4,115.9L202.0,114.8L210.7,117.0L214.1,119.3L219.2,125.5L224.1,137.6L225.2,144.3L224.8,151.1L222.7,154.3L220.1,155.5Z',
+  forearmR:'M52.4,197.3L50.1,197.3L47.3,195.2L46.2,192.6L46.5,190.3L60.1,159.4L73.5,143.0L73.7,150.8L76.9,155.5L79.5,156.6L86.9,155.7L82.7,160.9L77.8,171.9L74.8,176.0L52.4,197.3Z',
+  forearmL:'M248.7,197.3L245.7,196.5L243.7,193.0L232.9,184.1L225.9,176.8L221.4,170.4L217.3,160.9L213.1,155.7L220.5,156.6L224.8,153.8L226.3,149.6L226.1,142.3L236.5,154.1L240.6,160.6L253.8,191.5L252.7,194.8L248.7,197.3Z',
+  waist:'M118.3,190.5L115.5,189.9L118.2,170.4L118.2,162.8L116.6,157.5L111.4,147.4L107.6,137.6L106.8,131.2L107.6,128.5L107.4,118.5L116.1,127.6L128.5,138.5L130.6,141.7L130.6,147.0L128.0,160.2L128.0,167.0L129.1,171.5L128.3,180.2L125.7,185.8L122.1,189.0L118.3,190.5Z M182.8,190.5L176.8,188.6L173.6,185.4L171.3,180.5L170.2,173.7L171.7,161.7L169.0,150.0L168.7,143.2L170.2,139.4L182.0,129.1L192.2,118.5L192.8,133.4L192.0,137.2L181.5,162.1L181.5,170.4L184.1,188.4L184.1,189.9L182.8,190.5Z M150.4,213.1L147.0,212.0L140.0,203.1L135.5,193.0L133.2,180.5L131.7,152.3L132.1,141.3L130.2,133.8L131.0,131.2L132.7,129.5L142.8,126.4L146.6,126.4L149.6,129.5L153.0,126.4L159.0,126.8L167.7,130.2L169.0,131.9L169.0,136.1L167.5,140.6L166.8,174.5L164.9,189.6L163.4,195.2L159.6,203.1L156.2,208.0L150.4,213.1Z',
+  hips:'M150.8,232.7L146.2,231.6L142.7,226.5L137.0,209.2L133.6,202.4L128.5,196.5L120.4,191.5L126.8,186.2L129.5,180.5L130.2,171.1L129.1,160.9L130.8,153.6L131.7,176.8L133.6,190.7L139.3,204.3L146.6,213.1L150.4,214.3L155.5,210.7L160.7,203.5L164.9,194.5L167.5,180.5L168.8,153.2L170.5,161.7L169.0,172.6L169.8,179.8L173.2,186.9L176.4,189.8L179.6,191.1L173.4,194.7L166.4,201.6L163.4,206.9L158.9,222.0L155.8,228.4L152.6,232.0L150.8,232.7Z M140.2,271.2L135.1,263.4L131.3,254.4L128.3,240.5L123.8,206.5L121.9,200.5L116.5,191.3L125.1,195.4L131.3,201.3L135.1,207.7L141.9,227.6L144.2,231.0L147.9,233.7L147.9,243.1L146.0,255.5L140.2,271.2Z M159.4,271.2L156.2,264.2L152.4,251.0L151.7,233.7L154.5,232.0L157.0,228.8L160.0,222.4L164.5,207.3L167.9,201.6L176.8,193.9L183.2,191.6L177.3,201.3L175.8,206.5L170.9,242.3L168.3,254.4L165.6,261.6L161.1,267.2L159.4,271.2Z',
+  thighR:'M125.9,307.0L123.6,306.6L121.9,304.9L118.3,296.4L113.4,296.8L110.6,295.1L108.7,289.8L106.5,277.8L105.7,249.9L107.2,240.1L107.2,232.5L115.3,192.8L118.9,197.1L122.7,207.3L126.1,227.6L126.8,238.6L130.2,254.8L132.9,261.9L137.8,268.3L138.9,271.7L137.8,284.2L134.7,297.4L131.7,303.0L129.3,305.5L125.9,307.0Z',
+  thighL:'M174.9,307.0L170.7,305.8L167.9,303.0L164.5,296.2L161.1,280.4L160.7,271.0L166.4,262.7L169.4,254.8L172.0,243.1L176.9,206.9L179.6,199.0L184.3,192.4L192.4,232.5L192.4,240.5L194.3,255.2L193.5,274.7L192.0,284.9L189.0,294.7L186.2,296.8L181.3,296.4L177.3,305.3L174.9,307.0Z',
+  calfR:'M103.3,423.4L101.4,423.4L99.1,421.9L95.4,422.3L92.7,420.8L89.1,416.8L91.0,413.1L98.9,405.5L105.7,393.1L107.2,380.7L103.1,350.1L103.1,332.4L104.6,324.1L108.5,313.8L111.4,315.8L114.0,320.4L116.5,322.0L120.6,322.4L126.8,320.0L126.4,326.0L128.7,339.6L128.7,346.4L124.6,355.0L120.8,368.2L118.9,384.0L119.3,390.8L117.8,395.7L118.5,406.3L116.8,408.7L112.1,411.9L111.4,416.5L103.3,423.4Z',
+  calfL:'M197.9,423.4L194.5,422.3L191.5,418.5L189.6,417.8L187.9,416.1L186.7,411.2L181.5,407.4L181.5,394.6L180.3,392.0L180.7,384.4L179.2,370.5L175.1,355.8L170.5,346.4L173.2,324.9L172.8,320.0L177.5,322.0L182.4,322.4L184.7,321.3L188.3,315.8L191.1,313.8L194.7,322.6L196.5,332.4L196.5,350.1L192.4,381.8L193.9,393.1L198.8,401.0L200.7,405.9L209.0,413.4L210.5,416.8L205.8,421.5L203.5,422.7L200.5,421.9L197.9,423.4Z'
+};
+/* Maßlinien: wo genau gemessen wird (aus der Anatomie der Vorlage berechnet). */
+const BODY_GUIDES={
+  neck:{x1:136.8,y1:76.1,x2:162.8,y2:76.1},
+  shoulders:{x1:90.1,y1:108.2,x2:209.5,y2:108.2},
+  chest:{x1:101.0,y1:113.8,x2:198.6,y2:113.8},
+  bicepsR:{x1:98.9,y1:140.4,x2:79.4,y2:128.0},
+  bicepsL:{x1:220.4,y1:127.8,x2:201.0,y2:140.4},
+  forearmR:{x1:78.2,y1:171.0,x2:60.1,y2:159.8},
+  forearmL:{x1:240.0,y1:159.6,x2:221.8,y2:170.7},
+  waist:{x1:118.3,y1:162.8,x2:181.3,y2:162.8},
+  hips:{x1:107.8,y1:230.7,x2:191.8,y2:230.7},
+  thighR:{x1:106.3,y1:271.7,x2:138.7,y2:271.7},
+  thighL:{x1:160.9,y1:271.0,x2:193.3,y2:271.0},
+  calfR:{x1:103.3,y1:339.6,x2:128.5,y2:339.6},
+  calfL:{x1:170.7,y1:342.2,x2:196.4,y2:342.2}
+};
+function bodySvg(active, opts){
+  opts=opts||{};
+  const klick=!!opts.interaktiv;
+  const g=BODY_GUIDES[active];
+  // Maßlinie im Stil einer technischen Zeichnung. Sie folgt der Richtung der
+  // Messung: waagerecht am Rumpf, bei Armen senkrecht zum Verlauf des Arms.
+  let pfeil='';
+  if(g){
+    const dx=g.x2-g.x1, dy=g.y2-g.y1, L=Math.hypot(dx,dy)||1;
+    const ux=dx/L, uy=dy/L;      // Richtung der Messlinie
+    const nx=-uy, ny=ux;         // senkrecht dazu (für die Endstriche)
+    const E=22, AH=8, AB=4.2, T=9;
+    const r=v=>Math.round(v*10)/10;
+    const a1x=r(g.x1-ux*E), a1y=r(g.y1-uy*E);
+    const a2x=r(g.x2+ux*E), a2y=r(g.y2+uy*E);
+    // Pfeilspitze an einem Ende, s = Richtung nach innen
+    const spitze=(x,y,s)=>`M${r(x)},${r(y)} L${r(x+ux*AH*s+nx*AB)},${r(y+uy*AH*s+ny*AB)} `+
+                          `L${r(x+ux*AH*s-nx*AB)},${r(y+uy*AH*s-ny*AB)} Z`;
+    // Endstrich genau am Messpunkt
+    const strich=(x,y,cls)=>`<line class="tick ${cls}" x1="${r(x-nx*T)}" y1="${r(y-ny*T)}" `+
+                            `x2="${r(x+nx*T)}" y2="${r(y+ny*T)}"/>`;
+    pfeil=`<g class="mess-linie">
+      <line class="halo" x1="${a1x}" y1="${a1y}" x2="${a2x}" y2="${a2y}"/>
+      <line x1="${a1x}" y1="${a1y}" x2="${a2x}" y2="${a2y}"/>
+      <path d="${spitze(a1x,a1y,1)}"/>
+      <path d="${spitze(a2x,a2y,-1)}"/>
+      ${strich(g.x1,g.y1,'halo')}${strich(g.x2,g.y2,'halo')}
+      ${strich(g.x1,g.y1,'')}${strich(g.x2,g.y2,'')}
+    </g>`;
+  }
+  return `<svg viewBox="${BODY_VIEWBOX}" class="body-fig" xmlns="http://www.w3.org/2000/svg">
+    <path class="body-fill" d="${BODY_SIL}"/>
+    ${BODY_DEKO.map(d=>`<path class="body-deko" d="${d}"/>`).join('')}
+    ${Object.keys(BODY_REGIONS).map(k=>{
+      const m=BODY_METRICS.find(x=>x.region===k);
+      const t=m?m.label:'';
+      return `<path class="body-reg${active===k?' on':''}" d="${BODY_REGIONS[k]}"
+        ${klick?`onclick="editMeasure('${m?m.key:''}')" onmouseenter="hoverBody('${k}')"`:''}
+        ><title>${esc(t)}</title></path>`;
+    }).join('')}
+    <path class="body-outline" d="${BODY_SIL}"/>
+    ${pfeil}
+  </svg>`;
+}
+// Beim Überfahren die Beschriftung unter der Grafik mitführen
+function hoverBody(region){
+  const m=BODY_METRICS.find(x=>x.region===region); if(!m) return;
+  const t=document.getElementById('bodyCapT'), h=document.getElementById('bodyCapH');
+  if(t) t.textContent=m.label;
+  if(h) h.textContent=m.hint;
+}
+// Letzte Messung eines Werts (jüngster Eintrag, der ihn enthält)
+function lastMeasure(key){
+  const list=(DB.measurements||[]).filter(m=>m.vals && m.vals[key]!=null).sort((a,b)=>b.date-a.date);
+  return list.length? {value:list[0].vals[key], date:list[0].date} : null;
+}
+// Vorletzter Wert – für die Veränderung
+function prevMeasure(key){
+  const list=(DB.measurements||[]).filter(m=>m.vals && m.vals[key]!=null).sort((a,b)=>b.date-a.date);
+  return list.length>1? {value:list[1].vals[key], date:list[1].date} : null;
+}
+function viewBody(){
+  const active=BODY_METRICS.find(m=>m.region===BODY_ACTIVE);
+  const anz=(DB.measurements||[]).length;
+  const gemessen=BODY_METRICS.filter(m=>lastMeasure(m.key));
+  return topbar('Body measurements')+`<div class="pad">
+    <div class="card body-card">
+      ${bodyVisual(BODY_ACTIVE, true)}
+      <div class="body-cap">
+        <div class="body-cap-t" id="bodyCapT">${active?esc(active.label):'Körpermaße'}</div>
+        <div class="body-cap-h" id="bodyCapH">${active?esc(active.hint):'Tippe auf eine Körperstelle – die Maßlinie zeigt, wo gemessen wird.'}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="row between" style="margin-bottom:4px">
+        <div class="eyebrow">Deine Maße</div>
+        <button class="btn ghost sm acc" style="padding:6px 10px;font-size:11.5px"
+          onclick="openBodyImages()">${I.edit}<span>Bilder</span></button>
+      </div>
+      <p class="faint" style="font-size:11px;margin-bottom:12px">Tippe auf einen Eintrag oder direkt auf die Grafik.</p>
+      <div class="ms-head">
+        <span>Messstelle</span><span>Aktuell</span><span>Vorher</span><span>Δ</span>
+      </div>
+      ${BODY_METRICS.map(m=>{
+        const cur=lastMeasure(m.key), prev=prevMeasure(m.key);
+        const diff=(cur&&prev)? Math.round((cur.value-prev.value)*10)/10 : null;
+        const cls=diff==null?'':(diff>0?'up':(diff<0?'down':'same'));
+        return `<div class="ms-row ${BODY_ACTIVE===m.region&&m.region?'on':''}" onclick="editMeasure('${m.key}')">
+          <span class="ms-lbl">${esc(m.label)}</span>
+          <span class="ms-val">${cur? `${cur.value}<span class="ms-unit">${m.unit}</span>` : '<span class="ms-empty">–</span>'}</span>
+          <span class="ms-prev">${prev? `${prev.value}` : '–'}</span>
+          <span class="ms-diff">${diff!=null&&diff!==0? `<span class="wk-delta ${cls}">${diff>0?'+':''}${diff}</span>`:''}</span>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${gemessen.length? `<div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:6px">Entwicklung</div>
+      <p class="faint" style="font-size:11px;margin-bottom:10px">Verlauf einer Messstelle über alle Messtage</p>
+      <div class="field" style="margin:0 0 4px">
+        <select class="input" id="msSel" onchange="renderMeasureChart(this.value)">
+          ${gemessen.map(m=>{
+            const pct=measureTrend(m.key);
+            return `<option value="${m.key}">${esc(m.label)}${pct!=null?`  ·  ${pct>0?'+':''}${pct}${m.unit}`:''}</option>`;
+          }).join('')}
+        </select></div>
+      <div id="msChart"></div>
+    </div>`:''}
+
+    ${anz? `<div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:4px">Messtage</div>
+      <p class="faint" style="font-size:11px;margin-bottom:10px">${anz} ${anz===1?'Eintrag':'Einträge'}</p>
+      ${[...DB.measurements].sort((a,b)=>b.date-a.date).slice(0,8).map(m=>{
+        const werte=Object.entries(m.vals||{}).filter(([k,v])=>v!=null);
+        return `<div class="ms-hist">
+          <div class="row between">
+            <span style="font-weight:700;font-size:13px">${fmtDate(m.date)}</span>
+            <button class="ms-del" onclick="deleteMeasureDay('${m.id}')" title="Messung löschen">${I.trash}</button>
+          </div>
+          <div class="ms-hist-vals">${werte.map(([k,v])=>{
+            const def=BODY_METRICS.find(x=>x.key===k);
+            return `<span class="ms-pill">${esc(def?def.label:k)} <b>${v}${def?def.unit:''}</b></span>`;
+          }).join('') || '<span class="faint" style="font-size:11.5px">Keine Werte</span>'}</div>
+        </div>`;
+      }).join('')}
+    </div>`:''}
+  </div>`;
+}
+// Veränderung einer Messstelle: erster gegen letzten Wert
+function measureTrend(key){
+  const list=(DB.measurements||[]).filter(m=>m.vals&&m.vals[key]!=null).sort((a,b)=>a.date-b.date);
+  if(list.length<2) return null;
+  return Math.round((list[list.length-1].vals[key]-list[0].vals[key])*10)/10;
+}
+// Verlaufskurve einer Messstelle
+function renderMeasureChart(key){
+  const el=document.getElementById('msChart'); if(!el) return;
+  const m=BODY_METRICS.find(x=>x.key===key); if(!m) return;
+  const rows=(DB.measurements||[]).filter(x=>x.vals&&x.vals[key]!=null)
+    .map(x=>({date:x.date, v:x.vals[key]})).sort((a,b)=>a.date-b.date);
+  if(!rows.length){ el.innerHTML=`<div class="faint" style="font-size:12.5px;padding:14px 0">Noch keine Werte.</div>`; return; }
+  let chart='';
+  if(rows.length>=2){
+    const vs=rows.map(r=>r.v), max=Math.max(...vs), min=Math.min(...vs), sp=(max-min)||1;
+    const W=100,H=80;
+    const pfad=rows.map((r,i)=>{const x=i/(rows.length-1)*W, y=H-((r.v-min)/sp)*H; return `${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
+    const flaeche=`M0,${H} `+rows.map((r,i)=>{const x=i/(rows.length-1)*W, y=H-((r.v-min)/sp)*H; return `L${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ')+` L${W},${H} Z`;
+    const d=rows[rows.length-1].v-rows[0].v, dr=Math.round(d*10)/10;
+    chart=`<div class="row between" style="margin:8px 0 10px">
+        <span class="faint" style="font-size:12px">${rows.length} Messungen</span>
+        <span class="pill ${d>0?'up':d<0?'down':'same'}">${d>0?'+':''}${dr} ${m.unit}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:110px;overflow:visible">
+        <defs><linearGradient id="msgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+        <path d="${flaeche}" fill="url(#msgrad)"/>
+        <path d="${pfad}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+  }
+  el.innerHTML=chart+`<div class="prog-table">
+    <div class="prog-row prog-head" style="grid-template-columns:1.4fr 1fr 1fr">
+      <span>Datum</span><span>Wert</span><span>Δ</span></div>
+    ${[...rows].reverse().map((r,i,arr)=>{
+      const vor=arr[i+1];
+      const d=vor? Math.round((r.v-vor.v)*10)/10 : null;
+      return `<div class="prog-row" style="grid-template-columns:1.4fr 1fr 1fr">
+        <span>${fmtDate(r.date)}</span>
+        <span class="num">${r.v} ${m.unit}</span>
+        <span class="num">${d!=null&&d!==0?`<span class="wk-delta ${d>0?'up':'down'}">${d>0?'+':''}${d}</span>`:'–'}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+// Wert erfassen/ändern. Alle Werte eines Tages landen in einem Eintrag.
+/* Eigene Bilder je Messstelle hinterlegen (Web-Link). Leer lassen = gezeichnete Figur. */
+function openBodyImages(){
+  const imgs=bodyImages();
+  openModal(`<div class="grab"></div>
+    <h2>Eigene Bilder</h2>
+    <p class="faint" style="font-size:12.5px;margin:4px 0 6px">
+      Hinterlege je Messstelle einen Bild-Link. Ist einer gesetzt, wird er statt der
+      gezeichneten Figur angezeigt. Feld leer lassen = wieder die Zeichnung.</p>
+    <p class="faint" style="font-size:11px;margin:0 0 14px">
+      Verwende nur Bilder, die du selbst nutzen darfst. Zum Anzeigen ist Internet nötig.</p>
+    ${BODY_METRICS.filter(m=>m.region).map(m=>`
+      <div class="field" style="margin-bottom:10px">
+        <label>${esc(m.label)}</label>
+        <input class="input" style="font-size:12px" placeholder="https://…"
+          value="${escAttr(imgs[m.region]||'')}"
+          onchange="setBodyImage('${m.region}', this.value)">
+      </div>`).join('')}
+    <button class="btn ghost" style="margin-top:4px" onclick="closeModal();renderView()">Fertig</button>
+  `, true);
+}
+function setBodyImage(region, url){
+  const imgs=bodyImages();
+  const v=(url||'').trim();
+  if(v) imgs[region]=v; else delete imgs[region];
+  save();
+}
+function editMeasure(key){
+  const m=BODY_METRICS.find(x=>x.key===key); if(!m) return;
+  BODY_ACTIVE=m.region||''; renderView();
+  const cur=lastMeasure(key);
+  openModal(`<div class="grab"></div>
+    <h2>${esc(m.label)}</h2>
+    <p class="faint" style="font-size:12.5px;margin:4px 0 14px">${esc(m.hint)}</p>
+    <div class="ms-modal-fig">${bodyVisual(m.region||'')}</div>
+    <div class="field"><label>Wert in ${m.unit}</label>
+      <input class="input" id="msInput" type="number" inputmode="decimal" step="0.1" min="0"
+        placeholder="${cur? cur.value : '–'}" value="${cur? cur.value : ''}">
+    </div>
+    ${cur? `<p class="faint" style="font-size:11.5px;margin:-4px 0 12px">Zuletzt ${cur.value} ${m.unit} am ${fmtDate(cur.date)}</p>`:''}
+    <button class="btn" onclick="saveMeasure('${key}')">Speichern</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="closeModal()">Abbrechen</button>
+  `);
+  setTimeout(()=>{const i=document.getElementById('msInput'); if(i){i.focus(); i.select();}},60);
+}
+function saveMeasure(key){
+  const el=document.getElementById('msInput'); if(!el) return;
+  const raw=el.value.trim();
+  if(raw===''){ toast('Bitte einen Wert eingeben'); return; }
+  const val=Math.round(parseFloat(raw.replace(',','.'))*10)/10;
+  if(!isFinite(val) || val<=0){ toast('Bitte eine gültige Zahl eingeben'); return; }
+  if(!Array.isArray(DB.measurements)) DB.measurements=[];
+  // Alle Werte desselben Kalendertags in einem Eintrag bündeln
+  const heute=new Date(); heute.setHours(0,0,0,0);
+  let eintrag=DB.measurements.find(m=>{const d=new Date(m.date); d.setHours(0,0,0,0); return d.getTime()===heute.getTime();});
+  if(!eintrag){ eintrag={id:uid(), date:Date.now(), vals:{}}; DB.measurements.push(eintrag); }
+  if(!eintrag.vals) eintrag.vals={};
+  eintrag.vals[key]=val;
+  save(); closeModal(); renderView();
+  toast('Gespeichert ✓');
+}
+function deleteMeasureDay(id){
+  confirmModal('Messung löschen?','Alle Werte dieses Tages werden entfernt.','Löschen',()=>{
+    DB.measurements=(DB.measurements||[]).filter(m=>m.id!==id);
+    save(); renderView();
+  });
+}
+
 /* ---- Bearbeiten eines vergangenen Trainings ---- */
 let LOGEDIT=null;
 function editLog(id){
@@ -3110,7 +3512,7 @@ function exportData(){
   const payload={
     app:'ProgressLab', type:'backup', version:1, appVersion:APP_VERSION, appBuild:APP_BUILD,
     exportedAt:new Date().toISOString(),
-    data:{ plans:DB.plans, logs:DB.logs, settings:DB.settings, customEx:DB.customEx||[] }
+    data:{ plans:DB.plans, logs:DB.logs, settings:DB.settings, customEx:DB.customEx||[], measurements:DB.measurements||[] }
   };
   const json=JSON.stringify(payload,null,2);
   const blob=new Blob([json],{type:'application/json'});
@@ -3145,6 +3547,7 @@ function importData(ev){
         DB.plans = Array.isArray(d.plans)? d.plans : [];
         DB.logs  = Array.isArray(d.logs)?  d.logs  : [];
         DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
+        DB.measurements = Array.isArray(d.measurements)? d.measurements : [];
         if(d.settings && typeof d.settings==='object') DB.settings=Object.assign(DB.settings||{},d.settings);
         DB.logs.sort((a,b)=>a.date-b.date);
         rebuildExDB();
