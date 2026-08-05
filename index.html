@@ -703,6 +703,43 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
 .body-cap-t{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent)}
 .body-cap-h{font-size:11.5px;color:var(--text-faint);margin-top:3px;line-height:1.45}
 /* Werteliste */
+
+
+/* Direkteingabe: Feld liegt genau über der angezeigten Zahl */
+.body-wrap{position:relative;width:100%}
+.ms-inline{position:absolute;z-index:5;
+  font-family:var(--font-display);font-weight:800;font-variant-numeric:tabular-nums;
+  text-align:center;padding:4px 8px;border-radius:9px;line-height:1.15;
+  background:var(--surface-3);color:var(--accent);
+  border:1.5px solid var(--accent);outline:none;
+  box-shadow:0 0 0 3px var(--accent-glow),0 6px 18px rgba(0,0,0,.5)}
+.ms-inline::-webkit-outer-spin-button,.ms-inline::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ms-inline{-moz-appearance:textfield}
+/* Beschriftete Grafik: Figur groß, Werte rundherum */
+.body-fig.mit-labels{max-width:100%;width:100%}
+.body-card{padding:14px 6px 16px}
+.body-fig .lbl{cursor:pointer}
+.body-fig .lbl-hit{fill:transparent}
+.body-fig .lbl-lead{fill:none;stroke:var(--line);stroke-width:1.2;vector-effect:non-scaling-stroke}
+.body-fig .lbl-dot{fill:var(--line);stroke:none}
+.body-fig .lbl-name{fill:var(--text-faint);font-size:10px;font-weight:600;
+  letter-spacing:.02em;font-family:system-ui,sans-serif}
+.body-fig .lbl-val{fill:var(--text);font-size:18px;font-weight:800;
+  font-family:var(--font-display);font-variant-numeric:tabular-nums}
+.body-fig .lbl-unit{fill:var(--text-faint);font-size:10px;font-weight:600}
+.body-fig .lbl-diff{font-size:9.5px;font-weight:700;font-family:var(--font-display)}
+.body-fig .lbl-diff.up{fill:var(--green)}
+.body-fig .lbl-diff.down{fill:var(--red)}
+/* aktive und überfahrene Beschriftung */
+/* Schmale Bildschirme: kleinere Beschriftung, damit die Figur größer wird */
+.body-fig.schmal .lbl-name{font-size:9px}
+.body-fig.schmal .lbl-val{font-size:15.5px}
+.body-fig.schmal .lbl-unit{font-size:8.5px}
+.body-fig.schmal .lbl-diff{font-size:8.5px}
+.body-fig .lbl:hover .lbl-name,.body-fig .lbl.on .lbl-name{fill:var(--accent-dim)}
+.body-fig .lbl:hover .lbl-val,.body-fig .lbl.on .lbl-val{fill:var(--accent)}
+.body-fig .lbl:hover .lbl-lead,.body-fig .lbl.on .lbl-lead{stroke:var(--accent-dim)}
+.body-fig .lbl:hover .lbl-dot,.body-fig .lbl.on .lbl-dot{fill:var(--accent)}
 .ms-head{display:grid;grid-template-columns:1fr 74px 52px 46px;gap:8px;padding:0 10px 7px;
   font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600;
   border-bottom:1px solid var(--line-soft);margin-bottom:8px}
@@ -730,13 +767,7 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
   border:1px solid var(--line);border-radius:8px;color:var(--text-faint);flex-shrink:0}
 .ms-del:hover{color:var(--red);border-color:rgba(255,92,92,.35)}
 .ms-del svg{width:14px;height:14px}
-/* Figur im Eingabefenster kleiner */
-.ms-modal-fig{display:flex;justify-content:center;margin:0 0 14px}
-.ms-modal-fig .body-fig{max-width:150px}
-/* Eigenes Bild statt gezeichneter Figur */
-.body-img{width:100%;max-width:230px;height:auto;display:block;border-radius:12px}
-.ms-modal-fig .body-img{max-width:150px}
-.body-imgerr{font-size:11.5px;color:var(--red);padding:10px;text-align:center}
+
 /* Sechs Reiter: etwas enger, damit alles in eine Zeile passt */
 .nav button{min-width:0}
 @media (max-width:430px){
@@ -1027,7 +1058,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.11.1';
+const APP_VERSION='1.13.0';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3111,22 +3142,6 @@ const BODY_METRICS=[
   {key:'calfL',    label:'Wade links',         unit:'cm', region:'calfL',    hint:'An der dicksten Stelle, Fuß am Boden.'}
 ];
 let BODY_ACTIVE='';   // gerade ausgewählte Messstelle
-/* Eigene Bilder: pro Messstelle kann ein Bild-Link hinterlegt werden.
-   Ist einer gesetzt, wird er statt der gezeichneten Figur angezeigt. */
-function bodyImages(){
-  if(!DB.settings) DB.settings={};
-  if(!DB.settings.bodyImages || typeof DB.settings.bodyImages!=='object') DB.settings.bodyImages={};
-  return DB.settings.bodyImages;
-}
-function bodyImgFor(region){ const u=bodyImages()[region||'_none']; return (u&&u.trim())?u.trim():''; }
-// Figur ODER hinterlegtes Bild
-function bodyVisual(region, interaktiv){
-  const url=bodyImgFor(region);
-  if(url) return `<img class="body-img" src="${escAttr(url)}" alt=""
-    onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div class=\'body-imgerr\'>Bild nicht ladbar</div>')">`;
-  return bodySvg(region, {interaktiv:!!interaktiv});
-}
-
 /* Körpergrafik: aus der Vorlage in Vektorflächen umgezeichnet.
    Jede Messstelle ist eine eigene Fläche – dadurch reagiert sie auf
    Überfahren und Anklicken. Seiten anatomisch: rechte Körperhälfte links im Bild. */
@@ -3171,6 +3186,29 @@ const BODY_GUIDES={
   calfR:{x1:103.3,y1:339.6,x2:128.5,y2:339.6},
   calfL:{x1:170.7,y1:342.2,x2:196.4,y2:342.2}
 };
+
+/* Anordnung der Beschriftungen rund um die Figur.
+   seite: 'l' = links im Bild, 'r' = rechts. y = Höhe der Beschriftung.
+   Körperhälften stehen jeweils auf ihrer eigenen Seite. */
+const BODY_LABELS=[
+  {key:'weight',    kurz:'Gewicht',       seite:'l', y: 36},
+  {key:'shoulders', kurz:'Schultern',     seite:'l', y: 92},
+  {key:'chest',     kurz:'Brust',         seite:'l', y:148},
+  {key:'bicepsR',   kurz:'Bizeps re.',    seite:'l', y:204},
+  {key:'forearmR',  kurz:'Unterarm re.',  seite:'l', y:260},
+  {key:'thighR',    kurz:'Obersch. re.',  seite:'l', y:322},
+  {key:'calfR',     kurz:'Wade re.',      seite:'l', y:386},
+  {key:'neck',      kurz:'Hals',          seite:'r', y: 36},
+  {key:'waist',     kurz:'Taille',        seite:'r', y: 92},
+  {key:'hips',      kurz:'Hüfte',         seite:'r', y:148},
+  {key:'bicepsL',   kurz:'Bizeps li.',    seite:'r', y:204},
+  {key:'forearmL',  kurz:'Unterarm li.',  seite:'r', y:260},
+  {key:'thighL',    kurz:'Obersch. li.',  seite:'r', y:322},
+  {key:'calfL',     kurz:'Wade li.',      seite:'r', y:386}
+];
+const LBL_L=-10, LBL_R=310;       // Textkante (zur Figur hin ausgerichtet)
+const FIG_L=-10,  FIG_R=310;      // ungefährer Rand der Figur
+
 function bodySvg(active, opts){
   opts=opts||{};
   const klick=!!opts.interaktiv;
@@ -3201,7 +3239,44 @@ function bodySvg(active, opts){
       ${strich(g.x1,g.y1,'')}${strich(g.x2,g.y2,'')}
     </g>`;
   }
-  return `<svg viewBox="${BODY_VIEWBOX}" class="body-fig" xmlns="http://www.w3.org/2000/svg">
+  // Beschriftungen mit Werten rund um die Figur
+  let labels='';
+  if(opts.beschriftet){
+    labels=BODY_LABELS.map(L=>{
+      const m=BODY_METRICS.find(x=>x.key===L.key); if(!m) return '';
+      const cur=lastMeasure(m.key), prev=prevMeasure(m.key);
+      const diff=(cur&&prev)? Math.round((cur.value-prev.value)*10)/10 : null;
+      const links=L.seite==='l';
+      const tx=links?LBL_L:LBL_R;
+      const anchor=links?'end':'start';        // Text zeigt von der Figur weg
+      const kx=links?LBL_L+6:LBL_R-6;          // Start der Führungslinie
+      const g=BODY_GUIDES[m.region];
+      let ax,ay;
+      if(g){ const nimmLinks=(g.x1<=g.x2)===links; ax=nimmLinks?g.x1:g.x2; ay=nimmLinks?g.y1:g.y2; }
+      else { ax=links?110:190; ay=26; }        // Körpergewicht: Anschluss am Rumpf oben
+      const aktiv = active && m.region===active;
+      const wert = cur? `${cur.value}` : '–';
+      // Differenz gehört in die Namenszeile: die Wertzeile bleibt schmal,
+      // dadurch braucht die Beschriftung weniger Platz und die Figur wird größer.
+      const dTxt = (diff!=null&&diff!==0) ? `${diff>0?'+':''}${diff}` : '';
+      const dCls = diff>0?'up':'down';
+      const inhalt = `${wert}<tspan class="lbl-unit"> ${m.unit}</tspan>`;
+      const nameZeile = links
+        ? `${dTxt?`<tspan class="lbl-diff ${dCls}">${dTxt} </tspan>`:''}${esc(L.kurz)}`
+        : `${esc(L.kurz)}${dTxt?`<tspan class="lbl-diff ${dCls}"> ${dTxt}</tspan>`:''}`;
+      return `<g class="lbl${aktiv?' on':''}" onclick="editMeasure('${m.key}')"
+                onmouseenter="hoverBody('${m.region||''}')">
+        <path class="lbl-lead" d="M${kx},${L.y} L${(kx+ax)/2},${L.y} L${ax},${ay}"/>
+        <circle class="lbl-dot" cx="${ax}" cy="${ay}" r="3.2"/>
+        <rect class="lbl-hit" x="${links?tx-96:tx-4}" y="${L.y-20}" width="100" height="36"/>
+        <text class="lbl-name" x="${tx}" y="${L.y-5}" text-anchor="${anchor}">${nameZeile}</text>
+        <text class="lbl-val" id="lblval-${m.key}" x="${tx}" y="${L.y+13}" text-anchor="${anchor}">${inhalt}</text>
+      </g>`;
+    }).join('');
+  }
+  const schmal = opts.beschriftet && window.innerWidth<520;
+  const vb = opts.beschriftet ? (schmal?"-104 -16 508 486":"-118 -16 536 486") : BODY_VIEWBOX;
+  return `<svg viewBox="${vb}" class="body-fig${opts.beschriftet?' mit-labels':''}${schmal?' schmal':''}" xmlns="http://www.w3.org/2000/svg">
     <path class="body-fill" d="${BODY_SIL}"/>
     ${BODY_DEKO.map(d=>`<path class="body-deko" d="${d}"/>`).join('')}
     ${Object.keys(BODY_REGIONS).map(k=>{
@@ -3213,6 +3288,7 @@ function bodySvg(active, opts){
     }).join('')}
     <path class="body-outline" d="${BODY_SIL}"/>
     ${pfeil}
+    ${labels}
   </svg>`;
 }
 // Beim Überfahren die Beschriftung unter der Grafik mitführen
@@ -3238,34 +3314,16 @@ function viewBody(){
   const gemessen=BODY_METRICS.filter(m=>lastMeasure(m.key));
   return topbar('Body measurements')+`<div class="pad">
     <div class="card body-card">
-      ${bodyVisual(BODY_ACTIVE, true)}
+      <div class="eyebrow" style="width:100%;margin-bottom:2px">Deine Maße</div>
+      <div class="body-wrap" id="bodyWrap">
+        ${bodySvg(BODY_ACTIVE, {interaktiv:true, beschriftet:true})}
+        <input class="ms-inline" id="msInline" type="number" inputmode="decimal" step="0.1" min="0"
+          style="display:none" onkeydown="inlineKey(event)" onblur="inlineSave()">
+      </div>
       <div class="body-cap">
-        <div class="body-cap-t" id="bodyCapT">${active?esc(active.label):'Körpermaße'}</div>
-        <div class="body-cap-h" id="bodyCapH">${active?esc(active.hint):'Tippe auf eine Körperstelle – die Maßlinie zeigt, wo gemessen wird.'}</div>
+        <div class="body-cap-t" id="bodyCapT">${active?esc(active.label):'Tippe auf eine Stelle'}</div>
+        <div class="body-cap-h" id="bodyCapH">${active?esc(active.hint):'Die Maßlinie zeigt, wo genau gemessen wird.'}</div>
       </div>
-    </div>
-
-    <div class="card" style="margin-top:14px">
-      <div class="row between" style="margin-bottom:4px">
-        <div class="eyebrow">Deine Maße</div>
-        <button class="btn ghost sm acc" style="padding:6px 10px;font-size:11.5px"
-          onclick="openBodyImages()">${I.edit}<span>Bilder</span></button>
-      </div>
-      <p class="faint" style="font-size:11px;margin-bottom:12px">Tippe auf einen Eintrag oder direkt auf die Grafik.</p>
-      <div class="ms-head">
-        <span>Messstelle</span><span>Aktuell</span><span>Vorher</span><span>Δ</span>
-      </div>
-      ${BODY_METRICS.map(m=>{
-        const cur=lastMeasure(m.key), prev=prevMeasure(m.key);
-        const diff=(cur&&prev)? Math.round((cur.value-prev.value)*10)/10 : null;
-        const cls=diff==null?'':(diff>0?'up':(diff<0?'down':'same'));
-        return `<div class="ms-row ${BODY_ACTIVE===m.region&&m.region?'on':''}" onclick="editMeasure('${m.key}')">
-          <span class="ms-lbl">${esc(m.label)}</span>
-          <span class="ms-val">${cur? `${cur.value}<span class="ms-unit">${m.unit}</span>` : '<span class="ms-empty">–</span>'}</span>
-          <span class="ms-prev">${prev? `${prev.value}` : '–'}</span>
-          <span class="ms-diff">${diff!=null&&diff!==0? `<span class="wk-delta ${cls}">${diff>0?'+':''}${diff}</span>`:''}</span>
-        </div>`;
-      }).join('')}
     </div>
 
     ${gemessen.length? `<div class="card" style="margin-top:14px">
@@ -3347,64 +3405,71 @@ function renderMeasureChart(key){
   </div>`;
 }
 // Wert erfassen/ändern. Alle Werte eines Tages landen in einem Eintrag.
-/* Eigene Bilder je Messstelle hinterlegen (Web-Link). Leer lassen = gezeichnete Figur. */
-function openBodyImages(){
-  const imgs=bodyImages();
-  openModal(`<div class="grab"></div>
-    <h2>Eigene Bilder</h2>
-    <p class="faint" style="font-size:12.5px;margin:4px 0 6px">
-      Hinterlege je Messstelle einen Bild-Link. Ist einer gesetzt, wird er statt der
-      gezeichneten Figur angezeigt. Feld leer lassen = wieder die Zeichnung.</p>
-    <p class="faint" style="font-size:11px;margin:0 0 14px">
-      Verwende nur Bilder, die du selbst nutzen darfst. Zum Anzeigen ist Internet nötig.</p>
-    ${BODY_METRICS.filter(m=>m.region).map(m=>`
-      <div class="field" style="margin-bottom:10px">
-        <label>${esc(m.label)}</label>
-        <input class="input" style="font-size:12px" placeholder="https://…"
-          value="${escAttr(imgs[m.region]||'')}"
-          onchange="setBodyImage('${m.region}', this.value)">
-      </div>`).join('')}
-    <button class="btn ghost" style="margin-top:4px" onclick="closeModal();renderView()">Fertig</button>
-  `, true);
-}
-function setBodyImage(region, url){
-  const imgs=bodyImages();
-  const v=(url||'').trim();
-  if(v) imgs[region]=v; else delete imgs[region];
-  save();
-}
+/* Wert direkt an der Beschriftung eintragen – ohne Extra-Fenster.
+   Das Eingabefeld wird exakt über die angezeigte Zahl gelegt. */
 function editMeasure(key){
   const m=BODY_METRICS.find(x=>x.key===key); if(!m) return;
-  BODY_ACTIVE=m.region||''; renderView();
-  const cur=lastMeasure(key);
-  openModal(`<div class="grab"></div>
-    <h2>${esc(m.label)}</h2>
-    <p class="faint" style="font-size:12.5px;margin:4px 0 14px">${esc(m.hint)}</p>
-    <div class="ms-modal-fig">${bodyVisual(m.region||'')}</div>
-    <div class="field"><label>Wert in ${m.unit}</label>
-      <input class="input" id="msInput" type="number" inputmode="decimal" step="0.1" min="0"
-        placeholder="${cur? cur.value : '–'}" value="${cur? cur.value : ''}">
-    </div>
-    ${cur? `<p class="faint" style="font-size:11.5px;margin:-4px 0 12px">Zuletzt ${cur.value} ${m.unit} am ${fmtDate(cur.date)}</p>`:''}
-    <button class="btn" onclick="saveMeasure('${key}')">Speichern</button>
-    <button class="btn ghost" style="margin-top:8px" onclick="closeModal()">Abbrechen</button>
-  `);
-  setTimeout(()=>{const i=document.getElementById('msInput'); if(i){i.focus(); i.select();}},60);
+  BODY_ACTIVE=m.region||'';
+  renderView();
+  requestAnimationFrame(()=>openInline(key));
 }
-function saveMeasure(key){
-  const el=document.getElementById('msInput'); if(!el) return;
-  const raw=el.value.trim();
-  if(raw===''){ toast('Bitte einen Wert eingeben'); return; }
-  const val=Math.round(parseFloat(raw.replace(',','.'))*10)/10;
+let INLINE_AKTIV=false, INLINE_ZIEL=null;
+function openInline(key){
+  const wrap=document.getElementById('bodyWrap');
+  const ziel=document.getElementById('lblval-'+key);
+  const inp=document.getElementById('msInline');
+  if(!wrap||!ziel||!inp) return;
+  const wr=wrap.getBoundingClientRect(), zr=ziel.getBoundingClientRect();
+  const cur=lastMeasure(key);
+  const def=BODY_LABELS.find(L=>L.key===key);
+  const links = def ? def.seite==='l' : true;
+  inp.value = cur ? cur.value : '';
+  inp.dataset.key = key;
+  // Schriftgröße an die gerenderte Zahl angleichen (mind. 16px gegen Zoom auf iOS)
+  const fs=Math.max(16, parseFloat(getComputedStyle(ziel).fontSize)||18);
+  inp.style.fontSize=fs+'px';
+  const breite=Math.max(78, zr.width+40);
+  inp.style.width=breite+'px';
+  // Die angezeigte Zahl während der Eingabe ausblenden, damit sie nicht durchscheint
+  ziel.style.opacity='0';
+  INLINE_ZIEL=ziel;
+  inp.style.display='block';
+  // Erst nach dem Einblenden ausrichten: dann ist die echte Feldhöhe bekannt und
+  // das Feld liegt exakt mittig über der Zahl statt auf der Namenszeile.
+  const h=inp.offsetHeight||28;
+  inp.style.left = Math.round(zr.left+zr.width/2 - wr.left - breite/2) + 'px';
+  inp.style.top  = Math.round(zr.top+zr.height/2 - wr.top - h/2) + 'px';
+  INLINE_AKTIV=true;
+  inp.focus(); inp.select();
+}
+function inlineKey(e){
+  if(e.key==='Enter'){ e.preventDefault(); inlineSave(); }
+  else if(e.key==='Escape'){ e.preventDefault(); inlineAbbruch(); }
+}
+function inlineAbbruch(){
+  const inp=document.getElementById('msInline');
+  INLINE_AKTIV=false;
+  if(INLINE_ZIEL){ INLINE_ZIEL.style.opacity=''; INLINE_ZIEL=null; }
+  if(inp){ inp.style.display='none'; inp.blur(); }
+}
+function inlineSave(){
+  const inp=document.getElementById('msInline');
+  if(!inp || !INLINE_AKTIV) return;
+  INLINE_AKTIV=false;
+  inp.style.display='none';
+  if(INLINE_ZIEL){ INLINE_ZIEL.style.opacity=''; INLINE_ZIEL=null; }
+  const key=inp.dataset.key, roh=(inp.value||'').trim();
+  if(roh==='') return;                       // leer gelassen: nichts ändern
+  const val=Math.round(parseFloat(roh.replace(',','.'))*10)/10;
   if(!isFinite(val) || val<=0){ toast('Bitte eine gültige Zahl eingeben'); return; }
   if(!Array.isArray(DB.measurements)) DB.measurements=[];
-  // Alle Werte desselben Kalendertags in einem Eintrag bündeln
+  // Alle Werte desselben Kalendertags landen in einem Eintrag
   const heute=new Date(); heute.setHours(0,0,0,0);
   let eintrag=DB.measurements.find(m=>{const d=new Date(m.date); d.setHours(0,0,0,0); return d.getTime()===heute.getTime();});
   if(!eintrag){ eintrag={id:uid(), date:Date.now(), vals:{}}; DB.measurements.push(eintrag); }
   if(!eintrag.vals) eintrag.vals={};
   eintrag.vals[key]=val;
-  save(); closeModal(); renderView();
+  save(); renderView();
   toast('Gespeichert ✓');
 }
 function deleteMeasureDay(id){
