@@ -1058,7 +1058,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.13.0';
+const APP_VERSION='1.13.1';
 const APP_BUILD='2026-08-01';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3141,7 +3141,8 @@ const BODY_METRICS=[
   {key:'calfR',    label:'Wade rechts',        unit:'cm', region:'calfR',    hint:'An der dicksten Stelle, Fuß am Boden.'},
   {key:'calfL',    label:'Wade links',         unit:'cm', region:'calfL',    hint:'An der dicksten Stelle, Fuß am Boden.'}
 ];
-let BODY_ACTIVE='';   // gerade ausgewählte Messstelle
+let BODY_ACTIVE='';       // hervorgehobene Körperregion
+let BODY_ACTIVE_KEY='';   // ausgewählte Messstelle (auch ohne Region, z. B. Gewicht)
 /* Körpergrafik: aus der Vorlage in Vektorflächen umgezeichnet.
    Jede Messstelle ist eine eigene Fläche – dadurch reagiert sie auf
    Überfahren und Anklicken. Seiten anatomisch: rechte Körperhälfte links im Bild. */
@@ -3254,7 +3255,7 @@ function bodySvg(active, opts){
       let ax,ay;
       if(g){ const nimmLinks=(g.x1<=g.x2)===links; ax=nimmLinks?g.x1:g.x2; ay=nimmLinks?g.y1:g.y2; }
       else { ax=links?110:190; ay=26; }        // Körpergewicht: Anschluss am Rumpf oben
-      const aktiv = active && m.region===active;
+      const aktiv = BODY_ACTIVE_KEY===m.key;
       const wert = cur? `${cur.value}` : '–';
       // Differenz gehört in die Namenszeile: die Wertzeile bleibt schmal,
       // dadurch braucht die Beschriftung weniger Platz und die Figur wird größer.
@@ -3264,8 +3265,7 @@ function bodySvg(active, opts){
       const nameZeile = links
         ? `${dTxt?`<tspan class="lbl-diff ${dCls}">${dTxt} </tspan>`:''}${esc(L.kurz)}`
         : `${esc(L.kurz)}${dTxt?`<tspan class="lbl-diff ${dCls}"> ${dTxt}</tspan>`:''}`;
-      return `<g class="lbl${aktiv?' on':''}" onclick="editMeasure('${m.key}')"
-                onmouseenter="hoverBody('${m.region||''}')">
+      return `<g class="lbl${aktiv?' on':''}" onclick="editMeasure('${m.key}')">
         <path class="lbl-lead" d="M${kx},${L.y} L${(kx+ax)/2},${L.y} L${ax},${ay}"/>
         <circle class="lbl-dot" cx="${ax}" cy="${ay}" r="3.2"/>
         <rect class="lbl-hit" x="${links?tx-96:tx-4}" y="${L.y-20}" width="100" height="36"/>
@@ -3281,22 +3281,13 @@ function bodySvg(active, opts){
     ${BODY_DEKO.map(d=>`<path class="body-deko" d="${d}"/>`).join('')}
     ${Object.keys(BODY_REGIONS).map(k=>{
       const m=BODY_METRICS.find(x=>x.region===k);
-      const t=m?m.label:'';
       return `<path class="body-reg${active===k?' on':''}" d="${BODY_REGIONS[k]}"
-        ${klick?`onclick="editMeasure('${m?m.key:''}')" onmouseenter="hoverBody('${k}')"`:''}
-        ><title>${esc(t)}</title></path>`;
+        ${klick?`onclick="editMeasure('${m?m.key:''}')"`:''}></path>`;
     }).join('')}
     <path class="body-outline" d="${BODY_SIL}"/>
     ${pfeil}
     ${labels}
   </svg>`;
-}
-// Beim Überfahren die Beschriftung unter der Grafik mitführen
-function hoverBody(region){
-  const m=BODY_METRICS.find(x=>x.region===region); if(!m) return;
-  const t=document.getElementById('bodyCapT'), h=document.getElementById('bodyCapH');
-  if(t) t.textContent=m.label;
-  if(h) h.textContent=m.hint;
 }
 // Letzte Messung eines Werts (jüngster Eintrag, der ihn enthält)
 function lastMeasure(key){
@@ -3309,7 +3300,7 @@ function prevMeasure(key){
   return list.length>1? {value:list[1].vals[key], date:list[1].date} : null;
 }
 function viewBody(){
-  const active=BODY_METRICS.find(m=>m.region===BODY_ACTIVE);
+  const active=BODY_ACTIVE_KEY? BODY_METRICS.find(m=>m.key===BODY_ACTIVE_KEY) : null;
   const anz=(DB.measurements||[]).length;
   const gemessen=BODY_METRICS.filter(m=>lastMeasure(m.key));
   return topbar('Body measurements')+`<div class="pad">
@@ -3410,6 +3401,7 @@ function renderMeasureChart(key){
 function editMeasure(key){
   const m=BODY_METRICS.find(x=>x.key===key); if(!m) return;
   BODY_ACTIVE=m.region||'';
+  BODY_ACTIVE_KEY=key;
   renderView();
   requestAnimationFrame(()=>openInline(key));
 }
