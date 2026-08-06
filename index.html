@@ -11,6 +11,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ProgressLab">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2312151c'/%3E%3Cg stroke='%23c8ff00' stroke-width='3.4' stroke-linecap='round' fill='none'%3E%3Cpath d='M20 22v20M44 22v20M13 27v10M51 27v10M20 32h24'/%3E%3C/g%3E%3C/svg%3E">
+<!-- Schriften über <link> statt @import: lädt parallel zum CSS und ist nicht an
+     die Regel gebunden, dass @import vor allen anderen CSS-Regeln stehen muss.
+     Ohne Netz greift automatisch der system-ui-Fallback aus --font-display/--font-body. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 /* ============ DESIGN TOKENS ============ */
 :root{
@@ -21,8 +27,11 @@
   --line:#2a3240;
   --line-soft:#1f2530;
   --text:#eef2f7;
-  --text-dim:#9aa6b8;
-  --text-faint:#5f6c80;
+  --text-dim:#9aa6b8;        /* 7.9:1 auf --bg */
+  /* Wird durchgängig für 10–12px-Text benutzt (Labels, Hinweise, Wochentage).
+     Der frühere Wert #5f6c80 erreichte nur 3.7:1 und lag damit unter WCAG AA
+     (4.5:1 für normalen Text). #6d7c93 erreicht 4.6:1. */
+  --text-faint:#6d7c93;
   --accent:#c8ff00;        /* volt — signature */
   --accent-dim:#8fb300;
   --accent-glow:rgba(200,255,0,.18);
@@ -47,7 +56,6 @@ body{
   overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
 }
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 h1,h2,h3,h4,.display{font-family:var(--font-display);font-weight:700;letter-spacing:.01em;line-height:1.05}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -1069,8 +1077,8 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.13.2';
-const APP_BUILD='2026-08-01';
+const APP_VERSION='1.14.0';
+const APP_BUILD='2026-08-06';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
 // Ordnet jeden Einzelmuskel seiner Körperregion zu (für Filter und Statistik).
@@ -1175,8 +1183,49 @@ function save(){
 // damit die letzte Änderung nicht im Verzögerungsfenster verloren geht.
 function saveNow(){
   clearTimeout(saveTimer);
-  try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
-  catch(e){ toast('Speichern fehlgeschlagen'); }
+  try{ localStorage.setItem(KEY, JSON.stringify(DB)); SAVE_FAILED=false; }
+  catch(e){ onSaveFailed(e); }
+}
+/* Der Browser gibt pro Seite nur ~5 MB localStorage. Eigene Übungen mit
+   hochgeladenem Bild liegen als Base64 darin und fressen den Platz schnell auf.
+   Früher gab es dafür nur einen Toast – wer den übersah, verlor ab da still
+   JEDES weitere Training. Deshalb: einmal deutlich warnen und einen Ausweg
+   anbieten, statt es beiläufig zu erwähnen. */
+let SAVE_FAILED=false;
+function onSaveFailed(e){
+  const voll = e && (e.name==='QuotaExceededError' || e.name==='NS_ERROR_DOM_QUOTA_REACHED' || e.code===22);
+  if(SAVE_FAILED) return;        // nicht bei jedem Tastendruck erneut aufpoppen
+  SAVE_FAILED=true;
+  if(!voll){ toast('Speichern fehlgeschlagen'); return; }
+  openModal(`<div class="grab"></div>
+    <h2 style="color:var(--red)">Speicher voll</h2>
+    <p class="muted" style="margin:8px 0 12px;font-size:13.5px">
+      Der Browser-Speicher dieser App ist erschöpft. <b>Neue Trainings werden ab
+      jetzt nicht mehr gesichert</b>, bis wieder Platz frei ist.
+    </p>
+    <p class="faint" style="font-size:12.5px;margin:0 0 18px">
+      Häufigste Ursache sind eigene Übungen mit hochgeladenem Bild. Lade zuerst
+      ein Backup herunter, lösche dann unter „Übungen“ ein paar Bilder oder
+      ersetze sie durch eine Bild-URL.
+    </p>
+    <button class="btn-slim solid" style="margin-bottom:10px" onclick="exportData()">${I.download}<span>Backup jetzt herunterladen</span></button>
+    <button class="btn ghost" onclick="closeModal()">Verstanden</button>`);
+}
+/* Belegter Speicher in Bytes (grobe Schätzung: UTF-16, also 2 Byte je Zeichen). */
+function storageBytes(){
+  let n=0;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      n += (k.length + (localStorage.getItem(k)||'').length) * 2;
+    }
+  }catch(e){}
+  return n;
+}
+function fmtBytes(b){
+  if(b<1024) return b+' B';
+  if(b<1024*1024) return (b/1024).toFixed(0)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
 }
 // Änderung vormerken und (gebündelt) in die Cloud schicken
 function markDirty(){
@@ -1186,11 +1235,72 @@ function markDirty(){
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>{ pushToCloud(); }, 1500);   // 1,5 s nach der letzten Änderung
 }
-window.addEventListener('pagehide', ()=>{ saveNow(); flushPush(); });
+window.addEventListener('pagehide', ()=>{ saveNow(); saveSessionNow(); flushPush(); });
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='hidden'){ saveNow(); flushPush(); }
+  if(document.visibilityState==='hidden'){ saveNow(); saveSessionNow(); flushPush(); }
   else if(document.visibilityState==='visible' && SYNC.state==='idle'){ pullFromCloud(true); }
 });
+
+/* ================================================================
+   LAUFENDES TRAINING SICHERN
+   SESSION lag früher nur im Arbeitsspeicher. Ein Reload, ein Absturz oder
+   iOS, das den Tab bei ausgeschaltetem Bildschirm aus dem Speicher wirft,
+   haben damit das komplette laufende Training vernichtet. Deshalb wird
+   SESSION getrennt von DB mitgeschrieben und beim Start zur Wiederaufnahme
+   angeboten. Eigener Key, damit ein kaputter Trainingsstand niemals den
+   fertigen Verlauf beschädigen kann.
+   ================================================================ */
+const SESSION_KEY='progresslab.session';
+let sessTimer;
+// Gebündelt schreiben: bei jedem Tastendruck in ein Gewichtsfeld sonst zu oft.
+function saveSession(){ clearTimeout(sessTimer); sessTimer=setTimeout(saveSessionNow,300); }
+function saveSessionNow(){
+  clearTimeout(sessTimer);
+  try{
+    if(SESSION) localStorage.setItem(SESSION_KEY, JSON.stringify(SESSION));
+    else localStorage.removeItem(SESSION_KEY);
+  }catch(e){}
+}
+function clearStoredSession(){ clearTimeout(sessTimer); try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+function loadStoredSession(){
+  try{
+    const raw=localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    const s=JSON.parse(raw);
+    return (s && Array.isArray(s.exercises)) ? s : null;
+  }catch(e){ return null; }
+}
+// Enthält der Stand überhaupt Arbeit? Ein frisch gestartetes, leeres Training
+// muss man nicht wiederherstellen – das würde nur nerven.
+function sessionHasData(s){
+  const gefuellt=v=>v!=='' && v!=null;
+  return s.exercises.some(e=>(e.sets||[]).some(x=> x.done || gefuellt(x.weight) || gefuellt(x.reps) ));
+}
+function offerSessionResume(){
+  if(SESSION) return;
+  const s=loadStoredSession();
+  if(!s){ return; }
+  if(!sessionHasData(s)){ clearStoredSession(); return; }
+  const done=s.exercises.reduce((a,e)=>a+(e.sets||[]).filter(x=>x.done).length,0);
+  const when=new Date(s.date||Date.now());
+  const zeit=String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
+  openModal(`<div class="grab"></div>
+    <h2>Training fortsetzen?</h2>
+    <p class="muted" style="margin:6px 0 4px">${esc(s.dayName||'Training')}</p>
+    <p class="faint" style="font-size:12.5px;margin:0 0 20px">
+      Gestartet um ${zeit} Uhr · ${done} ${done===1?'Satz':'Sätze'} bereits abgehakt
+    </p>
+    <button class="btn-slim solid" style="margin-bottom:10px" id="_resumeYes">Fortsetzen</button>
+    <button class="btn ghost" id="_resumeNo">Verwerfen</button>`);
+  document.getElementById('_resumeYes').onclick=()=>{
+    SESSION=s; closeModal(); go('today');
+  };
+  document.getElementById('_resumeNo').onclick=()=>{
+    confirmModal('Trainingsstand verwerfen?','Die abgehakten Sätze dieses Trainings gehen verloren.','Verwerfen',
+      ()=>{ clearStoredSession(); closeModal(); },
+      ()=>{ offerSessionResume(); });   // doch nicht: Auswahl erneut zeigen
+  };
+}
 // Beim Verlassen der Seite noch schnell hochladen (überlebt das Schließen dank keepalive)
 function flushPush(){
   if(!SYNC.dirty || !SYNC.token || !cloudConfigured()) return;
@@ -1737,7 +1847,7 @@ function syncBadge(){
     'conflict':  {cls:'err',  ico:I.cloudOff, txt:'Konflikt'}
   };
   const s=map[SYNC.state]||map['idle'];
-  return `<button class="sync-badge ${s.cls}" onclick="openSyncPanel()" title="${esc(s.txt)}">
+  return `<button class="sync-badge ${s.cls}" onclick="openSyncPanel()" title="${esc(s.txt)}" aria-label="Cloud-Synchronisierung: ${esc(s.txt)}">
     <span class="sync-ico">${s.ico}</span>
     <span class="sync-txt">${esc(s.txt)}</span>
   </button>`;
@@ -1904,6 +2014,7 @@ function startSession(plan, day){
         }))};
     })
   };
+  saveSession();
   go('today');
 }
 // Liefert die abgehakten Sätze der Übung aus dem letzten Training (als {weight,reps}).
@@ -1920,7 +2031,7 @@ function prevPerfSets(exName, dayName, exId){
   if(!p) return [];
   return p.ex.sets.filter(s=>s.done).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
 }
-function startFreestyle(){ SESSION={planId:null,planName:'Freies Training',dayName:'Freies Training',date:Date.now(),exercises:[]}; go('today'); }
+function startFreestyle(){ SESSION={planId:null,planName:'Freies Training',dayName:'Freies Training',date:Date.now(),exercises:[]}; saveSession(); go('today'); }
 
 /* Uhrzeit im Training, immer 24-Stunden-Format (unabhängig von der Geräte-Region) */
 function clockNow(){
@@ -1974,14 +2085,14 @@ function sessionScreen(){
     </div>
 
     ${n>1?`<div class="sess-nav">
-      <button class="sess-arrow" ${ei===0?'disabled':''} onclick="goExercise(${ei-1})">${I.chevronL}</button>
+      <button class="sess-arrow" ${ei===0?'disabled':''} onclick="goExercise(${ei-1})" aria-label="Vorherige Übung">${I.chevronL}</button>
       <div class="sess-dots">
         ${s.exercises.map((e,i)=>{
           const allDone=e.sets.length&&e.sets.every(x=>x.done);
-          return `<button class="sess-dot ${i===ei?'on':''} ${allDone?'done':''}" onclick="goExercise(${i})" title="${escAttr(e.name)}"></button>`;
+          return `<button class="sess-dot ${i===ei?'on':''} ${allDone?'done':''}" onclick="goExercise(${i})" title="${escAttr(e.name)}" aria-label="Zu Übung ${i+1}: ${escAttr(e.name)}"${i===ei?' aria-current="true"':''}></button>`;
         }).join('')}
       </div>
-      <button class="sess-arrow" ${ei===n-1?'disabled':''} onclick="goExercise(${ei+1})">${I.chevron}</button>
+      <button class="sess-arrow" ${ei===n-1?'disabled':''} onclick="goExercise(${ei+1})" aria-label="Nächste Übung">${I.chevron}</button>
     </div>`:'<div class="sess-nav-spacer"></div>'}
   </div>`;
 }
@@ -1989,10 +2100,12 @@ function goExercise(i){
   const n=SESSION.exercises.length;
   if(i<0||i>n-1) return;
   SESSION.page=i;
+  saveSession();
   renderView();
 }
 function toggleSessImg(){
   SESSION.hideImg=!SESSION.hideImg;
+  saveSession();
   renderView();
 }
 /* Wischen zwischen Übungen (Touch) */
@@ -2372,8 +2485,9 @@ function updateSetVol(ei,si){
 function updateTotal(ei,si,val){
   SESSION.exercises[ei].sets[si].weight=val; // Wert schon während der Eingabe halten
   updateSetVol(ei,si); // Gesamtgewicht + Satz-Volumen stehen zusammen in der Info-Zeile
+  saveSession();
 }
-function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=v; }
+function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=v; saveSession(); }
 function toggleSet(ei,si){
   const ex=SESSION.exercises[ei];
   const st=ex.sets[si];
@@ -2382,6 +2496,7 @@ function toggleSet(ei,si){
     if(!st.reps) st.reps=ex.targetReps||'';
   }
   st.done=!st.done;
+  saveSession();
   renderView();
   // Pausen-Countdown automatisch starten, wenn Satz bestätigt wurde und eine Pause gesetzt ist
   if(st.done && ex.rest>0) startRest(ex.rest, ex.name);
@@ -2390,20 +2505,30 @@ function toggleSet(ei,si){
 /* ================================================================
    PAUSEN-COUNTDOWN (Rest Timer)
    ================================================================ */
-let TIMER=null; // {remaining,total,base,label,handle,ended}
+/* Der Timer rechnet bewusst mit einem Ziel-Zeitpunkt (endAt) statt mit einem
+   heruntergezählten Zähler. Browser drosseln setInterval in Hintergrund-Tabs
+   (Chrome ~1×/Minute, iOS Safari friert ganz ein) – ein Zähler würde dann
+   stehenbleiben, sobald das Handy in der Tasche ist. Über Date.now() stimmt die
+   Restzeit auch nach einer Pause im Hintergrund. */
+let TIMER=null; // {endAt,total,base,label,handle,ended,alerted}
+function restRemaining(){
+  if(!TIMER) return 0;
+  return Math.max(0, Math.round((TIMER.endAt-Date.now())/1000));
+}
 function startRest(seconds, label){
   stopRestTick();
-  TIMER={remaining:seconds, total:seconds, base:seconds, label:label||'', ended:false};
+  TIMER={endAt:Date.now()+seconds*1000, total:seconds, base:seconds,
+         label:label||'', ended:false, alerted:false};
   renderRestTimer();
   TIMER.handle=setInterval(tickRest,1000);
 }
 function tickRest(){
   if(!TIMER) return;
-  TIMER.remaining--;
-  if(TIMER.remaining<=0){
-    TIMER.remaining=0; TIMER.ended=true;
+  if(restRemaining()<=0){
+    TIMER.ended=true;
     stopRestTick();
-    restAlert(); // Ton + Vibration
+    // Nur einmal Alarm geben, auch wenn tickRest mehrfach nachläuft
+    if(!TIMER.alerted){ TIMER.alerted=true; restAlert(); } // Ton + Vibration
     renderRestTimer();
     setTimeout(()=>{ if(TIMER&&TIMER.ended) closeRest(); },4000);
   } else {
@@ -2414,22 +2539,30 @@ function stopRestTick(){ if(TIMER&&TIMER.handle){ clearInterval(TIMER.handle); T
 function closeRest(){ stopRestTick(); TIMER=null; renderRestTimer(); }
 function adjustRest(delta){
   if(!TIMER) return;
-  TIMER.remaining=Math.max(1, TIMER.remaining+delta);
-  TIMER.total=Math.max(TIMER.total, TIMER.remaining);
-  if(TIMER.ended){ TIMER.ended=false; if(!TIMER.handle){ TIMER.handle=setInterval(tickRest,1000); } }
+  // Mindestens 1 Sekunde Restzeit, damit „−15“ die Pause nicht sofort beendet
+  const next=Math.max(1, restRemaining()+delta);
+  TIMER.endAt=Date.now()+next*1000;
+  TIMER.total=Math.max(TIMER.total, next);
+  if(TIMER.ended){ TIMER.ended=false; TIMER.alerted=false; if(!TIMER.handle){ TIMER.handle=setInterval(tickRest,1000); } }
   renderRestTimer();
 }
 function restartRest(){
   if(!TIMER) return;
   startRest(TIMER.base, TIMER.label); // zurück zur ursprünglich eingestellten Pausendauer
 }
+/* Zurück aus dem Hintergrund: sofort neu rechnen, statt bis zum nächsten
+   Intervall-Tick eine veraltete Zeit anzuzeigen. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && TIMER) tickRest();
+});
 function fmtClock(s){ const m=Math.floor(s/60), ss=s%60; return `${m}:${String(ss).padStart(2,'0')}`; }
 function renderRestTimer(){
   const el=document.getElementById('restTimer'); if(!el) return;
   // Timer nur während einer laufenden Session zeigen
   if(!TIMER || !SESSION){ el.classList.remove('show'); el.innerHTML=''; document.body.classList.remove('timer-on'); return; }
   document.body.classList.add('timer-on'); // Platz im Trainings-Layout reservieren
-  const pct = TIMER.total? Math.max(0, Math.min(100, TIMER.remaining/TIMER.total*100)) : 0;
+  const remaining=restRemaining();
+  const pct = TIMER.total? Math.max(0, Math.min(100, remaining/TIMER.total*100)) : 0;
   const ended=TIMER.ended;
   el.innerHTML=`
     <div class="rt-bar"><div class="rt-fill ${ended?'done':''}" style="width:${ended?100:pct}%"></div></div>
@@ -2437,15 +2570,15 @@ function renderRestTimer(){
       <div class="rt-left">
         <span class="rt-ico ${ended?'done':''}">${I.timer}</span>
         <div>
-          <div class="rt-time ${ended?'done':''}">${ended?'Pause vorbei!':fmtClock(TIMER.remaining)}</div>
+          <div class="rt-time ${ended?'done':''}">${ended?'Pause vorbei!':fmtClock(remaining)}</div>
           <div class="rt-label">${ended?'':'Pause'}${TIMER.label&&!ended?' · '+esc(TIMER.label):''}</div>
         </div>
       </div>
       <div class="rt-controls">
-        ${ended?'' :`<button class="rt-btn" onclick="adjustRest(-15)" title="15 Sek. weniger">−15</button>
-        <button class="rt-btn" onclick="adjustRest(15)" title="15 Sek. mehr">+15</button>`}
-        <button class="rt-btn icon" onclick="restartRest()" title="Neu starten">${I.restart}</button>
-        <button class="rt-btn icon" onclick="closeRest()" title="Abbrechen">${I.x}</button>
+        ${ended?'' :`<button class="rt-btn" onclick="adjustRest(-15)" title="15 Sek. weniger" aria-label="15 Sekunden weniger">−15</button>
+        <button class="rt-btn" onclick="adjustRest(15)" title="15 Sek. mehr" aria-label="15 Sekunden mehr">+15</button>`}
+        <button class="rt-btn icon" onclick="restartRest()" title="Neu starten" aria-label="Pause neu starten">${I.restart}</button>
+        <button class="rt-btn icon" onclick="closeRest()" title="Abbrechen" aria-label="Pause abbrechen">${I.x}</button>
       </div>
     </div>`;
   el.classList.add('show');
@@ -2475,9 +2608,10 @@ function restAlert(){
 }
 function addSet(ei){
   const ex=SESSION.exercises[ei]; const prev=ex.sets[ex.sets.length-1];
-  ex.sets.push({weight:'',reps:'',rir:'0',done:false,sug:prev?prev.sug:null,prev:null}); renderView();
+  ex.sets.push({weight:'',reps:'',rir:'0',done:false,sug:prev?prev.sug:null,prev:null});
+  saveSession(); renderView();
 }
-function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); renderView(); }
+function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); saveSession(); renderView(); }
 function addExerciseToSession(){
   openExercisePicker(sel=>{
     const exId=sel.id||exIdForName(sel.n);
@@ -2487,11 +2621,14 @@ function addExerciseToSession(){
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
       sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,sug:sg,prev:prevSets[i]||null}))});
     SESSION.page=SESSION.exercises.length-1; // direkt zur neuen Übung
+    saveSession();
     closeModal(); renderView();
   });
 }
 function cancelSession(){
-  confirmModal('Training abbrechen?','Nicht gespeicherte Sätze gehen verloren.','Abbrechen',()=>{ SESSION=null; closeRest(); renderView(); });
+  confirmModal('Training abbrechen?','Nicht gespeicherte Sätze gehen verloren.','Abbrechen',()=>{
+    SESSION=null; clearStoredSession(); closeRest(); renderView();
+  });
 }
 function finishSession(){
   const s=SESSION;
@@ -2500,7 +2637,7 @@ function finishSession(){
     .filter(ex=>ex.sets.length);
   if(!exercises.length){ toast('Noch keine Sätze abgehakt'); return; }
   DB.logs.push({id:uid(),date:s.date,planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises});
-  save(); SESSION=null; closeRest(); toast('Training gespeichert 💪'); go('history');
+  save(); SESSION=null; clearStoredSession(); closeRest(); toast('Training gespeichert 💪'); go('history');
 }
 
 /* ================================================================
@@ -2712,11 +2849,11 @@ function renderBuilder(){
       <div class="bld-nav">
         <button class="bld-addbtn" ${d?'':'disabled'} onclick="addBuilderEx(${di})" title="Übung hinzufügen">${I.plus}<span>Übung</span></button>
         <div class="bld-navmid">
-          <button class="sess-arrow" ${di===0?'disabled':''} onclick="goDay(${di-1})">${I.chevronL}</button>
+          <button class="sess-arrow" ${di===0?'disabled':''} onclick="goDay(${di-1})" aria-label="Vorherige Einheit">${I.chevronL}</button>
           <div class="sess-dots">
-            ${p.days.map((x,i)=>`<button class="sess-dot ${i===di?'on':''}" onclick="goDay(${i})" title="${escAttr(x.name)}"></button>`).join('')}
+            ${p.days.map((x,i)=>`<button class="sess-dot ${i===di?'on':''}" onclick="goDay(${i})" title="${escAttr(x.name)}" aria-label="Zu Einheit ${i+1}: ${escAttr(x.name)}"${i===di?' aria-current="true"':''}></button>`).join('')}
           </div>
-          <button class="sess-arrow" ${di===n-1?'disabled':''} onclick="goDay(${di+1})">${I.chevron}</button>
+          <button class="sess-arrow" ${di===n-1?'disabled':''} onclick="goDay(${di+1})" aria-label="Nächste Einheit">${I.chevron}</button>
         </div>
         <button class="bld-addbtn" onclick="addDay()" title="Einheit hinzufügen">${I.plus}<span>Einheit</span></button>
       </div>
@@ -3349,7 +3486,7 @@ function viewBody(){
         return `<div class="ms-hist">
           <div class="row between">
             <span style="font-weight:700;font-size:13px">${fmtDate(m.date)}</span>
-            <button class="ms-del" onclick="deleteMeasureDay('${m.id}')" title="Messung löschen">${I.trash}</button>
+            <button class="ms-del" onclick="deleteMeasureDay('${m.id}')" title="Messung löschen" aria-label="Messung löschen">${I.trash}</button>
           </div>
           <div class="ms-hist-vals">${werte.map(([k,v])=>{
             const def=BODY_METRICS.find(x=>x.key===k);
@@ -3564,12 +3701,26 @@ function saveLogEdit(){
    ================================================================ */
 function backupCard(){
   const nLogs=DB.logs.length, nPlans=DB.plans.length;
+  // Speicherbalken: ~5 MB ist das übliche localStorage-Limit pro Seite.
+  const used=storageBytes(), limit=5*1024*1024;
+  const pct=Math.min(100, Math.round(used/limit*100));
+  const eng = pct>=80;   // ab 80 % wird es kritisch
   return `<div class="card" style="margin-top:14px">
     <div class="row" style="gap:9px;margin-bottom:4px">
       <span style="color:var(--accent)">${I.database}</span>
       <div class="eyebrow" style="margin:0">Daten &amp; Backup</div>
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 14px">Sichere alle Pläne und deinen Verlauf als Datei (z. B. in OneDrive, iCloud oder Google Drive) und stelle sie bei Bedarf wieder her. ${nPlans} Pläne · ${nLogs} Trainings.</p>
+    <div style="margin-bottom:14px">
+      <div class="row between" style="margin-bottom:6px">
+        <span class="faint" style="font-size:11.5px">Belegter Speicher</span>
+        <span class="num" style="font-size:11.5px;font-weight:700;color:${eng?'var(--red)':'var(--text-dim)'}">${fmtBytes(used)} / ca. 5 MB</span>
+      </div>
+      <div class="sess-bar"><div class="sess-fill" style="width:${pct}%;background:${eng?'var(--red)':'var(--accent)'}"></div></div>
+      ${eng?`<p style="font-size:11.5px;color:var(--red);margin-top:7px;line-height:1.45">
+        Der Speicher wird knapp. Lade ein Backup herunter und entferne Bilder aus
+        eigenen Übungen — sonst können neue Trainings bald nicht mehr gesichert werden.</p>`:''}
+    </div>
     <button class="btn-slim solid" style="margin-bottom:10px" onclick="exportData()">${I.download}<span>Backup herunterladen</span></button>
     <button class="btn-slim" onclick="document.getElementById('importFile').click()">${I.upload}<span>Backup wiederherstellen</span></button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
@@ -3973,7 +4124,7 @@ function pickerListHTML(list){
 
         </div>
       </div>
-      <button class="ex-info" onclick='event.stopPropagation();showExercise("${escAttr(e.n)}")' title="Details">${I.info}</button>
+      <button class="ex-info" onclick='event.stopPropagation();showExercise("${escAttr(e.n)}")' title="Details" aria-label="Details zu ${escAttr(e.n)}">${I.info}</button>
     </div>`;
   }).join('') + (list.length>CAP?`<div class="faint" style="text-align:center;padding:14px;font-size:12px">${list.length-CAP} weitere — bitte Suche oder Filter nutzen.</div>`:'');
 }
@@ -4389,7 +4540,7 @@ function renderCustomForm(isEdit){
         ${allMuscles().map(m=>{
           const on=(c._smChips||[]).includes(m);
           const own=customMuscles().includes(m);
-          return `<span class="chip ${on?'on':''} ${own?'own':''}" onclick="toggleSecMuscle('${escAttr(m)}')">${esc(m)}${own?`<button class="chip-x" onclick="event.stopPropagation();deleteCustomMuscle('${escAttr(m)}')" title="Muskel entfernen">${I.x}</button>`:''}</span>`;
+          return `<span class="chip ${on?'on':''} ${own?'own':''}" onclick="toggleSecMuscle('${escAttr(m)}')">${esc(m)}${own?`<button class="chip-x" onclick="event.stopPropagation();deleteCustomMuscle('${escAttr(m)}')" title="Muskel entfernen" aria-label="Muskel ${escAttr(m)} entfernen">${I.x}</button>`:''}</span>`;
         }).join('')}
       </div>
       <div class="row" style="gap:7px;margin-top:10px">
@@ -4598,6 +4749,7 @@ migrateMuscleNames();   // alte Muskel-Bezeichnungen umstellen
 migrateExerciseIds();   // Übungs-IDs in bestehenden Logs/Plänen nachtragen
 renderNav();
 renderView();
+offerSessionResume();   // abgebrochenes Training vom letzten Mal anbieten
 initCloud();            // Cloud-Sitzung wiederherstellen und abgleichen
 </script>
 </body>
