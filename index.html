@@ -1165,7 +1165,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.16.0';
+const APP_VERSION='1.16.1';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2991,6 +2991,10 @@ function openPlanBuilder(id, dayIndex){
   if(!p.perWeek) p.perWeek = p.days.length || 3;  // Standard: so oft wie Einheiten
   const i=+dayIndex||0;
   BUILDER=p; BUILDER.page=Math.min(Math.max(i,0), p.days.length-1);
+  // Nur beim Anlegen darf der Editor Einheiten hinzufügen. Bei einem bestehenden
+  // Plan geschieht das auf der Karte – ein zweiter Weg wäre überflüssig. Ein
+  // neuer Plan hat aber noch keine Karte, käme also nie über eine Einheit hinaus.
+  BUILDER._neu = !id;
   BUILDER_OPEN=true; renderBuilder();
 }
 /* Im Kopf steht nur noch der Planname. „Pro Woche“ sitzt auf der Plankarte –
@@ -3053,9 +3057,11 @@ function renderBuilder(){
         </div>`:''}
       </div>
 
-      <!-- Eine Zeile: "+ Übung" links, Tag-Navigation exakt mittig, "+ Einheit" rechts.
-           Das 3-Spalten-Raster (1fr auto 1fr) hält die Pfeile in der Mitte des
-           Fensters, unabhängig davon wie breit die Buttons an den Seiten sind. -->
+      <!-- Eine Zeile: "+ Übung" links, Tag-Navigation exakt mittig, rechts
+           "+ Einheit" – aber nur beim Anlegen eines neuen Plans. Beim Bearbeiten
+           bleibt der Platz leer (ein <span> als Platzhalter), damit das
+           3-Spalten-Raster (1fr auto 1fr) die Pfeile weiterhin exakt mittig
+           hält, unabhängig davon wie breit die Buttons an den Seiten sind. -->
       <div class="bld-nav">
         <button class="bld-addbtn" ${d?'':'disabled'} onclick="addBuilderEx(${di})" title="Übung hinzufügen">${I.plus}<span>Übung</span></button>
         <div class="bld-navmid">
@@ -3065,7 +3071,8 @@ function renderBuilder(){
           </div>
           <button class="sess-arrow" ${di===n-1?'disabled':''} onclick="goDay(${di+1})" aria-label="Nächste Einheit">${I.chevron}</button>
         </div>
-        <button class="bld-addbtn" onclick="addDay()" title="Einheit hinzufügen">${I.plus}<span>Einheit</span></button>
+        ${p._neu?`<button class="bld-addbtn" onclick="addDay()" title="Einheit hinzufügen">${I.plus}<span>Einheit</span></button>`
+                :`<span></span>`}
       </div>
 
       <button class="btn-slim solid" style="flex-shrink:0" onclick="savePlan()"><span>Plan speichern</span></button>
@@ -3195,7 +3202,7 @@ function savePlan(){
   syncBuilderName();
   if(!BUILDER.name.trim()){ toast('Bitte einen Namen eingeben'); return; }
   const plan=JSON.parse(JSON.stringify(BUILDER));
-  delete plan.page; // Editor-Zustand nicht mitspeichern
+  delete plan.page; delete plan._neu; // Editor-Zustand nicht mitspeichern
   const exist=DB.plans.findIndex(p=>p.id===plan.id);
   if(exist>=0) DB.plans[exist]=plan; else DB.plans.push(plan);
   save(); BUILDER_OPEN=false; MODAL_GUARD=null; closeModal(); renderView(); toast('Plan gespeichert');
