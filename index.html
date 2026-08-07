@@ -136,9 +136,17 @@ body.in-session.timer-on{--timer-space:78px}
    Es gibt als Erstes nach – die Sätze behalten ihre volle Höhe. */
 /* Bild vollständig sichtbar (nicht beschnitten). Die Maximalhöhe setzt JS
    passend zum freien Platz (--img-max), damit es überall vollständig hineinpasst. */
+/* FESTE Höhe, nicht max-height: Der Rahmen ist damit für jede Übung gleich groß
+   und das Bild wird hineingepasst statt in seiner Naturgröße stehen gelassen.
+   Vorher hieß es width:auto + max-width – das VERGRÖSSERT nie, ein 200-px-GIF
+   blieb also bei 200 px, obwohl der Platz da war.
+   Platz kostet das nichts: fitSessImage() reserviert ohnehin schon den vollen
+   Bildbereich (imgBlock = imgMax + imgMargins), er wurde nur nicht ausgefüllt. */
 .ex-card .ex-preview{flex:0 0 auto;margin:10px 0 12px;width:100%;
-  max-height:var(--img-max,300px);display:flex;align-items:center;justify-content:center}
-.ex-card .ex-preview img{max-width:100%;max-height:var(--img-max,300px);width:auto;height:auto;object-fit:contain;display:block;border-radius:12px}
+  height:var(--img-max,300px);display:flex;align-items:center;justify-content:center}
+/* contain statt cover: Bei einer Bewegungsanimation würde ein beschnittener
+   Rand ein Stück der Ausführung verschlucken. */
+.ex-card .ex-preview img{width:100%;height:100%;object-fit:contain;display:block;border-radius:12px}
 /* Sätze: bekommen ihren Platz nach Kopfzeile, Bild und Vergleich.
    Reicht die Höhe nicht (kleiner Bildschirm, Windows-Skalierung), scrollt
    ausschließlich dieser Bereich – Timer, Punkte und Navigation bleiben sichtbar.
@@ -182,7 +190,10 @@ body.in-session.timer-on{--timer-space:78px}
     flex:0 0 44%;max-width:48%;margin:8px 0 0;
     max-height:none !important;height:auto;align-self:stretch;min-height:0;
   }
-  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;height:auto;width:auto}
+  /* width/height auf 100% – auto würde ein kleines GIF wieder in seiner
+     Naturgröße stehen lassen, obwohl der gestreckte Rahmen Platz bietet. */
+  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+    height:100%;width:100%;object-fit:contain}
   .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
   /* Sätze bekommen die volle Höhe der rechten Spalte */
   .ex-sets{max-height:none !important;flex:1 1 auto;overflow-y:auto}
@@ -241,7 +252,10 @@ body.in-session.timer-on{--timer-space:78px}
     max-height:100% !important;
     display:flex;align-items:center;justify-content:center;
     padding:4px 4px 8px;overflow:hidden}
+  /* Der Rahmen ist hier schon einheitlich (align-self:stretch oben) – das Bild
+     darin muss ihn aber auch ausfüllen, sonst bleibt ein kleines GIF klein. */
   .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+    width:100%;height:100%;object-fit:contain;
     border-radius:12px;display:block}
 
   /* Die Sätze scrollen zuverlässig innerhalb der rechten Spalte. */
@@ -1167,7 +1181,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.0';
+const APP_VERSION='1.19.1';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2517,34 +2531,57 @@ function fitSessImage(){
   card.style.maxHeight='';
   card.classList.remove('scroll-all');
 
-  const cs=getComputedStyle(card);
-  const pad=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const headH=head?head.getBoundingClientRect().height:0;
-  const frei = body.clientHeight - pad - headH;   // Platz für Bild + Sätze + Vergleich
-
   const setsVoll = sets.scrollHeight;
   const MIN_SETS = 120;                            // darunter wird es unbrauchbar
 
-  let vcH=0;
-  if(vc){
-    const v=getComputedStyle(vc);
-    vcH = vc.getBoundingClientRect().height + parseFloat(v.marginTop||0);
-    // Reicht der Platz nicht einmal für die Sätze? Dann Vergleich ausblenden.
-    if(frei - vcH < MIN_SETS){ vc.style.display='none'; vcH=0; }
+  /* Der Bildrahmen soll beim Blättern stillstehen. Er ergibt sich aus dem Platz
+     NACH den Sätzen – und die sind je Übung verschieden lang. Deshalb wird nicht
+     mit der aktuellen Satzanzahl gerechnet, sondern mit der größten der Einheit:
+     Die Höhe eines Satzblocks wird aus dem gerenderten Block abgeleitet und
+     hochgerechnet. Sonst bekäme eine 3-Satz-Übung ein größeres Bild als eine
+     mit 5 Sätzen, und das Bild spränge ohne Zutun des GIFs. */
+  let setsPlan=setsVoll;
+  const bloecke=sets.querySelectorAll('.set-block');
+  if(SESSION && Array.isArray(SESSION.exercises) && bloecke.length){
+    const maxN=Math.max(...SESSION.exercises.map(e=>(e.sets||[]).length));
+    if(maxN>bloecke.length){
+      const bs=getComputedStyle(bloecke[0]);
+      const b=bloecke[0].getBoundingClientRect().height + (parseFloat(bs.marginBottom)||0);
+      setsPlan = setsVoll + (maxN-bloecke.length)*b;
+    }
   }
+
+  /* Grundgerüst = die Karte MIT allem außer der Höhe der Sätze und der des
+     Bildes: Kopfzeile, „Satz hinzufügen“, Vergleichsbalken, sämtliche Ränder
+     und Abstände. Bewusst GEMESSEN statt aufgezählt. Das Aufzählen war die
+     Fehlerquelle – es übersah den Abstand unter der Kopfzeile und den
+     „Satz hinzufügen“-Knopf, der außerhalb des Scrollbereichs steht. Solange
+     das Bild kleiner ausfiel als der reservierte Platz, fing die Differenz das
+     auf; mit festem Bildrahmen wurden stattdessen die Sätze beschnitten. */
+  const messeGrund=()=>{
+    sets.style.maxHeight='0px';
+    if(prev) card.style.setProperty('--img-max','0px');
+    const h=card.offsetHeight;
+    sets.style.maxHeight='';
+    return h;
+  };
+  const verfuegbar = body.clientHeight;
+  let grund = messeGrund();
+
+  // Reicht der Platz nicht einmal für die Sätze? Dann Vergleich ausblenden.
+  if(vc && verfuegbar - grund < MIN_SETS){ vc.style.display='none'; grund = messeGrund(); }
 
   let imgBlock=0;
   if(prev){
-    const p=getComputedStyle(prev);
-    const imgMargins=parseFloat(p.marginTop)+parseFloat(p.marginBottom);
-    const rest = frei - vcH - setsVoll - imgMargins;
-    const imgMax = Math.max(0, Math.min(380, Math.floor(rest)));
+    // setsPlan statt setsVoll: nur für die BILDgröße. Die Sätze bekommen
+    // darunter unverändert ihre echte Höhe.
+    const imgMax = Math.max(0, Math.min(380, Math.floor(verfuegbar - grund - setsPlan)));
     if(imgMax<40){ prev.style.display='none'; card.style.setProperty('--img-max','0px'); }
-    else { card.style.setProperty('--img-max', imgMax+'px'); imgBlock = imgMax + imgMargins; }
+    else { card.style.setProperty('--img-max', imgMax+'px'); imgBlock = imgMax; }
   }
 
   // Was übrig bleibt, bekommen die Sätze – notfalls scrollen sie.
-  const fuerSaetze = Math.floor(frei - vcH - imgBlock);
+  const fuerSaetze = Math.floor(verfuegbar - grund - imgBlock);
   if(fuerSaetze < MIN_SETS){
     // Zu wenig Platz für ein sinnvolles Aufteilen (sehr flaches Fenster,
     // starke Windows-Skalierung): dann scrollt die ganze Karte.
