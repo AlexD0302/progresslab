@@ -577,7 +577,10 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 /* „Pro Woche“ in der Kartenkopfzeile: so hoch wie der Papierkorb daneben.
    Als select.input.pw-sel geschrieben, weil die Grundregeln für select.input
    weiter unten stehen und sonst gewinnen würden – gleiche Bauart wie .rir-sel. */
-select.input.pw-sel{width:auto;padding:6px 21px 6px 9px;font-size:12px;font-weight:700;
+/* Polster 5 statt 6: Seit select.input eine ausdrückliche Zeilenhöhe hat
+   (gegen das Abschneiden auf dem Panel), ist der Zeilenkasten 16,8 statt 16 px
+   hoch. Ohne diesen Ausgleich stünde das Feld 1,8 px über dem Papierkorb. */
+select.input.pw-sel{width:auto;padding:5px 21px 5px 9px;font-size:12px;font-weight:700;
   border-radius:9px;flex-shrink:0;background-position:right 6px center;
   background-color:transparent;color:var(--text-dim)}
 .day-name{font-weight:700;font-size:15px;margin-bottom:2px}
@@ -891,7 +894,16 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   transition:border-color .15s;
 }
 .input:focus{outline:none;border-color:var(--accent)}
-select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa6b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+/* line-height ist hier NICHT kosmetisch, sondern die Behebung eines echten
+   Fehlers: Der ältere Chromium des Promethean-Panels berechnet für den
+   Textblock eines <select> bei line-height:normal Metriken, die über den
+   Kasten hinausragen, und schneidet die Zahl oben ab. Auf dem Gerät geprüft –
+   mit ausdrücklicher Zeilenhöhe verschwindet es, mit „normal“ tritt es
+   unabhängig von Polster, Höhe und appearance auf.
+   Gilt bewusst für ALLE Auswahlfelder: RIR im Training fiel nur zuerst auf,
+   betroffen waren „Pro Woche“, Statistik, Maße und der Geräte-Editor genauso.
+   Eingabefelder brauchen das nicht – die zentrieren ihre eine Zeile selbst. */
+select.input{line-height:1.4;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa6b8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 
 .empty{text-align:center;padding:48px 24px;color:var(--text-faint)}
 .empty svg{width:44px;height:44px;stroke-width:1.5;margin-bottom:14px;opacity:.5}
@@ -1204,7 +1216,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.4';
+const APP_VERSION='1.19.5';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
