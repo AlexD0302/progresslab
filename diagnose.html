@@ -24,6 +24,15 @@
   .big .n{font-size:42px;font-weight:800;color:#c8ff00;line-height:1.1}
   .big .l{color:#9aa6b8;font-size:14px;margin-top:6px}
   .hint{margin-top:18px;padding:12px;border-radius:10px;background:#12151c;color:#9aa6b8;font-size:13px;line-height:1.5}
+  /* Auswertung: greift die Panel-Regel der App bei DIESEN Werten? */
+  .verdict{margin-top:18px;padding:16px;border-radius:14px;border:2px solid #2a3240;text-align:center}
+  .verdict .n{font-size:22px;font-weight:800}
+  .verdict .l{color:#9aa6b8;font-size:13px;margin-top:6px;line-height:1.5}
+  .copy{margin-top:14px;width:100%;padding:14px;border-radius:12px;border:1px solid #c8ff00;
+        background:transparent;color:#c8ff00;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+  .copy:active{transform:scale(.99)}
+  #dump{margin-top:12px;width:100%;min-height:150px;background:#12151c;color:#9aa6b8;border:1px solid #2a3240;
+        border-radius:10px;padding:10px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -52,8 +61,18 @@
     <tr><td class="k">100% (Body) gemessen</td><td class="v" id="pct">–</td></tr>
     <tr><td class="k">devicePixelRatio</td><td class="v" id="dpr">–</td></tr>
     <tr><td class="k">orientation</td><td class="v" id="ori">–</td></tr>
-    <tr><td class="k">User-Agent</td><td class="v" id="ua" style="font-size:11px;font-weight:400;color:#5f6c80">–</td></tr>
+    <tr><td class="k">User-Agent</td><td class="v" id="ua" style="font-size:11px;font-weight:400;color:#6d7c93">–</td></tr>
   </table>
+
+  <!-- Auswertung der beiden Schwellen, die ProgressLab benutzt (Stand v1.14.0):
+       Panel-Layout greift bei  Breite >= 900  UND  (Hoehe <= 720  ODER  App-Modus mit Hoehe <= 900). -->
+  <div class="verdict" id="verdict">
+    <div class="n" id="vn">–</div>
+    <div class="l" id="vl">Greift das kompakte Panel-Layout von ProgressLab?</div>
+  </div>
+
+  <button class="copy" id="copyBtn">Alle Werte als Text kopieren</button>
+  <textarea id="dump" readonly></textarea>
 
   <div class="hint">
     Am wichtigsten sind der <b>Anzeigemodus</b> (oben, blau) und die Zeilen <b>100dvh</b>, <b>100vh</b> und <b>innerHeight</b>.
@@ -97,11 +116,47 @@
     if(!standalone && ('standalone' in navigator) && navigator.standalone){ standalone=true; how='Standalone (iOS)'; }
     document.getElementById('mode').textContent = how;
     document.getElementById('mode').parentElement.style.borderColor = standalone ? '#37d99a' : '#3d9bff';
+
+    // Dieselbe Bedingung wie in ProgressLab (fitSessImage + Panel-Media-Query)
+    var breit = iw >= 900;
+    var flach = breit && (ih <= 720 || (standalone && ih <= 900));
+    var vn=document.getElementById('vn'), vl=document.getElementById('vl');
+    vn.textContent = flach ? 'JA — kompaktes Panel-Layout' : 'NEIN — normales Layout';
+    vn.style.color = flach ? '#37d99a' : '#ffb43d';
+    document.getElementById('verdict').style.borderColor = flach ? '#37d99a' : '#ffb43d';
+    vl.innerHTML = 'Regel: Breite &ge; 900 UND (H&ouml;he &le; 720 ODER App-Modus mit H&ouml;he &le; 900)'
+      + '<br>Hier: Breite ' + iw + ', H&ouml;he ' + ih + ', ' + (standalone?'App-Modus':'Browser-Tab');
+
+    // Alles als kopierbarer Text – bequemer als abtippen
+    document.getElementById('dump').value =
+      'ProgressLab Display-Diagnose\n'+
+      'Anzeigemodus : '+how+'\n'+
+      'innerW x H   : '+iw+' x '+ih+'\n'+
+      'client W x H : '+document.documentElement.clientWidth+' x '+document.documentElement.clientHeight+'\n'+
+      'visualViewport: '+(window.visualViewport?Math.round(visualViewport.width)+' x '+Math.round(visualViewport.height):'n/a')+'\n'+
+      'screen       : '+screen.width+' x '+screen.height+'\n'+
+      'avail        : '+screen.availWidth+' x '+screen.availHeight+'\n'+
+      '100dvh       : '+px(document.getElementById('probeDvh'))+' px\n'+
+      '100vh        : '+px(document.getElementById('probeVh'))+' px\n'+
+      '100%         : '+px(document.getElementById('probePct'))+' px\n'+
+      'dpr          : '+(window.devicePixelRatio||1)+'\n'+
+      'Panel-Layout : '+(flach?'JA':'NEIN')+'\n'+
+      'UA           : '+navigator.userAgent;
   }
   upd();
   window.addEventListener('resize', upd);
   if(window.visualViewport){ visualViewport.addEventListener('resize', upd); }
   window.addEventListener('orientationchange', ()=>setTimeout(upd,300));
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var ta=document.getElementById('dump');
+    ta.select(); ta.setSelectionRange(0,99999);
+    var ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){}
+    if(!ok && navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(()=>{},()=>{}); ok=true; }
+    this.textContent = ok ? 'Kopiert ✓' : 'Text unten markieren und kopieren';
+    setTimeout(()=>{ this.textContent='Alle Werte als Text kopieren'; }, 2000);
+  });
 </script>
 </body>
 </html>
