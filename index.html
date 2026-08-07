@@ -90,11 +90,21 @@ body.in-session.timer-on{--timer-space:78px}
 .sess-btn svg{width:14px;height:14px;stroke-width:2.4}
 .sess-btn.solid{background:var(--accent);border-color:var(--accent);color:#0a0c10}
 .sess-btn.danger{color:var(--red);border-color:rgba(255,92,92,.3)}
-/* Uhrzeit im Training (24h) */
-.sess-clock{font-family:var(--font-display);font-size:17px;font-weight:700;
+/* Uhrzeit im Training (24h).
+   Die Höhe wird NICHT hier festgelegt, sondern von den Knöpfen daneben geerbt:
+   line-height:1 ohne senkrechten Innenabstand macht die Uhr für sich genommen
+   niedriger als ein Knopf, das align-items:stretch der Knopfgruppe zieht sie
+   dann exakt auf deren Höhe. So stimmt es auf jedem Gerät, ohne dass irgendwo
+   ein Pixelwert gepflegt werden muss. */
+.sess-clock{font-family:var(--font-display);font-size:15px;font-weight:700;
   color:var(--text-dim);font-variant-numeric:tabular-nums;letter-spacing:.02em;
-  padding:6px 10px;border-radius:9px;background:transparent;border:1px solid var(--line);
+  line-height:1;padding:0 10px;display:inline-flex;align-items:center;
+  border-radius:9px;background:transparent;border:1px solid var(--line);
   white-space:nowrap;flex-shrink:0}
+/* Uhr + Abbrechen + Fertig: gleiche Höhe durch stretch statt center.
+   Bewusst .row.sess-ctls: mit einfachem .sess-ctls würde das später in der
+   Datei stehende .row{align-items:center} gewinnen. */
+.row.sess-ctls{align-items:stretch}
 .sess-btn:active{transform:scale(.95)}
 .sess-vol{flex-shrink:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:11px 14px}
 .sess-bar{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden}
@@ -213,7 +223,8 @@ body.in-session.timer-on{--timer-space:78px}
   /* Kopfzeile kompakter */
   .sess-head{gap:8px}
   .sess-btn{padding:5px 9px;font-size:11px}
-  .sess-clock{font-size:15px;padding:4px 8px}
+  /* Für .sess-clock braucht es hier nichts mehr: Die Uhr erbt ihre Höhe von den
+     Knöpfen und schrumpft mit ihnen automatisch mit. */
   .sess-vol{padding:7px 11px}
 
   /* Karte darf schrumpfen; Bild nicht auf volle Höhe zwingen. */
@@ -462,8 +473,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
    den Inhalt nicht überdeckt. */
 .pad{padding:4px 20px calc(92px + env(safe-area-inset-bottom))}
 .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);padding:18px}
-/* Karten in den Hauptansichten: grüner Rand + Schein (wie das Logo) */
-.pad > .card, .ex-card{border-color:rgba(200,255,0,.22);box-shadow:0 0 24px rgba(200,255,0,.12)}
+/* Der grüne Rand (wie das Logo) steht am Ende des Stylesheets – siehe dort. */
 .card+.card{margin-top:14px}
 .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);font-weight:600}
 .muted{color:var(--text-dim)}
@@ -904,10 +914,13 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   background:var(--accent-glow);color:var(--accent-dim);white-space:nowrap}
 .bld-musc-s{font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;
   background:var(--surface-3);color:var(--text-faint);white-space:nowrap}
-/* Sekundärmuskeln in der Trainingskarte */
+/* Muskeln in der Trainingskarte: erst primär, dann sekundär */
 .ex-sec{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .ex-sec-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;
   background:var(--surface-3);color:var(--text-faint);white-space:nowrap}
+/* Der Primärmuskel trägt Farbe und Stärke des Übungsnamens – gleiche Chip-Form
+   wie die sekundären, nur eben nicht gedämpft. */
+.ex-sec-tag.prim{color:var(--text);font-weight:700}
 /* Plan-Übersicht: Muskel-Häufigkeit */
 .ov-row{display:grid;grid-template-columns:minmax(88px,34%) 1fr 30px;align-items:center;gap:9px;margin-bottom:6px}
 .ov-row:last-child{margin-bottom:0}
@@ -1054,6 +1067,23 @@ body.undo-on #toast{bottom:170px}
 /* Hauptüberschriften durchgängig in Akzentfarbe */
 h2{color:var(--accent)}
 .eyebrow{color:var(--accent-dim)}
+
+/* ===== GRÜNER RAHMEN (wie das Logo) =====================================
+   Steht bewusst ganz am Ende: Mehrere der hier genannten Klassen setzen weiter
+   oben die Kurzschreibweise `border:` und würden die Rahmenfarbe damit wieder
+   zurücksetzen. Bei gleicher Spezifität gewinnt die spätere Regel – deshalb
+   diese hier zuletzt.
+
+   Die Liste umfasst nicht nur Karten: Kalender und Zeitraum-Kopfzeile sind
+   keine .card, die Statistik-Kacheln liegen in einer Zeile statt direkt in
+   .pad, und die Satzübersicht steht im Trainings-Layout. Genau an diesen vier
+   Stellen fehlte der Rahmen, obwohl sie wie Karten wirken.
+
+   Wer eine weitere Fläche rahmen will, ergänzt sie hier – und nirgends sonst. */
+.pad > .card, .ex-card, .stat-tile, .cal-wrap, .seg, .sess-vol{
+  border-color:rgba(200,255,0,.22);
+  box-shadow:0 0 24px rgba(200,255,0,.12);
+}
 </style>
 </head>
 <body>
@@ -1121,7 +1151,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.15.0';
+const APP_VERSION='1.15.1';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2172,7 +2202,7 @@ function sessionScreen(){
         <div class="display" style="font-size:19px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.dayName)}</div>
         <div class="faint" style="font-size:11px">${s.planName==='Freies Training'?'Freies Training':esc(s.planName)}</div>
       </div>
-      <div class="row" style="gap:6px;flex-shrink:0">
+      <div class="row sess-ctls" style="gap:6px;flex-shrink:0">
         <div class="sess-clock" id="sessClock">${clockNow()}</div>
         <button class="sess-btn danger" onclick="cancelSession()">${I.x}<span>Abbrechen</span></button>
         <button class="sess-btn solid" onclick="finishSession()">${I.check}<span>Fertig</span></button>
@@ -2415,13 +2445,16 @@ function exerciseCard(ex,ei){
   const bench=meta&&meta.bench?meta.bench:'';
   const twoDb=meta&&meta.dumbbells===2;
   const sec=(meta&&Array.isArray(meta.sm))?meta.sm:[];
+  // Primärmuskeln stehen voran. Die Körperregion wird herausgefiltert, weil sie
+  // bereits in der Zeile darüber steht – dieselbe Logik wie in der Übungsliste.
+  const prim=(meta&&Array.isArray(meta.pm))?meta.pm.filter(m=>m!==ex.muscle):[];
   const hidden=!!SESSION.hideImg;
   return `<div class="card ex-card">
     <div class="row between" style="margin-bottom:4px;flex-shrink:0">
       <div style="min-width:0">
         <div class="display" style="font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ex.name)}</div>
         <div class="faint" style="font-size:11.5px">${esc(ex.muscle)}${bench?' · '+I.bench+' '+esc(bench):''}${twoDb?' · 2 Hanteln':''}</div>
-        ${sec.length?`<div class="ex-sec">${sec.map(m=>`<span class="ex-sec-tag">${esc(m)}</span>`).join('')}</div>`:''}
+        ${(prim.length||sec.length)?`<div class="ex-sec">${prim.map(m=>`<span class="ex-sec-tag prim">${esc(m)}</span>`).join('')}${sec.map(m=>`<span class="ex-sec-tag">${esc(m)}</span>`).join('')}</div>`:''}
       </div>
       <div class="row" style="gap:5px;flex-shrink:0">
         ${thumb?`<button class="chip" onclick="toggleSessImg()" style="padding:6px 9px" title="${hidden?'Bild einblenden':'Bild ausblenden'}">${hidden?I.eye:I.eyeOff}</button>`:''}
