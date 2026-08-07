@@ -986,6 +986,31 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ---- Rückgängig-Leiste ---- */
+/* Bewusst ein eigenes Element statt #toast: Der Toast trägt pointer-events:none
+   und blendet nach 2 s aus – hier muss geklickt werden, und zwar länger. Zudem
+   würde ein beiläufiger Toast („Backup heruntergeladen“) die Leiste sonst
+   überschreiben und die Rücknahme unerreichbar machen. */
+#undoBar{
+  position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface-3);border:1px solid var(--line);color:var(--text);
+  border-radius:10px;overflow:hidden;
+  z-index:100;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+  box-shadow:var(--shadow);max-width:90%;
+}
+#undoBar.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.ub-body{display:flex;align-items:center;gap:14px;padding:11px 13px 11px 16px}
+.ub-txt{font-size:13.5px;font-weight:600;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ub-btn{flex-shrink:0;background:transparent;border:1px solid var(--accent-dim);
+  color:var(--accent);font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  padding:7px 13px;border-radius:8px;transition:all .12s}
+.ub-btn:hover{background:var(--accent-glow)}
+.ub-btn:active{transform:scale(.96)}
+/* Solange die Leiste steht, rückt der normale Toast darüber – sonst lägen beide
+   an derselben Stelle und würden sich gegenseitig verdecken. */
+body.undo-on #toast{bottom:170px}
+
 /* ---- modal ---- */
 .modal-bg{
   position:fixed;inset:0;background:rgba(4,6,9,.7);backdrop-filter:blur(4px);
@@ -1036,6 +1061,7 @@ h2{color:var(--accent)}
   <!-- views injected/managed by JS below -->
 </div>
 <div id="toast"></div>
+<div id="undoBar"></div>
 <div id="restTimer" class="rest-timer"></div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
 
@@ -1095,8 +1121,8 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.14.0';
-const APP_BUILD='2026-08-06';
+const APP_VERSION='1.15.0';
+const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
 // Ordnet jeden Einzelmuskel seiner Körperregion zu (für Filter und Statistik).
@@ -1461,6 +1487,10 @@ async function pullFromCloud(silent){
   }
 }
 function applyCloudData(row){
+  // Die Datenbank wird gleich komplett ersetzt. Ein gemerkter Rückweg zeigt
+  // danach auf einen Stand, den es nicht mehr gibt – er würde einen gelöschten
+  // Eintrag in fremde Daten schreiben.
+  clearUndo();
   const d=row.data||{};
   DB.plans    = Array.isArray(d.plans)? d.plans : [];
   DB.logs     = Array.isArray(d.logs)?  d.logs  : [];
@@ -1724,6 +1754,68 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 function toast(msg){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+/* ================================================================
+   RÜCKGÄNGIG NACH DEM LÖSCHEN
+   Die fünf dauerhaften Löschungen fragen nicht mehr vorher nach, sondern
+   bieten danach für kurze Zeit die Rücknahme an. Ein Bestätigungsdialog
+   schützt schlecht: Er wird weggeklickt, bevor man ihn gelesen hat. Die
+   Rücknahme greift dagegen erst, wenn man das Ergebnis sieht.
+
+   Gemerkt wird kein Datenabzug, sondern eine Funktion: Jede Löschstelle
+   liefert ihren eigenen Rückweg. Das gelöschte Objekt lebt dadurch in der
+   Closure weiter – nichts wird kopiert – und Nebenwirkungen (aufgeräumte
+   Aufklapp-Zustände, Neuaufbau der Übungs-Tabellen) stehen direkt bei der
+   Löschung, die sie verursacht hat.
+   ================================================================ */
+const UNDO_MS=8000;
+let UNDO=null;   // {label, restore, timer, endAt} oder null
+
+// Nach dem Löschen aufrufen. Ein bereits gemerkter Vorgang wird dadurch endgültig –
+// es gibt immer nur eine rücknehmbare Löschung.
+function registerUndo(label, restore){
+  clearUndo();
+  UNDO={label, restore, endAt:Date.now()+UNDO_MS};
+  UNDO.timer=setTimeout(clearUndo, UNDO_MS);
+  renderUndoBar();
+}
+function clearUndo(){
+  if(UNDO && UNDO.timer) clearTimeout(UNDO.timer);
+  UNDO=null;
+  renderUndoBar();
+}
+function doUndo(){
+  if(!UNDO) return;
+  const restore=UNDO.restore;
+  clearUndo();          // zuerst aufräumen, damit restore() nicht erneut auslöst
+  restore();
+  save();
+  renderView();
+  toast('Wiederhergestellt');
+}
+function renderUndoBar(){
+  const el=document.getElementById('undoBar'); if(!el) return;
+  if(!UNDO){
+    el.classList.remove('show'); el.innerHTML='';
+    document.body.classList.remove('undo-on');
+    return;
+  }
+  el.innerHTML=`
+    <div class="rt-bar"><div class="rt-fill" id="undoFill" style="width:100%"></div></div>
+    <div class="ub-body">
+      <span class="ub-txt">${esc(UNDO.label)}</span>
+      <button class="ub-btn" onclick="doUndo()" aria-label="Löschen rückgängig machen">Rückgängig</button>
+    </div>`;
+  el.classList.add('show');
+  document.body.classList.add('undo-on');
+  // Der Balken läuft in einem Rutsch leer. Ohne ihn verfiele die Frist stumm,
+  // was bei acht Sekunden überrascht. requestAnimationFrame, damit der
+  // Startwert 100 % gerendert ist, bevor die Übergabe auf 0 beginnt.
+  requestAnimationFrame(()=>{
+    const f=document.getElementById('undoFill');
+    if(f){ f.style.transition=`width ${UNDO_MS}ms linear`; f.style.width='0%'; }
+  });
 }
 function fmtDate(ts){
   const d=new Date(ts), n=new Date();
@@ -2789,10 +2881,24 @@ function showPlanOverview(id){
   `, true);
 }
 function deletePlan(id){
-  confirmModal('Plan löschen?','Dies kann nicht rückgängig gemacht werden.','Löschen',()=>{
-    DB.plans=DB.plans.filter(p=>p.id!==id);
-    const m=collapsedMap(); delete m['today:'+id]; delete m['plans:'+id];  // Zustand aufräumen
-    save(); renderView();
+  const idx=DB.plans.findIndex(p=>p.id===id);
+  if(idx<0) return;
+  const plan=DB.plans[idx];
+  // Aufklapp-Zustand gehört zum Plan und wird gleich mit gelöscht – deshalb
+  // hier sichern. Ohne das käme der Plan anders aufgeklappt zurück, als er ging.
+  const m=collapsedMap();
+  const kHeute='today:'+id, kPlaene='plans:'+id;
+  const zHeute=m[kHeute], zPlaene=m[kPlaene];
+
+  DB.plans.splice(idx,1);
+  delete m[kHeute]; delete m[kPlaene];
+  save(); renderView();
+
+  registerUndo(`„${plan.name}“ gelöscht`, ()=>{
+    DB.plans.splice(Math.min(idx, DB.plans.length), 0, plan);
+    const m2=collapsedMap();
+    if(zHeute!==undefined) m2[kHeute]=zHeute;
+    if(zPlaene!==undefined) m2[kPlaene]=zPlaene;
   });
 }
 
@@ -3248,7 +3354,18 @@ function openDayLogs(key){
     <button class="btn ghost" style="margin-top:4px" onclick="closeModal()">Schließen</button>
   `, true);
 }
-function deleteLog(id){ confirmModal('Eintrag löschen?','','Löschen',()=>{ DB.logs=DB.logs.filter(l=>l.id!==id); save(); renderView(); }); }
+function deleteLog(id){
+  const idx=DB.logs.findIndex(l=>l.id===id);
+  if(idx<0) return;
+  const log=DB.logs[idx];
+  DB.logs.splice(idx,1);
+  save(); renderView();
+  registerUndo(`„${log.dayName}“ gelöscht`, ()=>{
+    // Index begrenzen: Zwischen Löschen und Rücknahme kann saveLogEdit() neu
+    // sortiert oder finishSession() angehängt haben.
+    DB.logs.splice(Math.min(idx, DB.logs.length), 0, log);
+  });
+}
 
 /* ---- Detailansicht eines vergangenen Trainings ---- */
 function showLogDetail(id){
@@ -3637,9 +3754,15 @@ function inlineSave(){
   toast('Gespeichert ✓');
 }
 function deleteMeasureDay(id){
-  confirmModal('Messung löschen?','Alle Werte dieses Tages werden entfernt.','Löschen',()=>{
-    DB.measurements=(DB.measurements||[]).filter(m=>m.id!==id);
-    save(); renderView();
+  const arr=DB.measurements||(DB.measurements=[]);
+  const idx=arr.findIndex(m=>m.id===id);
+  if(idx<0) return;
+  const eintrag=arr[idx];
+  arr.splice(idx,1);
+  save(); renderView();
+  registerUndo(`Messung vom ${fmtDate(eintrag.date)} gelöscht`, ()=>{
+    const a=DB.measurements||(DB.measurements=[]);
+    a.splice(Math.min(idx, a.length), 0, eintrag);
   });
 }
 
@@ -3787,6 +3910,7 @@ function importData(ev){
     confirmModal('Backup wiederherstellen?',
       `Die Datei enthält ${nP} Pläne, ${nL} Trainings${nC?` und ${nC} eigene Übungen`:''}. Deine aktuellen Daten werden dadurch ersetzt.`,
       'Wiederherstellen',()=>{
+        clearUndo();   // gleicher Grund wie in applyCloudData
         DB.plans = Array.isArray(d.plans)? d.plans : [];
         DB.logs  = Array.isArray(d.logs)?  d.logs  : [];
         DB.customEx = Array.isArray(d.customEx)? d.customEx : [];
@@ -4507,13 +4631,30 @@ function addMuscleFromInput(){
   }
 }
 function deleteCustomMuscle(name){
-  confirmModal('Muskel entfernen?', `„${name}“ wird aus der Auswahl entfernt. Bereits gespeicherte Übungen behalten den Eintrag.`, 'Entfernen', ()=>{
-    DB.settings.customMuscles = customMuscles().filter(m=>m!==name);
-    // aus der aktuellen Auswahl nehmen
-    if(CUSTOM && Array.isArray(CUSTOM._smChips)) CUSTOM._smChips=CUSTOM._smChips.filter(m=>m!==name);
-    if(CUSTOM && Array.isArray(CUSTOM._pmChips)) CUSTOM._pmChips=CUSTOM._pmChips.filter(m=>m!==name);
-    save();
-    renderCustomForm(!!(CUSTOM&&CUSTOM._isEdit));
+  const liste=customMuscles();
+  const idx=liste.indexOf(name);
+  if(idx<0) return;
+  // War der Muskel im offenen Formular ausgewählt? Nur dann darf die Rücknahme
+  // ihn wieder auswählen – sonst erschiene er plötzlich als gewählt.
+  const warSek = !!(CUSTOM && Array.isArray(CUSTOM._smChips) && CUSTOM._smChips.includes(name));
+  const warPrim= !!(CUSTOM && Array.isArray(CUSTOM._pmChips) && CUSTOM._pmChips.includes(name));
+
+  liste.splice(idx,1);
+  if(CUSTOM && Array.isArray(CUSTOM._smChips)) CUSTOM._smChips=CUSTOM._smChips.filter(m=>m!==name);
+  if(CUSTOM && Array.isArray(CUSTOM._pmChips)) CUSTOM._pmChips=CUSTOM._pmChips.filter(m=>m!==name);
+  save();
+  if(CUSTOM) renderCustomForm(!!CUSTOM._isEdit);
+
+  registerUndo(`„${name}“ entfernt`, ()=>{
+    const l=customMuscles();
+    l.splice(Math.min(idx, l.length), 0, name);
+    // CUSTOM kann inzwischen null sein (Formular geschlossen) – dann gibt es
+    // keine Auswahl mehr, die wiederherzustellen wäre.
+    if(CUSTOM){
+      if(warSek && Array.isArray(CUSTOM._smChips)) CUSTOM._smChips.push(name);
+      if(warPrim && Array.isArray(CUSTOM._pmChips)) CUSTOM._pmChips.push(name);
+      renderCustomForm(!!CUSTOM._isEdit);
+    }
   });
 }
 function toggleSecMuscle(m){
@@ -4716,12 +4857,21 @@ function returnFromCustom(){
   renderView();
 }
 function deleteCustomExercise(id){
-  confirmModal('Übung löschen?','Die eigene Übung wird entfernt. Bereits gespeicherte Trainings bleiben erhalten.','Löschen',()=>{
-    DB.customEx=(DB.customEx||[]).filter(e=>e.id!==id);
-    rebuildExDB(); save();
-    MODAL_GUARD=null; closeOverlay();
-    returnFromCustom();
-    toast('Übung gelöscht');
+  const arr=DB.customEx||(DB.customEx=[]);
+  const idx=arr.findIndex(e=>e.id===id);
+  if(idx<0) return;
+  const uebung=arr[idx];
+  arr.splice(idx,1);
+  rebuildExDB(); save();
+  MODAL_GUARD=null; closeOverlay();
+  returnFromCustom();
+  registerUndo(`„${uebung.n}“ gelöscht`, ()=>{
+    const a=DB.customEx||(DB.customEx=[]);
+    a.splice(Math.min(idx, a.length), 0, uebung);
+    // Ohne diesen Neuaufbau stünde die Übung zwar wieder in den Daten, wäre
+    // aber über EXBYID/EXBYNAME nicht auffindbar – Pläne und Verlauf fänden
+    // sie nicht mehr.
+    rebuildExDB();
   });
 }
 
