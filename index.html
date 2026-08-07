@@ -1189,7 +1189,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.2';
+const APP_VERSION='1.19.3';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2579,11 +2579,23 @@ function fitSessImage(){
   // Reicht der Platz nicht einmal für die Sätze? Dann Vergleich ausblenden.
   if(vc && verfuegbar - grund < MIN_SETS){ vc.style.display='none'; grund = messeGrund(); }
 
+  const MIN_IMG = 110;   // darunter erkennt man auf einer Bewegungsanimation nichts
+
   let imgBlock=0;
   if(prev){
     // setsPlan statt setsVoll: nur für die BILDgröße. Die Sätze bekommen
     // darunter unverändert ihre echte Höhe.
-    const imgMax = Math.max(0, Math.min(380, Math.floor(verfuegbar - grund - setsPlan)));
+    const platz = verfuegbar - grund;          // teilen sich Bild und Sätze
+    let imgMax = Math.min(380, Math.floor(platz - setsPlan));
+    /* Reicht es nicht für beides in voller Größe – der Normalfall auf einem
+       Handy –, dann bekommt das Bild sein Mindestmaß und die Sätze scrollen.
+       Vorher hatte "die Sätze scrollen nie" Vorrang und das Bild verschwand
+       ersatzlos. Das ist die falsche Abwägung: Die Sätze SIND zum Scrollen
+       gebaut (overflow-y:auto), ein fehlendes Bild hat keinen Ersatz.
+       Weil platz und MIN_SETS nicht von der Seite abhängen, bleibt der Rahmen
+       auch in diesem Fall über alle Übungen hinweg gleich groß. */
+    if(imgMax < MIN_IMG) imgMax = Math.floor(Math.min(MIN_IMG, platz - MIN_SETS));
+    imgMax = Math.max(0, imgMax);
     if(imgMax<40){ prev.style.display='none'; card.style.setProperty('--img-max','0px'); }
     else { card.style.setProperty('--img-max', imgMax+'px'); imgBlock = imgMax; }
   }
