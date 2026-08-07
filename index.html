@@ -143,10 +143,19 @@ body.in-session.timer-on{--timer-space:78px}
    Platz kostet das nichts: fitSessImage() reserviert ohnehin schon den vollen
    Bildbereich (imgBlock = imgMax + imgMargins), er wurde nur nicht ausgefüllt. */
 .ex-card .ex-preview{flex:0 0 auto;margin:10px 0 12px;width:100%;
-  height:var(--img-max,300px);display:flex;align-items:center;justify-content:center}
+  height:var(--img-max,300px);display:flex;align-items:center;justify-content:center;
+  /* Weißer Grund wie bei .ex-thumb in der Liste und .ex-hero im Detailfenster.
+     Die GIFs liegen auf Weiß; mit dunklem Grund stand ein weißes Rechteck mit
+     ECKIGEN Ecken in einem runden Rahmen. So ist die sichtbare Fläche der
+     Rahmen selbst – und der ist rund. */
+  background:#fff}
 /* contain statt cover: Bei einer Bewegungsanimation würde ein beschnittener
-   Rand ein Stück der Ausführung verschlucken. */
-.ex-card .ex-preview img{width:100%;height:100%;object-fit:contain;display:block;border-radius:12px}
+   Rand ein Stück der Ausführung verschlucken.
+   Kein border-radius am Bild: Es füllt den ganzen Rahmen, seine Ecken liegen
+   also in den leeren Randstreifen. Gerundet wird der Rahmen (overflow:hidden). */
+.ex-card .ex-preview img{width:100%;height:100%;object-fit:contain;display:block}
+/* Bild kaputt: kein leuchtend weißer Kasten, sondern zurück auf dunkel */
+.ex-preview.bad{background:var(--surface-2)}
 /* Sätze: bekommen ihren Platz nach Kopfzeile, Bild und Vergleich.
    Reicht die Höhe nicht (kleiner Bildschirm, Windows-Skalierung), scrollt
    ausschließlich dieser Bereich – Timer, Punkte und Navigation bleiben sichtbar.
@@ -255,8 +264,7 @@ body.in-session.timer-on{--timer-space:78px}
   /* Der Rahmen ist hier schon einheitlich (align-self:stretch oben) – das Bild
      darin muss ihn aber auch ausfüllen, sonst bleibt ein kleines GIF klein. */
   .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
-    width:100%;height:100%;object-fit:contain;
-    border-radius:12px;display:block}
+    width:100%;height:100%;object-fit:contain;display:block}
 
   /* Die Sätze scrollen zuverlässig innerhalb der rechten Spalte. */
   .ex-sets{flex:1 1 0;min-height:0;overflow-y:auto}
@@ -1181,7 +1189,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.1';
+const APP_VERSION='1.19.2';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
