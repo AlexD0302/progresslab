@@ -1165,7 +1165,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.16.1';
+const APP_VERSION='1.17.0';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3123,14 +3123,24 @@ function addDay(){
   renderBuilder();
 }
 function delDay(i){
-  confirmModal('Einheit löschen?', BUILDER.days[i].exercises.length?`„${BUILDER.days[i].name}“ enthält ${BUILDER.days[i].exercises.length} Übung(en).`:'', 'Löschen', ()=>{
-    syncBuilderName();
-    BUILDER.days.splice(i,1);
-    if(BUILDER.page>BUILDER.days.length-1) BUILDER.page=BUILDER.days.length-1;
-    renderBuilder();
-  });
+  const d=BUILDER.days[i]; if(!d) return;
+  // VOR der Rückfrage: danach hat confirmModal das Fenster ersetzt und
+  // syncBuilderName() fände das Namensfeld nicht mehr.
+  syncBuilderName();
+  const n=d.exercises.length;
+  confirmInEditor('Einheit löschen?',
+    n?`„${d.name}“ enthält ${n} ${n===1?'Übung':'Übungen'}.`:`„${d.name}“ ist leer.`,
+    'Löschen', ()=>{
+      BUILDER.days.splice(i,1);
+      if(BUILDER.page>BUILDER.days.length-1) BUILDER.page=BUILDER.days.length-1;
+    }, ()=>renderBuilder());
 }
-function delBuilderEx(di,ei){ BUILDER.days[di].exercises.splice(ei,1); renderBuilder(); }
+function delBuilderEx(di,ei){
+  const d=BUILDER.days[di]; const e=d&&d.exercises[ei]; if(!e) return;
+  syncBuilderName();
+  confirmInEditor('Übung entfernen?', `„${e.name}“ aus „${d.name}“.`,
+    'Entfernen', ()=>{ d.exercises.splice(ei,1); }, ()=>renderBuilder());
+}
 
 /* ---- Drag & Drop: Übungen innerhalb einer Einheit umsortieren ---- */
 let _dragDi=null, _dragEi=null;
@@ -3910,9 +3920,21 @@ function logEditBody(){
   }).join('');
 }
 function refreshLogEdit(){ const el=document.getElementById('logEditList'); if(el) el.innerHTML=logEditBody(); }
-function logEditDelSet(ei,si){ LOGEDIT.exercises[ei].sets.splice(si,1); refreshLogEdit(); }
+/* restore ist renderLogEdit, nicht refreshLogEdit: Letzteres ersetzt nur die
+   Liste, das umgebende Fenster ist nach der Rückfrage aber komplett weg. */
+function logEditDelSet(ei,si){
+  const e=LOGEDIT.exercises[ei]; const s=e&&e.sets[si]; if(!s) return;
+  confirmInEditor('Satz löschen?',
+    `Satz ${si+1} von „${e.name}“: ${+s.weight||0} kg × ${+s.reps||0}.`,
+    'Löschen', ()=>{ e.sets.splice(si,1); }, ()=>renderLogEdit());
+}
 function logEditAddSet(ei){ const s=LOGEDIT.exercises[ei].sets; const prev=s[s.length-1]; s.push({weight:prev?prev.weight:0,reps:prev?prev.reps:0,done:true}); refreshLogEdit(); }
-function logEditDelEx(ei){ LOGEDIT.exercises.splice(ei,1); refreshLogEdit(); }
+function logEditDelEx(ei){
+  const e=LOGEDIT.exercises[ei]; if(!e) return;
+  const n=e.sets.length;
+  confirmInEditor('Übung entfernen?', `„${e.name}“ mit ${n} ${n===1?'Satz':'Sätzen'}.`,
+    'Entfernen', ()=>{ LOGEDIT.exercises.splice(ei,1); }, ()=>renderLogEdit());
+}
 function logEditAddExercise(){
   openExercisePicker(sel=>{
     LOGEDIT.exercises.push({exId:sel.id||exIdForName(sel.n),name:sel.n,muscle:sel.m,targetReps:10,sets:[{weight:0,reps:0,done:true}]});
@@ -4995,6 +5017,16 @@ function tryCloseModal(){
   closeModal();
 }
 document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') tryCloseModal(); });
+/* Rückfrage aus einem offenen Editor heraus.
+   Die App hat genau EIN Modal-Fenster, und confirmModal ersetzt dessen Inhalt.
+   Wer aus einem Editor heraus nachfragt, muss ihn deshalb auf BEIDEN Wegen
+   wieder aufbauen. Fehlt der Abbruch-Zweig, greift der Standardfall
+   closeModal() – und der ungespeicherte Entwurf ist weg. Genau daran krankte
+   „Einheit löschen?“: Ein Klick auf „Zurück“ warf den Nutzer aus dem gesamten
+   Plan-Editor, kostete also mehr als das Löschen selbst. */
+function confirmInEditor(title, msg, label, onOk, restore){
+  confirmModal(title, msg, label, ()=>{ onOk(); restore(); }, ()=>{ restore(); });
+}
 function confirmModal(title,msg,confirmLabel,onOk,onCancel){
   openModal(`<div class="grab"></div><h2>${esc(title)}</h2>
     ${msg?`<p class="muted" style="margin:6px 0 20px">${esc(msg)}</p>`:'<div style="height:16px"></div>'}
