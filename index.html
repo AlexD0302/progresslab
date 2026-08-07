@@ -542,8 +542,22 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .day-row:last-child{margin-bottom:0}
 .day-row:hover{background:var(--surface-2);border-color:var(--accent-dim)}
 .day-row:active{transform:scale(.99)}
-.day-box{background:transparent;border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px}
+/* Einheit auf der Plankarte: antippbar, öffnet den Editor auf genau dieser
+   Einheit. Rückmeldung wie bei .day-row – ohne sie sähe die Fläche tot aus. */
+.day-box{display:block;width:100%;text-align:left;background:transparent;
+  border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px;
+  transition:background .15s,border-color .15s,transform .12s}
 .day-box:last-of-type{margin-bottom:0}
+.day-box:hover{background:var(--surface-2);border-color:var(--accent-dim)}
+.day-box:active{transform:scale(.99)}
+.day-arrow{display:inline-flex;color:var(--text-faint);flex-shrink:0}
+.day-arrow svg{width:15px;height:15px}
+/* „Pro Woche“ in der Kartenkopfzeile: so hoch wie der Papierkorb daneben.
+   Als select.input.pw-sel geschrieben, weil die Grundregeln für select.input
+   weiter unten stehen und sonst gewinnen würden – gleiche Bauart wie .rir-sel. */
+select.input.pw-sel{width:auto;padding:6px 21px 6px 9px;font-size:12px;font-weight:700;
+  border-radius:9px;flex-shrink:0;background-position:right 6px center;
+  background-color:transparent;color:var(--text-dim)}
 .day-name{font-weight:700;font-size:15px;margin-bottom:2px}
 .day-go{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;
   background:var(--accent);color:#0a0c10}
@@ -1151,7 +1165,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.15.1';
+const APP_VERSION='1.16.0';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2818,17 +2832,23 @@ function planCard(p){
         </div>
         <span class="plan-caret ${open?'up':''}">${I.chevron}</span>
       </button>
+      <select class="input pw-sel" style="align-self:flex-start"
+              title="Trainingseinheiten pro Woche"
+              onchange="setPlanPerWeek('${p.id}', this.value)">
+        ${[1,2,3,4,5,6,7].map(x=>`<option value="${x}" ${(+p.perWeek||p.days.length)===x?'selected':''}>${x}×/Wo</option>`).join('')}
+      </select>
       <button class="chip" onclick="deletePlan('${p.id}')" style="padding:6px 9px;flex-shrink:0;align-self:flex-start">${I.trash}</button>
     </div>
     ${open?`<div style="margin-top:12px">
-      ${p.days.map(d=>`<div class="day-box">
+      ${p.days.map((d,di)=>`<button class="day-box" onclick="openPlanBuilder('${p.id}',${di})">
         <div class="row between"><span style="font-weight:700;font-size:14px">${esc(d.name)}</span>
-        <span class="faint" style="font-size:11px">${d.exercises.length} Übungen</span></div>
+        <span class="row" style="gap:6px;flex-shrink:0"><span class="faint" style="font-size:11px">${d.exercises.length} Übungen</span>
+        <span class="day-arrow">${I.chevron}</span></span></div>
         <div class="faint" style="font-size:12px;margin-top:4px">${d.exercises.map(e=>esc(e.name)).join(' · ')||'—'}</div>
-      </div>`).join('')}
+      </button>`).join('')}
       <div class="row" style="gap:8px;margin-top:6px">
         <button class="btn ghost sm acc" style="flex:1" onclick="showPlanOverview('${p.id}')">${I.stats}<span>Übersicht</span></button>
-        <button class="btn ghost sm acc" style="flex:1" onclick="openPlanBuilder('${p.id}')">${I.edit}<span>Bearbeiten</span></button>
+        <button class="btn ghost sm acc" style="flex:1" onclick="addPlanDay('${p.id}')">${I.plus}<span>Einheit</span></button>
       </div>
     </div>`:''}
   </div>`;
@@ -2913,36 +2933,69 @@ function showPlanOverview(id){
     <button class="btn ghost" style="margin-top:4px" onclick="closeModal()">Schließen</button>
   `, true);
 }
-function deletePlan(id){
-  const idx=DB.plans.findIndex(p=>p.id===id);
-  if(idx<0) return;
-  const plan=DB.plans[idx];
-  // Aufklapp-Zustand gehört zum Plan und wird gleich mit gelöscht – deshalb
-  // hier sichern. Ohne das käme der Plan anders aufgeklappt zurück, als er ging.
-  const m=collapsedMap();
-  const kHeute='today:'+id, kPlaene='plans:'+id;
-  const zHeute=m[kHeute], zPlaene=m[kPlaene];
-
-  DB.plans.splice(idx,1);
-  delete m[kHeute]; delete m[kPlaene];
+/* Einheit direkt an einen bestehenden Plan hängen – ohne Editor, ohne Entwurf.
+   Anlegen ist ungefährlich und leicht wieder rückgängig zu machen (Papierkorb
+   an der Einheit), deshalb keine Rückfrage. */
+function addPlanDay(id){
+  const p=DB.plans.find(x=>x.id===id); if(!p) return;
+  p.days.push({name:nextDayName(p.days), exercises:[]});
   save(); renderView();
+  toast(`„${p.days[p.days.length-1].name}“ hinzugefügt`);
+}
+/* Trainingseinheiten pro Woche. Steht auf der Plankarte und damit außerhalb des
+   Entwurfs-Modells des Editors – wird deshalb sofort geschrieben. Der Wert
+   speist die Serien-Berechnung in der Heute-Ansicht. */
+function setPlanPerWeek(id, n){
+  const p=DB.plans.find(x=>x.id===id); if(!p) return;
+  p.perWeek=+n; save();
+}
+/* Der Plan ist das Größte, was sich hier verlieren lässt: Rückfrage UND
+   anschließend die Rücknahme-Leiste. Alle anderen Löschungen betreffen einzelne
+   Einträge und kommen mit der Rücknahme allein aus. */
+function deletePlan(id){
+  const p0=DB.plans.find(x=>x.id===id); if(!p0) return;
+  const ec=p0.days.reduce((a,d)=>a+d.exercises.length,0);
+  confirmModal('Plan löschen?',
+    `„${p0.name}“ mit ${p0.days.length} ${p0.days.length===1?'Einheit':'Einheiten'} und ${ec} ${ec===1?'Übung':'Übungen'}.`,
+    'Löschen', ()=>{
+    const idx=DB.plans.findIndex(p=>p.id===id);
+    if(idx<0) return;
+    const plan=DB.plans[idx];
+    // Aufklapp-Zustand gehört zum Plan und wird gleich mit gelöscht – deshalb
+    // hier sichern. Ohne das käme der Plan anders aufgeklappt zurück, als er ging.
+    const m=collapsedMap();
+    const kHeute='today:'+id, kPlaene='plans:'+id;
+    const zHeute=m[kHeute], zPlaene=m[kPlaene];
 
-  registerUndo(`„${plan.name}“ gelöscht`, ()=>{
-    DB.plans.splice(Math.min(idx, DB.plans.length), 0, plan);
-    const m2=collapsedMap();
-    if(zHeute!==undefined) m2[kHeute]=zHeute;
-    if(zPlaene!==undefined) m2[kPlaene]=zPlaene;
+    DB.plans.splice(idx,1);
+    delete m[kHeute]; delete m[kPlaene];
+    save(); renderView();
+
+    registerUndo(`„${plan.name}“ gelöscht`, ()=>{
+      DB.plans.splice(Math.min(idx, DB.plans.length), 0, plan);
+      const m2=collapsedMap();
+      if(zHeute!==undefined) m2[kHeute]=zHeute;
+      if(zPlaene!==undefined) m2[kPlaene]=zPlaene;
+    });
   });
 }
 
 /* ---- Plan Builder ---- */
 let BUILDER=null;
 let BUILDER_OPEN=false;   // ist der Plan-Editor gerade offen? (für Rücksprünge)
-function openPlanBuilder(id){
+/* dayIndex öffnet den Editor direkt auf einer bestimmten Einheit. Von der
+   Plankarte aus wird jede Einheit einzeln angetippt; ohne Angabe (neuer Plan)
+   beginnt der Editor wie bisher bei der ersten. */
+function openPlanBuilder(id, dayIndex){
   const p=id?JSON.parse(JSON.stringify(DB.plans.find(x=>x.id===id))):{id:uid(),name:'',days:[{name:'Tag A',exercises:[]}]};
   if(!p.perWeek) p.perWeek = p.days.length || 3;  // Standard: so oft wie Einheiten
-  BUILDER=p; BUILDER.page=0; BUILDER_OPEN=true; renderBuilder();
+  const i=+dayIndex||0;
+  BUILDER=p; BUILDER.page=Math.min(Math.max(i,0), p.days.length-1);
+  BUILDER_OPEN=true; renderBuilder();
 }
+/* Im Kopf steht nur noch der Planname. „Pro Woche“ sitzt auf der Plankarte –
+   bewusst nicht zusätzlich hier, zwei Bedienelemente für denselben Wert wären
+   eine Fehlerquelle. */
 function renderBuilder(){
   const p=BUILDER;
   const n=p.days.length;
@@ -2954,14 +3007,8 @@ function renderBuilder(){
     <div class="bld">
       <div class="bld-head">
         <h2 style="margin-bottom:12px">${p.name?'Plan bearbeiten':'Neuer Plan'}</h2>
-        <div class="row" style="gap:10px;align-items:flex-end">
-          <div class="field" style="margin:0;flex:1;min-width:0"><label>Name des Plans</label>
-            <input class="input" id="planName" placeholder="z. B. Push/Pull/Legs" value="${esc(p.name)}" onchange="BUILDER.name=this.value"></div>
-          <div class="field" style="margin:0;flex-shrink:0"><label>Pro Woche</label>
-            <select class="input" style="width:78px;padding-right:26px" onchange="BUILDER.perWeek=+this.value">
-              ${[1,2,3,4,5,6,7].map(x=>`<option value="${x}" ${(+p.perWeek||p.days.length)===x?'selected':''}>${x}×</option>`).join('')}
-            </select></div>
-        </div>
+        <div class="field" style="margin:0"><label>Name des Plans</label>
+          <input class="input" id="planName" placeholder="z. B. Push/Pull/Legs" value="${esc(p.name)}" onchange="BUILDER.name=this.value"></div>
       </div>
 
       <div class="bld-page" id="bldPage">
@@ -3059,9 +3106,12 @@ function initBldSwipe(){
     else if(dx>45) goDay(BUILDER.page-1);
   },{passive:true});
 }
+/* Name der nächsten Einheit. Bewusst an einer Stelle, weil sowohl der Editor
+   als auch die Plankarte Einheiten anlegen und beide gleich benennen sollen. */
+function nextDayName(days){ return 'Tag '+String.fromCharCode(65+days.length); }
 function addDay(){
   syncBuilderName();
-  BUILDER.days.push({name:'Tag '+String.fromCharCode(65+BUILDER.days.length),exercises:[]});
+  BUILDER.days.push({name:nextDayName(BUILDER.days),exercises:[]});
   BUILDER.page=BUILDER.days.length-1;  // direkt zur neuen Einheit
   renderBuilder();
 }
