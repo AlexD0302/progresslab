@@ -1165,7 +1165,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.17.0';
+const APP_VERSION='1.18.0';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1909,21 +1909,78 @@ function exVolumeNow(ex){
   const f=exFactor(ex.name, ex.exId);
   return ex.sets.filter(s=>s.done).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
 }
+/* Kleinster RIR-Wert unter den abgehakten Sätzen mit einem bestimmten Gewicht.
+   Bewusst das Minimum und nicht der Durchschnitt: Die Frage lautet „wie viel war
+   im SCHWERSTEN Moment mit diesem Gewicht noch übrig?“. Wer 50 kg mit RIR 3, 1
+   und 0 drückt, war am Ende am Anschlag – ein Mittelwert von 1,3 würde einen
+   doppelten Sprung nahelegen, obwohl der letzte Satz gerade so ging.
+   Rückgabe null, wenn nichts Verwertbares erfasst ist (Altdaten, leeres Feld).
+   Die Trainingsansicht speichert den RIR als Zeichenkette, deshalb +s.rir. */
+function minRir(sets, weight){
+  let m=null;
+  sets.forEach(s=>{
+    if((+s.weight||0)!==weight) return;
+    if(s.rir==null || s.rir==='') return;
+    const v=+s.rir;
+    if(!isFinite(v)) return;
+    if(m==null || v<m) m=v;
+  });
+  return m;
+}
+/* Wie viele Schritte auf einmal? Reserve heißt: die Last war zu leicht.
+   null (nicht erfasst) gilt als „keine Reserve“ – also wie bisher ein Schritt. */
+function rirFactor(rir){
+  if(rir==null) return 1;
+  if(rir>=4) return 3;
+  if(rir>=2) return 2;
+  return 1;
+}
 function suggest(exName, targetReps, muscle, exId){
   const p=lastPerf(exName, exId);
   const inc = isLower(muscle)?DB.settings.incrementLower:DB.settings.incrementUpper;
   if(!p){ return {weight:'', reps:targetReps, note:'Erstes Mal — taste dich heran'}; }
   const done=p.ex.sets.filter(s=>s.done);
-  const top=done.reduce((a,s)=>(+s.weight> a.weight?{weight:+s.weight,reps:+s.reps}:a),{weight:0,reps:0});
   const tgt=+targetReps||p.ex.targetReps||10;
-  // Hat der User im Top-Satz das Wdh-Ziel erreicht/übertroffen? -> Gewicht hoch
-  if(top.reps>=tgt){
-    const nw=round(top.weight+inc,inc>=5?2.5:1.25);
-    return {weight:nw, reps:tgt, note:`+${inc} kg — Ziel letztes Mal geschafft (${top.reps} Wdh)`};
+
+  /* Übung ohne Gewicht (Klimmzüge, Liegestütze …): Der Fortschritt läuft über
+     Wiederholungen. Dieselbe Lesart nutzt der Vergleichsbalken im Training
+     schon – Volumen 0 bedeutet dort: Wiederholungen vergleichen.
+     Erkannt am tatsächlich protokollierten Gewicht, nicht am Geräte-Feld:
+     Klimmzüge mit Gewichtsgürtel sollen weiter über das Gewicht laufen.
+     Ohne diesen Zweig blieb top unten auf {weight:0,reps:0} stehen, weil
+     0 > 0 falsch ist – die Übung landete dann dauerhaft bei „Ziel minus 2“,
+     selbst wenn das Ziel übertroffen wurde. */
+  const maxW=done.reduce((a,s)=>Math.max(a,+s.weight||0),0);
+  if(maxW===0){
+    const best=done.reduce((a,s)=>Math.max(a,+s.reps||0),0);
+    if(best>=tgt){
+      const plus=rirFactor(minRir(done,0));
+      const ziel=best+plus;
+      return {weight:'', reps:ziel,
+        note: plus>1 ? `Ziel geschafft mit Reserve — versuch ${ziel} Wdh`
+                     : `Ziel geschafft — versuch ${ziel} Wdh`};
+    }
+    return {weight:'', reps:tgt, note:`Hol dir die ${tgt}. Wdh`};
   }
-  // knapp dran -> gleiches Gewicht, mehr Wdh anpeilen
+
+  const top=done.reduce((a,s)=>(+s.weight> a.weight?{weight:+s.weight,reps:+s.reps}:a),{weight:0,reps:0});
+  const rir=minRir(done, top.weight);
+  // Hat der User im Top-Satz das Wdh-Ziel erreicht/übertroffen? -> Gewicht hoch.
+  // Mit Reserve fällt der Sprung größer aus; bei RIR 0/1 bleibt alles wie bisher.
+  if(top.reps>=tgt){
+    const f=rirFactor(rir);
+    const plus=inc*f;
+    const nw=round(top.weight+plus,inc>=5?2.5:1.25);
+    const grund = f>1 ? `Ziel geschafft mit ${rir} RIR Reserve` : 'Ziel letztes Mal geschafft';
+    return {weight:nw, reps:tgt, note:`+${plus} kg — ${grund} (${top.reps} Wdh)`};
+  }
+  // knapp dran -> gleiches Gewicht, mehr Wdh anpeilen.
+  // Reserve trotz verfehltem Ziel ist ein Widerspruch, der benannt gehört.
   if(top.reps>=tgt-2){
-    return {weight:top.weight, reps:tgt, note:`Gleiches Gewicht — hol dir die ${tgt}. Wdh`};
+    const note = (rir!=null && rir>=2)
+      ? `Gleiches Gewicht — ${rir} Wdh waren noch drin, hol dir die ${tgt}.`
+      : `Gleiches Gewicht — hol dir die ${tgt}. Wdh`;
+    return {weight:top.weight, reps:tgt, note};
   }
   // deutlich drunter -> Gewicht halten, Technik/Wdh festigen
   return {weight:top.weight, reps:Math.max(top.reps,tgt-2), note:'Gewicht halten & Wiederholungen aufbauen'};
@@ -2563,6 +2620,13 @@ function fmtPrev(p){
   if(!p) return '–';
   return `${p.weight}×${p.reps}`;
 }
+/* Vorgeschlagene Wiederholungen – aber nur, wenn der Vorschlag KEIN Gewicht
+   trägt. Genau dann stammt er aus dem Körpergewichts-Zweig von suggest(), wo
+   der Fortschritt über Wiederholungen läuft. Bei Übungen mit Gewicht ist
+   sug.weight immer > 0, dort bleibt der Planwert maßgeblich. */
+function sugReps(st){
+  return (st && st.sug && !st.sug.weight && st.sug.reps) ? st.sug.reps : null;
+}
 function setRow(ex,ei,st,si){
   const ph=st.sug&&st.sug.weight?st.sug.weight:'';
   const f=exFactor(ex.name);
@@ -2587,7 +2651,10 @@ function setRow(ex,ei,st,si){
   const wInput = f===2
     ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
     : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
-  const rInput = `<input class="input" inputmode="numeric" placeholder="${ex.targetReps||'–'}" value="${st.reps}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
+  // Trägt ein Vorschlag KEIN Gewicht, aber Wiederholungen, dann sind diese
+  // Wiederholungen der Vorschlag (Körpergewichtsübungen). Bei Übungen mit
+  // Gewicht ist sug.weight immer > 0, dort greift die Regel also nie.
+  const rInput = `<input class="input" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${st.reps}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
     ${prevRow}
     <div class="set-grid">
@@ -2656,7 +2723,7 @@ function toggleSet(ei,si){
   const st=ex.sets[si];
   if(!st.done){
     if(!st.weight && st.sug && st.sug.weight) st.weight=st.sug.weight;
-    if(!st.reps) st.reps=ex.targetReps||'';
+    if(!st.reps) st.reps=sugReps(st)||ex.targetReps||'';
   }
   st.done=!st.done;
   saveSession();
