@@ -662,8 +662,19 @@ select.input.pw-sel{width:auto;padding:6px 21px 6px 9px;font-size:12px;font-weig
 .set-grid{display:grid;grid-template-columns:24px 1fr 1fr 50px 44px;gap:8px;align-items:center}
 /* RIR-Auswahl (Reps in Reserve): kompaktes Feld in der eigenen Spalte.
    select.input.rir-sel überstimmt die select.input-Regel mit dem Pfeil-Icon –
-   bei so einem schmalen Feld würde der Pfeil die Zahl überlagern. */
-select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;width:100%;
+   bei so einem schmalen Feld würde der Pfeil die Zahl überlagern.
+
+   KEIN senkrechtes Polster, dafür align-self:stretch. Zwei Gründe:
+   1. Mit padding:10px blieb ein Inhaltsbereich von exakt 20 px – genau so viel,
+      wie der Text braucht. Bei null Toleranz schneidet jede kleinste Abweichung
+      der Schriftmetrik oben ab, und die gibt es: Inter kommt von Google Fonts,
+      vor dem Laden gilt die Ersatzschrift. Ohne Polster stehen 40 px für 20 px
+      Text bereit, der Browser zentriert sie darin.
+   2. stretch nimmt die Höhe der Nachbarfelder an. Vorher war das Feld auf
+      flachen Panels 42 px hoch, während kg und Wdh dort auf 38 px schrumpfen –
+      die Panel-Regel fasst .rir-sel nicht an und musste es nun auch nicht. */
+select.input.rir-sel{padding:0 2px;align-self:stretch;
+  text-align:center;text-align-last:center;width:100%;
   -webkit-appearance:none;appearance:none;background-image:none}
 /* Schmale Bildschirme: engere feste Spalten, damit kg/Wdh genug Platz behalten */
 @media (max-width:420px){
@@ -701,8 +712,12 @@ select.input.rir-sel{padding:10px 2px;text-align:center;text-align-last:center;w
 .sv-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
 .sv-delta.same{color:var(--text-faint)}
 /* Eingabefeld mit angehängter Einheit */
-.in-unit{position:relative;display:flex;align-items:center}
-.in-unit .input{padding:10px 30px 10px 12px;text-align:center;width:100%}
+/* Die Rasterzeile ist so hoch wie ihr höchstes Element (der Häkchen-Knopf).
+   stretch zieht kg, Wdh und RIR gemeinsam auf diese Höhe – sonst stünde das
+   RIR-Feld als einziges hervor, weil es keinen .in-unit-Rahmen hat. Nebenbei
+   bekommen auch die Eingabefelder dadurch Luft um ihren Text. */
+.in-unit{position:relative;display:flex;align-items:center;align-self:stretch}
+.in-unit .input{padding:10px 30px 10px 12px;text-align:center;width:100%;height:100%}
 .in-unit .unit{position:absolute;right:10px;font-size:11px;color:var(--text-faint);font-weight:600;pointer-events:none}
 
 /* Fortschritts-Tabelle pro Übung (Statistik) */
@@ -1189,7 +1204,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.3';
+const APP_VERSION='1.19.4';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
