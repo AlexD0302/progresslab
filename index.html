@@ -1131,6 +1131,8 @@ const I = {
   body:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="4.2" r="2.2"/><path d="M12 6.6v7M12 6.6 7 9.4M12 6.6l5 2.8M12 13.6 8.6 21M12 13.6 15.4 21" stroke-linecap="round"/></svg>',
   plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>',
   dumb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11" stroke-linecap="round"/></svg>',
+  // Hantelscheibe – bewusst nicht die Langhantel, die schon für „Übungen“ steht
+  plate:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.6M12 17.9v2.6M3.5 12h2.6M17.9 12h2.6" stroke-linecap="round"/></svg>',
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   chevron:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -1165,7 +1167,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.18.0';
+const APP_VERSION='1.19.0';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1875,6 +1877,67 @@ function isLower(m){ return ['Legs','Quads','Hamstrings','Glutes','Calves','Addu
 function round(x,step){ return Math.round(x/step)*step; }
 
 /* ================================================================
+   GERÄTE: welche Gewichte lassen sich an einem Gerät überhaupt einstellen?
+   Ohne diese Angabe rechnet die App wie bisher „Gewicht + Schrittweite“. Das
+   passt zu einer Langhantel mit Scheiben, aber nicht zu verstellbaren Hanteln:
+   Bei 4–40,5 kg in 1,5er-Schritten ist ein Vorschlag von 24,5 kg schlicht nicht
+   einstellbar. Ein Gerät OHNE Eintrag verhält sich unverändert.
+   ================================================================ */
+function equipMap(){
+  if(!DB.settings.equipment || typeof DB.settings.equipment!=='object') DB.settings.equipment={};
+  return DB.settings.equipment;
+}
+// Zahl aus einer Eingabe: Komma und Punkt gelten beide als Dezimaltrennzeichen.
+function parseNum(v){
+  if(typeof v==='number') return isFinite(v)?v:NaN;
+  if(v==null) return NaN;
+  const n=parseFloat(String(v).replace(',','.').trim());
+  return isFinite(n)?n:NaN;
+}
+// Anzeige mit deutschem Dezimalkomma, höchstens zwei Nachkommastellen.
+function fmtKg(n){ return (Math.round(+n*100)/100).toLocaleString('de-DE'); }
+const EQUIP_MAX_STUFEN=500;   // Deckel gegen winzige Schritte über große Spannen
+/* Alle einstellbaren Gewichte eines Geräts, aufsteigend. [] = nicht eingerichtet.
+   Absichtlich zweigeteilt: Der Editor zeigt seine Vorschau über dieselbe
+   Funktion, mit der die Progression später rechnet. So kann die Vorschau nicht
+   etwas anderes behaupten, als hinterher herauskommt. */
+function equipWeights(eq){ return equipWeightsFrom(eq ? equipMap()[eq] : null); }
+function equipWeightsFrom(c){
+  if(!c) return [];
+  if(c.mode==='liste'){
+    const arr=(Array.isArray(c.gewichte)?c.gewichte:[])
+      .map(parseNum).filter(v=>isFinite(v) && v>0)
+      .map(v=>Math.round(v*1000)/1000);
+    return [...new Set(arr)].sort((a,b)=>a-b);
+  }
+  const von=parseNum(c.von), bis=parseNum(c.bis), schritt=parseNum(c.schritt);
+  if(!isFinite(von)||!isFinite(bis)||!isFinite(schritt)) return [];
+  if(schritt<=0 || bis<von || von<=0) return [];
+  const out=[];
+  // Kleine Toleranz, damit der letzte Wert nicht an einem Fließkomma-Rest scheitert
+  for(let v=von; v<=bis+1e-9 && out.length<EQUIP_MAX_STUFEN; v+=schritt){
+    out.push(Math.round(v*1000)/1000);
+  }
+  return out;
+}
+/* Nächstes einstellbares Gewicht, `stufen` Stufen über dem aktuellen.
+   amEnde = das aktuelle Gewicht liegt bereits auf oder über der letzten Stufe;
+   dann geht es an diesem Gerät körperlich nicht weiter. */
+function nextEquipWeight(list, aktuell, stufen){
+  if(!list.length) return {weight:aktuell, amEnde:false};
+  const a=+aktuell||0;
+  let idx=-1;   // letzter Eintrag <= aktuell; -1 wenn aktuell unter der ersten Stufe liegt
+  for(let i=0;i<list.length;i++){ if(list[i]<=a+1e-9) idx=i; else break; }
+  if(idx===list.length-1) return {weight:list[idx], amEnde:true};
+  const ziel=Math.min(idx+Math.max(1,stufen|0), list.length-1);
+  return {weight:list[ziel], amEnde:false};
+}
+/* Geräte, für die sich eine Einrichtung lohnt. Körpergewicht und „Ohne Gerät“
+   haben keine einstellbaren Gewichte und stehen deshalb nicht zur Auswahl. */
+const EQUIP_OHNE_GEWICHT=['Körpergewicht','Ohne Gerät'];
+function equipConfigurable(){ return equipList().filter(q=>!EQUIP_OHNE_GEWICHT.includes(q)); }
+
+/* ================================================================
    PROGRESSIVE OVERLOAD ENGINE
    Schlägt Gewicht/Wdh für den nächsten Satz vor, basierend auf
    der letzten protokollierten Leistung dieser Übung.
@@ -1969,9 +2032,26 @@ function suggest(exName, targetReps, muscle, exId){
   // Mit Reserve fällt der Sprung größer aus; bei RIR 0/1 bleibt alles wie bisher.
   if(top.reps>=tgt){
     const f=rirFactor(rir);
+    const grund = f>1 ? `Ziel geschafft mit ${rir} RIR Reserve` : 'Ziel letztes Mal geschafft';
+    // Ist das Gerät eingerichtet, zählt der RIR-Faktor in STUFEN statt in Kilo –
+    // der Vorschlag fällt dann immer auf ein Gewicht, das sich einstellen lässt.
+    const meta=exMetaById(exId)||exMeta(exName);
+    const leiter=equipWeights(meta&&meta.eq);
+    if(leiter.length){
+      const st=nextEquipWeight(leiter, top.weight, f);
+      if(st.amEnde){
+        // Oberes Ende des Geräts: mehr Gewicht gibt es nicht, also über die
+        // Wiederholungen weiter. repsVorschlag, weil hier ausnahmsweise ein
+        // Vorschlag MIT Gewicht trotzdem die Wiederholungen meint.
+        return {weight:top.weight, reps:top.reps+f, repsVorschlag:true,
+          note:`${meta.eq} am Anschlag (${fmtKg(top.weight)} kg) — steigere über Wiederholungen`};
+      }
+      const stufen = f===1 ? 'nächste Stufe' : `${f} Stufen weiter`;
+      return {weight:st.weight, reps:tgt,
+        note:`${fmtKg(st.weight)} kg — ${stufen}, ${grund} (${top.reps} Wdh)`};
+    }
     const plus=inc*f;
     const nw=round(top.weight+plus,inc>=5?2.5:1.25);
-    const grund = f>1 ? `Ziel geschafft mit ${rir} RIR Reserve` : 'Ziel letztes Mal geschafft';
     return {weight:nw, reps:tgt, note:`+${plus} kg — ${grund} (${top.reps} Wdh)`};
   }
   // knapp dran -> gleiches Gewicht, mehr Wdh anpeilen.
@@ -2012,6 +2092,7 @@ const TABS=[
   {id:'history',label:'Verlauf',icon:I.history},
   {id:'stats',label:'Statistik',icon:I.stats},
   {id:'body',label:'Maße',icon:I.body},
+  {id:'equip',label:'Geräte',icon:I.plate},
 ];
 let current='today';
 
@@ -2030,6 +2111,7 @@ function renderView(){
   else if(current==='stats'){ app.innerHTML=viewStats();
     const sel=document.getElementById('strEx'); if(sel&&sel.value) renderExerciseProgress(sel.value);
   }
+  else if(current==='equip') app.innerHTML=viewEquipment();
   else if(current==='body'){ app.innerHTML=viewBody();
     const sel=document.getElementById('msSel'); if(sel&&sel.value) renderMeasureChart(sel.value);
   }
@@ -2625,7 +2707,11 @@ function fmtPrev(p){
    der Fortschritt über Wiederholungen läuft. Bei Übungen mit Gewicht ist
    sug.weight immer > 0, dort bleibt der Planwert maßgeblich. */
 function sugReps(st){
-  return (st && st.sug && !st.sug.weight && st.sug.reps) ? st.sug.reps : null;
+  const s = st && st.sug;
+  if(!s || !s.reps) return null;
+  // Kein Gewicht = Körpergewichtsübung. repsVorschlag = Gerät am Anschlag:
+  // Dort steht ein Gewicht dabei und die Wiederholungen sind trotzdem gemeint.
+  return (!s.weight || s.repsVorschlag) ? s.reps : null;
 }
 function setRow(ex,ei,st,si){
   const ph=st.sug&&st.sug.weight?st.sug.weight:'';
@@ -5052,6 +5138,139 @@ function deleteCustomExercise(id){
     // sie nicht mehr.
     rebuildExDB();
   });
+}
+
+/* ================================================================
+   VIEW: GERÄTE — welche Gewichte lassen sich einstellen?
+   ================================================================ */
+function equipSummary(eq){
+  const c=equipMap()[eq];
+  const l=equipWeights(eq);
+  if(!c || !l.length) return {txt:'nicht eingerichtet', an:false};
+  const wie = c.mode==='liste' ? 'Liste' : `${fmtKg(parseNum(c.schritt))}er`;
+  return {txt:`${fmtKg(l[0])} – ${fmtKg(l[l.length-1])} kg · ${wie} · ${l.length} Stufen`, an:true};
+}
+function viewEquipment(){
+  const geraete=equipConfigurable();
+  return topbar('Your equipment')+`<div class="pad">
+    <div class="card">
+      <div class="row" style="gap:9px;margin-bottom:4px">
+        <span style="color:var(--accent)">${I.plate}</span>
+        <div class="eyebrow" style="margin:0">Einstellbare Gewichte</div>
+      </div>
+      <p class="faint" style="font-size:12.5px;line-height:1.5;margin-top:8px">
+        Trage ein, welche Gewichte deine Geräte wirklich hergeben. Die Vorschläge
+        im Training fallen dann nur noch auf einstellbare Werte — und am oberen
+        Ende sagt die App, dass es über Wiederholungen weitergeht.
+        Ohne Eintrag rechnet sie wie bisher mit der festen Schrittweite.
+      </p>
+    </div>
+    ${geraete.length? `<div style="height:14px"></div>`+geraete.map(q=>{
+      const s=equipSummary(q);
+      // .day-box: dieselbe antippbare Fläche wie die Einheiten auf der Plankarte
+      return `<button class="day-box" onclick='openEquipEditor("${escAttr(q)}")'>
+        <div class="row between">
+          <span style="font-weight:700;font-size:14px">${esc(q)}</span>
+          <span class="row" style="gap:6px;flex-shrink:0;min-width:0">
+            <span style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${s.an?'color:var(--accent-dim);font-weight:600':'color:var(--text-faint)'}">${esc(s.txt)}</span>
+            <span class="day-arrow">${I.chevron}</span>
+          </span>
+        </div>
+      </button>`;
+    }).join('') : `<div class="empty">${I.plate}<h3>Keine Geräte</h3>
+      <p style="font-size:13.5px">Lege eigene Übungen an — deren Geräte erscheinen dann hier.</p></div>`}
+  </div>`;
+}
+
+/* ---- Editor für ein Gerät ---- */
+let EQUIP=null;   // Entwurf, gespeichert wird erst mit dem Knopf
+function openEquipEditor(eq){
+  const c=equipMap()[eq];
+  const reihe = c && c.mode!=='liste';
+  EQUIP={
+    eq, vorhanden: !!c,
+    mode: (c && c.mode==='liste') ? 'liste' : 'reihe',
+    von:     reihe && c.von!=null     ? String(c.von)     : '',
+    bis:     reihe && c.bis!=null     ? String(c.bis)     : '',
+    schritt: reihe && c.schritt!=null ? String(c.schritt) : '',
+    text: (c && c.mode==='liste' && Array.isArray(c.gewichte)) ? c.gewichte.map(fmtKg).join('; ') : ''
+  };
+  renderEquipEditor();
+}
+// Der Entwurf als Konfiguration – dieselbe Form, die auch gespeichert wird.
+function equipDraftConfig(){
+  if(!EQUIP) return null;
+  return EQUIP.mode==='liste'
+    ? {mode:'liste', gewichte:String(EQUIP.text||'').split(/[,;\s]+/).filter(Boolean)}
+    : {mode:'reihe', von:EQUIP.von, bis:EQUIP.bis, schritt:EQUIP.schritt};
+}
+function equipPreview(){
+  const c=equipDraftConfig();
+  const l=equipWeightsFrom(c);
+  if(!l.length) return `<span class="faint">Noch keine gültige Angabe — es kommt keine Stufe heraus.</span>`;
+  const kurz = l.length<=8
+    ? l.map(fmtKg).join(' · ')
+    : l.slice(0,3).map(fmtKg).join(' · ')+' … '+l.slice(-2).map(fmtKg).join(' · ');
+  /* Häufige Verwirrung: „von 4 bis 40,5 in 1,5er-Schritten“ geht nicht auf –
+     40,5 minus 4 ist kein Vielfaches von 1,5, die Reihe endet bei 40. Ohne
+     Hinweis sucht man den Fehler bei der App statt bei der Eingabe. */
+  let warn='';
+  if(c && c.mode==='reihe'){
+    const bis=parseNum(c.bis), letzte=l[l.length-1];
+    if(isFinite(bis) && letzte < bis-1e-9){
+      warn=`<br><span style="color:var(--amber)">Die Reihe endet bei ${fmtKg(letzte)} kg — ${fmtKg(bis)} kg wird mit diesem Schritt nicht genau getroffen.</span>`;
+    }
+  }
+  return `<b style="color:var(--accent)">${l.length} ${l.length===1?'Stufe':'Stufen'}</b><br>${kurz}${warn}`;
+}
+function refreshEquipPreview(){ const el=document.getElementById('eqPreview'); if(el) el.innerHTML=equipPreview(); }
+function renderEquipEditor(){
+  const e=EQUIP;
+  openModal(`<div class="grab"></div>
+    <h2>${esc(e.eq)}</h2>
+    <p class="faint" style="font-size:12px;margin:6px 0 14px">Welche Gewichte lassen sich an diesem Gerät einstellen?</p>
+    <div class="seg" style="margin-bottom:14px">
+      <button class="seg-btn ${e.mode==='reihe'?'on':''}" onclick="EQUIP.mode='reihe';renderEquipEditor()">Reihe</button>
+      <button class="seg-btn ${e.mode==='liste'?'on':''}" onclick="EQUIP.mode='liste';renderEquipEditor()">Liste</button>
+    </div>
+    ${e.mode==='reihe'? `
+      <div class="row" style="gap:10px;align-items:flex-end">
+        <div class="field" style="margin:0;flex:1;min-width:0"><label>von (kg)</label>
+          <input class="input" id="eqVon" inputmode="decimal" placeholder="4" value="${escAttr(e.von)}" oninput="EQUIP.von=this.value;refreshEquipPreview()"></div>
+        <div class="field" style="margin:0;flex:1;min-width:0"><label>bis (kg)</label>
+          <input class="input" id="eqBis" inputmode="decimal" placeholder="40,5" value="${escAttr(e.bis)}" oninput="EQUIP.bis=this.value;refreshEquipPreview()"></div>
+        <div class="field" style="margin:0;flex:1;min-width:0"><label>Schritt</label>
+          <input class="input" id="eqSchritt" inputmode="decimal" placeholder="1,5" value="${escAttr(e.schritt)}" oninput="EQUIP.schritt=this.value;refreshEquipPreview()"></div>
+      </div>`
+    : `
+      <div class="field" style="margin:0"><label>Gewichte, durch Komma getrennt</label>
+        <textarea class="input" id="eqText" rows="4" placeholder="5; 10; 15; 20; 30" oninput="EQUIP.text=this.value;refreshEquipPreview()">${esc(e.text)}</textarea></div>`}
+    <div class="ov-note" style="margin-top:14px" id="eqPreview">${equipPreview()}</div>
+    <button class="btn-slim solid" style="margin-top:16px" onclick="saveEquip()"><span>Speichern</span></button>
+    ${e.vorhanden?`<button class="btn ghost" style="margin-top:10px;color:var(--red);border-color:rgba(255,92,92,.25)" onclick="removeEquip()">Einrichtung entfernen</button>`:''}
+    <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Abbrechen</button>
+  `, true);
+}
+function saveEquip(){
+  const c=equipDraftConfig();
+  const l=equipWeightsFrom(c);
+  if(!l.length){ toast('Bitte gültige Gewichte angeben'); return; }
+  // Die Liste bereinigt und sortiert ablegen, damit gespeicherter Zustand und
+  // berechnete Leiter nicht auseinanderlaufen können.
+  if(c.mode==='liste') c.gewichte=l;
+  equipMap()[EQUIP.eq]=c;
+  const name=EQUIP.eq; EQUIP=null;
+  save(); closeModal(); renderView();
+  toast(`${name}: ${l.length} ${l.length===1?'Stufe':'Stufen'} gespeichert`);
+}
+function removeEquip(){
+  const eq=EQUIP.eq;
+  // Beide Zweige ausdrücklich belegt – ohne Abbruch-Zweig fiele confirmModal auf
+  // closeModal() zurück und der Editor wäre samt Eingaben weg.
+  confirmModal('Einrichtung entfernen?',
+    `„${eq}“ rechnet danach wieder mit der festen Schrittweite.`, 'Entfernen',
+    ()=>{ delete equipMap()[eq]; EQUIP=null; save(); closeModal(); renderView(); toast('Einrichtung entfernt'); },
+    ()=>{ renderEquipEditor(); });
 }
 
 /* ================================================================
