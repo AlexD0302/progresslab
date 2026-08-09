@@ -1216,7 +1216,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.5';
+const APP_VERSION='1.19.6';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -4031,7 +4031,12 @@ function editMeasure(key){
   renderView();
   requestAnimationFrame(()=>openInline(key));
 }
-let INLINE_AKTIV=false, INLINE_ZIEL=null;
+let INLINE_AKTIV=false, INLINE_VERSTECKT=[];
+// Beschriftung wieder einblenden, die für die Eingabe gewichen ist
+function inlineZeigen(){
+  INLINE_VERSTECKT.forEach(el=>{ el.style.opacity=''; });
+  INLINE_VERSTECKT=[];
+}
 function openInline(key){
   const wrap=document.getElementById('bodyWrap');
   const ziel=document.getElementById('lblval-'+key);
@@ -4048,9 +4053,17 @@ function openInline(key){
   inp.style.fontSize=fs+'px';
   const breite=Math.max(78, zr.width+40);
   inp.style.width=breite+'px';
-  // Die angezeigte Zahl während der Eingabe ausblenden, damit sie nicht durchscheint
-  ziel.style.opacity='0';
-  INLINE_ZIEL=ziel;
+  /* Die ganze Beschriftung weicht für die Dauer der Eingabe – Zahl UND Name.
+     Grund ist reine Geometrie: Das Feld ist rund 30 px hoch, zwei Beschriftungen
+     liegen aber nur 40 px auseinander (auf dem Panel bei 600 px Fensterhöhe).
+     Es gibt dort also keine 30 px freie Bahn, in die das Feld ausweichen könnte
+     – egal wo man es hinschiebt, es läge über dem Namen. Verloren geht dabei
+     nichts: Die Bildunterschrift darunter nennt die Messstelle sogar
+     ausgeschrieben („Körpergewicht“ statt „Gewicht“). */
+  const gruppe=ziel.parentNode;
+  inlineZeigen();
+  INLINE_VERSTECKT=[...gruppe.querySelectorAll('.lbl-name, .lbl-val')];
+  INLINE_VERSTECKT.forEach(el=>{ el.style.opacity='0'; });
   inp.style.display='block';
   // Erst nach dem Einblenden ausrichten: dann ist die echte Feldhöhe bekannt und
   // das Feld liegt exakt mittig über der Zahl statt auf der Namenszeile.
@@ -4067,7 +4080,7 @@ function inlineKey(e){
 function inlineAbbruch(){
   const inp=document.getElementById('msInline');
   INLINE_AKTIV=false;
-  if(INLINE_ZIEL){ INLINE_ZIEL.style.opacity=''; INLINE_ZIEL=null; }
+  inlineZeigen();
   if(inp){ inp.style.display='none'; inp.blur(); }
 }
 function inlineSave(){
@@ -4075,7 +4088,7 @@ function inlineSave(){
   if(!inp || !INLINE_AKTIV) return;
   INLINE_AKTIV=false;
   inp.style.display='none';
-  if(INLINE_ZIEL){ INLINE_ZIEL.style.opacity=''; INLINE_ZIEL=null; }
+  inlineZeigen();
   const key=inp.dataset.key, roh=(inp.value||'').trim();
   if(roh==='') return;                       // leer gelassen: nichts ändern
   const val=Math.round(parseFloat(roh.replace(',','.'))*10)/10;
