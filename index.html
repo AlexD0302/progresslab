@@ -805,8 +805,9 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   background:var(--surface-3);color:var(--accent);
   border:1.5px solid var(--accent);outline:none;
   box-shadow:0 0 0 3px var(--accent-glow),0 6px 18px rgba(0,0,0,.5)}
-.ms-inline::-webkit-outer-spin-button,.ms-inline::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.ms-inline{-moz-appearance:textfield}
+/* Die früheren Regeln gegen die Pfeilchen von type="number" stehen hier nicht
+   mehr: Das Feld ist keins mehr, weil ein solches ein eingetipptes Komma
+   verwirft. Ohne type gibt es auch keine Pfeilchen zu unterdrücken. */
 /* Beschriftete Grafik: Figur groß, Werte rundherum */
 /* Die Figur darf nicht höher werden als der sichtbare Bereich. Weil das
    Seitenverhältnis fest ist (536:486), begrenzen wir die BREITE passend zur
@@ -1216,7 +1217,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.6';
+const APP_VERSION='1.19.7';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1945,6 +1946,23 @@ function parseNum(v){
 }
 // Anzeige mit deutschem Dezimalkomma, höchstens zwei Nachkommastellen.
 function fmtKg(n){ return (Math.round(+n*100)/100).toLocaleString('de-DE'); }
+/* Zahl aus einem Eingabefeld. Komma und Punkt gelten beide als Dezimaltrennzeichen.
+   Umgewandelt wird bewusst HIER, an der Eingabe – nicht an den über dreißig
+   Rechenstellen (+st.weight …). Dadurch steht in DB und SESSION immer eine echte
+   Zahl, und jede bestehende Rechnung bleibt ohne Änderung richtig.
+   Leer bleibt leer: Daran hängen die Platzhalter mit den Vorschlägen.
+   Unlesbares wird ebenfalls zu leer, sonst rechnet die App mit NaN weiter. */
+function feldZahl(v){
+  const s=String(v==null?'':v).trim();
+  if(s==='') return '';
+  const n=parseNum(s);
+  return isFinite(n)? n : '';
+}
+// Umgekehrter Weg: Zahl ins Eingabefeld, deutsch geschrieben. Leer bleibt leer.
+function zahlFeld(v){
+  if(v==null || v==='') return '';
+  return String(v).replace('.', ',');
+}
 const EQUIP_MAX_STUFEN=500;   // Deckel gegen winzige Schritte über große Spannen
 /* Alle einstellbaren Gewichte eines Geräts, aufsteigend. [] = nicht eingerichtet.
    Absichtlich zweigeteilt: Der Editor zeigt seine Vorschau über dieselbe
@@ -2819,12 +2837,12 @@ function setRow(ex,ei,st,si){
       ${[0,1,2,3,4,5].map(v=>`<option value="${v}"${String(st.rir)===String(v)?' selected':''}>${v}</option>`).join('')}
     </select>`;
   const wInput = f===2
-    ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
-    : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${st.weight}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
+    ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
+    : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
   // Trägt ein Vorschlag KEIN Gewicht, aber Wiederholungen, dann sind diese
   // Wiederholungen der Vorschlag (Körpergewichtsübungen). Bei Übungen mit
   // Gewicht ist sug.weight immer > 0, dort greift die Regel also nie.
-  const rInput = `<input class="input" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${st.reps}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
+  const rInput = `<input class="input" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
     ${prevRow}
     <div class="set-grid">
@@ -2872,8 +2890,8 @@ function updateSetVol(ei,si){
   const block=document.querySelector(`.set-block[data-set="${ei}-${si}"]`);
   if(block){
     const inputs=block.querySelectorAll('.set-grid .in-unit .input');
-    if(inputs[0]) st.weight=inputs[0].value;
-    if(inputs[1]) st.reps=inputs[1].value;
+    if(inputs[0]) st.weight=feldZahl(inputs[0].value);
+    if(inputs[1]) st.reps=feldZahl(inputs[1].value);
   }
   const f=exFactor(ex.name);
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
@@ -2883,17 +2901,24 @@ function updateSetVol(ei,si){
   if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg, st.prev);
 }
 function updateTotal(ei,si,val){
-  SESSION.exercises[ei].sets[si].weight=val; // Wert schon während der Eingabe halten
+  SESSION.exercises[ei].sets[si].weight=feldZahl(val); // Wert schon während der Eingabe halten
   updateSetVol(ei,si); // Gesamtgewicht + Satz-Volumen stehen zusammen in der Info-Zeile
   saveSession();
 }
-function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=v; saveSession(); }
+// Gewicht, Wiederholungen und RIR sind allesamt Zahlenfelder – deshalb wird hier
+// ausnahmslos umgewandelt.
+function setVal(ei,si,k,v){ SESSION.exercises[ei].sets[si][k]=feldZahl(v); saveSession(); }
 function toggleSet(ei,si){
   const ex=SESSION.exercises[ei];
   const st=ex.sets[si];
   if(!st.done){
-    if(!st.weight && st.sug && st.sug.weight) st.weight=st.sug.weight;
-    if(!st.reps) st.reps=sugReps(st)||ex.targetReps||'';
+    /* „Nichts eingetragen“ heißt leer – nicht null. Vor 1.19.7 stand hier eine
+       Zeichenkette im Feld, und "0" ist truthy; seit die Felder echte Zahlen
+       liefern, wäre eine bewusst eingetragene 0 sonst vom Vorschlag
+       überschrieben worden. */
+    const leer=v=>v===''||v==null;
+    if(leer(st.weight) && st.sug && st.sug.weight) st.weight=st.sug.weight;
+    if(leer(st.reps)) st.reps=sugReps(st)||ex.targetReps||'';
   }
   st.done=!st.done;
   saveSession();
@@ -3281,11 +3306,11 @@ function renderBuilder(){
               </div>`:''}
               <div class="row wrap" style="gap:8px 10px;margin-top:5px;align-items:center">
                 <span class="bld-lbl">Sätze</span>
-                <input class="input bld-num" inputmode="numeric" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=+this.value||1">
+                <input class="input bld-num" inputmode="numeric" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=feldZahl(this.value)||1">
                 <span class="bld-lbl">Wdh</span>
-                <input class="input bld-num" inputmode="numeric" value="${e.reps}" onchange="BUILDER.days[${di}].exercises[${eei}].reps=+this.value||1">
+                <input class="input bld-num" inputmode="numeric" value="${e.reps}" onchange="BUILDER.days[${di}].exercises[${eei}].reps=feldZahl(this.value)||1">
                 <span class="bld-lbl">Pause</span>
-                <input class="input bld-num bld-num-w" inputmode="numeric" placeholder="–" value="${e.rest||''}" onchange="BUILDER.days[${di}].exercises[${eei}].rest=+this.value||0"><span class="bld-lbl">Sek.</span>
+                <input class="input bld-num bld-num-w" inputmode="numeric" placeholder="–" value="${e.rest||''}" onchange="BUILDER.days[${di}].exercises[${eei}].rest=feldZahl(this.value)||0"><span class="bld-lbl">Sek.</span>
               </div></div>
               <button class="chip" onclick="delBuilderEx(${di},${eei})" style="padding:5px 8px;align-self:flex-start">${I.trash}</button>
             </div>`;}).join(''):`<div class="faint" style="text-align:center;padding:22px 0;font-size:13px">Noch keine Übung in dieser Einheit.</div>`}
@@ -3934,7 +3959,10 @@ function viewBody(){
       <div class="eyebrow" style="width:100%;margin-bottom:2px">Deine Maße</div>
       <div class="body-wrap" id="bodyWrap">
         ${bodySvg(BODY_ACTIVE, {interaktiv:true, beschriftet:true})}
-        <input class="ms-inline" id="msInline" type="number" inputmode="decimal" step="0.1" min="0"
+        <!-- Bewusst KEIN type="number": ein solches Feld verwirft ein eingetipptes
+             Komma ersatzlos, die Eingabe wäre also einfach weg. Geprüft wird in
+             inlineSave(). inputmode sorgt weiterhin für die Zifferntastatur. -->
+        <input class="ms-inline" id="msInline" inputmode="decimal"
           style="display:none" onkeydown="inlineKey(event)" onblur="inlineSave()">
       </div>
       <div class="body-cap">
@@ -4046,7 +4074,7 @@ function openInline(key){
   const cur=lastMeasure(key);
   const def=BODY_LABELS.find(L=>L.key===key);
   const links = def ? def.seite==='l' : true;
-  inp.value = cur ? cur.value : '';
+  inp.value = cur ? zahlFeld(cur.value) : '';
   inp.dataset.key = key;
   // Schriftgröße an die gerenderte Zahl angleichen (mind. 16px gegen Zoom auf iOS)
   const fs=Math.max(16, parseFloat(getComputedStyle(ziel).fontSize)||18);
@@ -4091,7 +4119,7 @@ function inlineSave(){
   inlineZeigen();
   const key=inp.dataset.key, roh=(inp.value||'').trim();
   if(roh==='') return;                       // leer gelassen: nichts ändern
-  const val=Math.round(parseFloat(roh.replace(',','.'))*10)/10;
+  const val=Math.round(parseNum(roh)*10)/10;
   if(!isFinite(val) || val<=0){ toast('Bitte eine gültige Zahl eingeben'); return; }
   if(!Array.isArray(DB.measurements)) DB.measurements=[];
   // Alle Werte desselben Kalendertags landen in einem Eintrag
@@ -4160,9 +4188,9 @@ function logEditBody(){
       <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span><span>RIR</span><span></span></div>
       ${e.sets.map((s,si)=>`<div class="det-grid det-grid-edit">
         <span class="num" style="color:var(--text-faint);text-align:center">${si+1}</span>
-        <input class="input" style="padding:8px;text-align:center" inputmode="decimal" value="${s.weight}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].weight=+this.value||0">
-        <input class="input" style="padding:8px;text-align:center" inputmode="numeric" value="${s.reps}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].reps=+this.value||0">
-        <input class="input" style="padding:8px 4px;text-align:center" inputmode="numeric" placeholder="–" value="${(s.rir!=null&&s.rir!=='')?s.rir:''}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].rir=(this.value===''?null:+this.value)">
+        <input class="input" style="padding:8px;text-align:center" inputmode="decimal" value="${zahlFeld(s.weight)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].weight=feldZahl(this.value)||0">
+        <input class="input" style="padding:8px;text-align:center" inputmode="numeric" value="${zahlFeld(s.reps)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].reps=feldZahl(this.value)||0">
+        <input class="input" style="padding:8px 4px;text-align:center" inputmode="numeric" placeholder="–" value="${(s.rir!=null&&s.rir!=='')?s.rir:''}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].rir=(feldZahl(this.value)===''?null:feldZahl(this.value))">
         <button class="chip" onclick="logEditDelSet(${ei},${si})" style="padding:6px 8px;justify-self:end">${I.trash}</button>
       </div>`).join('')}
       <button class="add-set" onclick="logEditAddSet(${ei})">${I.plus}<span>Satz hinzufügen</span></button>
