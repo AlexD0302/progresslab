@@ -333,8 +333,12 @@ body.in-session.timer-on{--timer-space:78px}
 
   /* Engere Abstände rund um die Sätze */
   .ex-card .set-block{margin-bottom:5px}
-  .set-vol{margin-top:2px;gap:5px;min-height:13px}
+  /* Der engere Abstand gehört an das Innenelement: Auf .set-vol wäre es der
+     RASTER-Abstand und würde die Zeile gegen das Gewichtsfeld verschieben. */
+  .set-vol{margin-top:2px;min-height:13px}
+  .sv-inner{gap:5px}
   .ex-card .in-unit .input{padding:9px 26px 9px 9px}
+  .ex-card{--satz-gap:7px}
   .ex-card .set-grid{gap:7px}
   .set-head{padding-bottom:4px;margin-bottom:2px}
 
@@ -355,6 +359,7 @@ body.in-session.timer-on{--timer-space:78px}
   .vc-title{margin-bottom:3px}
   /* Das Häkchen bestimmt mit seinen fest gesetzten 44px die Zeilenhöhe –
      hier etwas kleiner, bleibt aber gut treffbar. */
+  .ex-card{--satz-cols:20px 1fr 1fr 46px 40px}
   .ex-card .set-grid{grid-template-columns:20px 1fr 1fr 46px 40px}
   .ex-card .set-grid > button.chip{width:40px !important;height:40px !important}
   /* Läuft die Pause, nimmt der Timer Platz weg. Dann tritt der Vergleichsbalken
@@ -703,7 +708,16 @@ select.input.pw-sel{width:auto;padding:5px 21px 5px 9px;font-size:12px;font-weig
 .det-head{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;border-bottom:1px solid var(--line-soft);padding-bottom:7px;margin-bottom:3px}
 
 /* Trainings-Satz-Grid */
-.set-grid{display:grid;grid-template-columns:24px 1fr 1fr 50px 44px;gap:8px;align-items:center}
+/* Die Spalten der Satzzeile stehen als Eigenschaft, damit die Info-Zeile
+   darunter dasselbe Raster benutzen kann. Ändert sich hier etwas, wandert es
+   automatisch mit – sonst müsste man den Versatz nachrechnen und an vier
+   Stellen pflegen.
+   Der Grundwert steht bewusst NUR als Rückfall im var() und nicht als eigene
+   Regel: Die Überschreibungen für flache Panels stehen weiter oben in der
+   Datei, und bei gleicher Spezifität gewinnt die spätere Regel. Eine
+   `.ex-card{--satz-cols:…}` an dieser Stelle hätte sie also ausgehebelt. */
+.set-grid{display:grid;grid-template-columns:var(--satz-cols,24px 1fr 1fr 50px 44px);
+  gap:var(--satz-gap,8px);align-items:center}
 /* RIR-Auswahl (Reps in Reserve): kompaktes Feld in der eigenen Spalte.
    select.input.rir-sel überstimmt die select.input-Regel mit dem Pfeil-Icon –
    bei so einem schmalen Feld würde der Pfeil die Zahl überlagern.
@@ -722,6 +736,7 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   -webkit-appearance:none;appearance:none;background-image:none}
 /* Schmale Bildschirme: engere feste Spalten, damit kg/Wdh genug Platz behalten */
 @media (max-width:420px){
+  .ex-card{--satz-cols:20px 1fr 1fr 46px 44px;--satz-gap:6px}
   .set-grid{gap:6px;grid-template-columns:20px 1fr 1fr 46px 44px}
   .in-unit .input{padding:10px 24px 10px 8px}
   .in-unit .unit{right:7px;font-size:10px}
@@ -753,10 +768,15 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
    drinstand –, und das Bild sprang beim Wischen zwischen den Übungen.
    Wird es eng, gibt der Rekord nach: Er ist die einzige Angabe hier, die man
    auch anderswo nachlesen kann. Die anderen behalten ihre Breite. */
-.set-vol{display:flex;flex-wrap:nowrap;overflow:hidden;align-items:center;justify-content:center;gap:6px;
-  margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
-.set-vol > *{flex-shrink:0;white-space:nowrap}
-.set-vol .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Dasselbe Raster wie die Satzzeile darüber, damit die Angaben an der linken
+   Kante des Gewichtsfeldes beginnen statt mittig zu stehen. Die Satznummer
+   links und das Häkchen rechts bleiben frei. */
+.set-vol{display:grid;grid-template-columns:var(--satz-cols,24px 1fr 1fr 50px 44px);
+  gap:var(--satz-gap,8px);margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
+.sv-inner{grid-column:2 / 5;display:flex;flex-wrap:nowrap;overflow:hidden;
+  align-items:center;justify-content:flex-start;gap:6px;min-width:0}
+.sv-inner > *{flex-shrink:0;white-space:nowrap}
+.sv-inner .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .set-vol:empty{margin-top:0;min-height:0}
 /* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
    eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
@@ -1294,7 +1314,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.3';
+const APP_VERSION='1.20.4';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3119,7 +3139,11 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
       : `Rekord ${zahlFeld(rec.weight)} kg × ${rec.reps} Wdh`;
     parts.push(`<span class="sv-rec${geschlagen?' beat':''}">${txt}</span>`);
   }
-  return parts.join('<span class="sv-sep">·</span>');
+  /* Innenelement, damit die Teile im Raster gemeinsam über den Spalten 2 bis 4
+     sitzen. Ohne es landete jeder Teil in einer eigenen Rasterzelle.
+     Leer bleibt wirklich leer – daran hängt die Regel .set-vol:empty. */
+  if(!parts.length) return '';
+  return `<span class="sv-inner">${parts.join('<span class="sv-sep">·</span>')}</span>`;
 }
 // Live-Aktualisierung der Satz-Volumen-Zeile beim Eintippen
 function updateSetVol(ei,si){
