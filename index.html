@@ -109,6 +109,27 @@ body.in-session.timer-on{--timer-space:78px}
 .sess-vol{flex-shrink:0;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:11px 14px}
 .sess-bar{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden}
 .sess-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+/* Einheit gegen Einheit, im Detailfenster des Verlaufs */
+.vgl{border:1px solid rgba(200,255,0,.22);border-radius:12px;padding:12px 13px;margin-bottom:16px;
+  background:var(--surface-2);box-shadow:0 0 24px rgba(200,255,0,.10)}
+.vgl-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.vgl-sum{font-family:var(--font-display);font-size:17px;color:var(--text-dim);letter-spacing:.01em}
+.vgl-sum b{color:var(--text)}
+/* Worauf sich die Zahl stützt, steht direkt darunter – ohne diese Angabe wäre
+   der Prozentwert bei getauschten Übungen eine stille Falschaussage. */
+.vgl-basis{font-size:11px;color:var(--text-faint);margin:2px 0 10px}
+.vgl-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12.5px}
+.vgl-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text-dim)}
+.vgl-num{flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--text)}
+.vgl-delta{flex:0 0 auto;font-size:11px;font-weight:700;padding:0 7px;border-radius:5px;line-height:1.6}
+.vgl-delta.up{color:var(--accent);background:var(--accent-glow)}
+.vgl-delta.down{color:var(--red);background:rgba(255,92,92,.12)}
+.vgl-delta.same{color:var(--text-faint);background:var(--surface-3)}
+.vgl-extra{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.vgl-extra-t{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-faint);font-weight:700;margin-bottom:3px}
+.vgl-leer{font-size:12.5px;color:var(--text-faint);margin-bottom:16px}
 /* Vergleichsbalken pro Übung: heute vs. letztes Training derselben Einheit */
 .vc{flex-shrink:0;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}
 .vc-title{display:flex;align-items:center;justify-content:space-between;
@@ -1258,7 +1279,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.8';
+const APP_VERSION='1.20.0';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3939,6 +3960,117 @@ function deleteLog(id){
 }
 
 /* ---- Detailansicht eines vergangenen Trainings ---- */
+/* ================================================================
+   EINHEIT GEGEN EINHEIT
+   ================================================================
+   Verglichen wird eine Einheit mit dem vorherigen Vorkommen DERSELBEN Einheit –
+   nicht mit „vor sieben Tagen“. Wer eine Woche aussetzt, will gegen sein letztes
+   Push-Training verglichen werden, nicht gegen nichts.
+
+   Der Kern ist der Umgang mit geänderten Übungen. Die Prozentzahl wird
+   ausschließlich über die Übungen gebildet, die in BEIDEN Einheiten vorkommen,
+   und der Block sagt auch, wie viele das sind. Stünde dort die Summe beider
+   Einheiten, würde bei getauschten Übungen eine Übung gegen eine andere
+   gerechnet und das Ergebnis als Fortschritt ausgegeben. Hinzugekommenes und
+   Weggefallenes steht darunter mit seinem Volumen, aber außerhalb der Rechnung.
+
+   Zugeordnet wird über die Übungs-ID mit Rückfall auf den Namen – eine
+   umbenannte Übung bleibt dieselbe, ein Alteintrag ohne ID findet sich trotzdem.
+   ================================================================ */
+// Vorheriges Vorkommen derselben Einheit. Bewusst „älter als diese“ und nicht
+// „das letzte überhaupt“: Man kann auch eine ältere Einheit im Verlauf öffnen.
+function vorherigeEinheit(log){
+  let best=null;
+  (DB.logs||[]).forEach(l=>{
+    if(l.id===log.id || l.dayName!==log.dayName || l.date>=log.date) return;
+    if(!best || l.date>best.date) best=l;
+  });
+  return best;
+}
+function exVolInEintrag(e){
+  const f=exFactor(e.name, e.exId);
+  return (e.sets||[]).filter(s=>s.done!==false)
+    .reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
+}
+function exRepsInEintrag(e){
+  return (e.sets||[]).filter(s=>s.done!==false).reduce((a,s)=>a+(+s.reps||0),0);
+}
+function vergleicheEinheiten(log){
+  const vorher=vorherigeEinheit(log);
+  const leer={vorher:null, gemeinsam:[], neu:[], weg:[],
+              summeJetzt:0, summeVorher:0, pct:null, einheit:'kg'};
+  if(!log) return leer;
+  if(!vorher) return Object.assign({}, leer, {vorher:null});
+
+  const passt=(x,y)=> (x.exId && y.exId) ? x.exId===y.exId : x.name===y.name;
+  const alt=[...(vorher.exercises||[])];
+  const gemeinsam=[], neu=[], weg=[];
+
+  (log.exercises||[]).forEach(e=>{
+    const i=alt.findIndex(a=>passt(e,a));
+    if(i<0){ neu.push({exId:e.exId, name:e.name, vol:exVolInEintrag(e), reps:exRepsInEintrag(e)}); return; }
+    const a=alt.splice(i,1)[0];
+    const jv=exVolInEintrag(e), vv=exVolInEintrag(a);
+    const jr=exRepsInEintrag(e), vr=exRepsInEintrag(a);
+    // Je Übung entscheidet sich die Einheit selbst – wie im Vergleichsbalken.
+    const wdh = (jv===0 && vv===0 && (jr>0 || vr>0));
+    gemeinsam.push({exId:e.exId, name:e.name,
+      jetzt: wdh?jr:jv, vorher: wdh?vr:vv, einheit: wdh?'Wdh':'kg',
+      pct: (!wdh && vv>0) ? Math.round((jv/vv-1)*100)
+         : ( wdh && vr>0) ? Math.round((jr/vr-1)*100) : null});
+  });
+  alt.forEach(a=>weg.push({exId:a.exId, name:a.name, vol:exVolInEintrag(a), reps:exRepsInEintrag(a)}));
+
+  // Gesamtzahl: Volumen, außer es geht in beiden Einheiten um reine
+  // Körpergewichtsübungen – dann Wiederholungen.
+  const alleWdh = gemeinsam.length>0 && gemeinsam.every(g=>g.einheit==='Wdh');
+  const einheit = alleWdh?'Wdh':'kg';
+  const summeJetzt  = gemeinsam.reduce((a,g)=>a+(g.einheit===einheit?g.jetzt :0),0);
+  const summeVorher = gemeinsam.reduce((a,g)=>a+(g.einheit===einheit?g.vorher:0),0);
+  /* Kein Prozentwert bei nur EINER gemeinsamen Übung: Das wäre keine Aussage
+     über die Einheit, sondern über diese eine Übung – und die steht ohnehin
+     als Zeile darunter. Ebenso wenig ohne Vergleichswert (Division durch 0). */
+  const pct = (gemeinsam.length>=2 && summeVorher>0)
+    ? Math.round((summeJetzt/summeVorher-1)*100) : null;
+
+  return {vorher, gemeinsam, neu, weg, summeJetzt, summeVorher, pct, einheit};
+}
+function vergleichsBlock(log){
+  const v=vergleicheEinheiten(log);
+  if(!v.vorher) return `<div class="vgl-leer">Erstes Training dieser Einheit — noch nichts zu vergleichen.</div>`;
+  const zahl=n=>n.toLocaleString('de-DE');
+  const pill=p=>p==null?'' : `<span class="vgl-delta ${p>0?'up':(p<0?'down':'same')}">${p>0?'+':''}${p}%</span>`;
+  const zeile=g=>`<div class="vgl-row">
+      <span class="vgl-name">${esc(g.name)}</span>
+      <span class="vgl-num">${zahl(g.vorher)} → ${zahl(g.jetzt)} ${g.einheit}</span>
+      ${pill(g.pct)}
+    </div>`;
+  const extra=(titel,list)=>list.length? `<div class="vgl-extra">
+      <div class="vgl-extra-t">${titel}</div>
+      ${list.map(x=>`<div class="vgl-row">
+        <span class="vgl-name">${esc(x.name)}</span>
+        <span class="vgl-num">${x.vol>0?zahl(x.vol)+' kg':zahl(x.reps)+' Wdh'}</span>
+      </div>`).join('')}
+    </div>`:'';
+  const n=v.gemeinsam.length;
+  return `<div class="vgl">
+    <div class="vgl-head">
+      <span class="eyebrow">gegenüber ${fmtDate(v.vorher.date)}</span>
+      ${pill(v.pct)}
+    </div>
+    ${n? `${n>=2? `<div class="vgl-sum">${zahl(v.summeVorher)} → <b>${zahl(v.summeJetzt)}</b> ${v.einheit}</div>
+        <div class="vgl-basis">über ${n} gemeinsame Übungen</div>`
+      /* Bei einer einzigen gemeinsamen Übung wiederholte die Summenzeile genau
+         das, was direkt darunter als Zeile steht. Dann lieber nur die Zeile –
+         und dazusagen, warum keine Gesamtzahl dasteht. */
+      : `<div class="vgl-basis">Nur eine gemeinsame Übung — für eine Gesamtzahl über die Einheit zu wenig.</div>`}
+      ${v.gemeinsam.map(zeile).join('')}`
+    : `<div class="vgl-basis">Keine gemeinsame Übung — die Einheit wurde vollständig umgestellt.</div>`}
+    ${extra('Neu dabei', v.neu)}
+    ${extra('Weggefallen', v.weg)}
+  </div>`;
+}
+
 function showLogDetail(id){
   const l=DB.logs.find(x=>x.id===id); if(!l) return;
   const vol=logVolume(l);
@@ -3949,6 +4081,7 @@ function showLogDetail(id){
       <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${vol.toLocaleString('de-DE')} kg Volumen</span>
       <span class="chip">${l.exercises.reduce((a,e)=>a+e.sets.length,0)} Sätze gesamt</span>
     </div>
+    ${vergleichsBlock(l)}
     ${l.exercises.map(e=>{
       const f=exFactor(e.name);
       const evol=e.sets.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
