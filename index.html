@@ -329,6 +329,7 @@ body.in-session.timer-on{--timer-space:78px}
      Info-Zeile darunter. Das spart pro Satz eine komplette Zeile. */
   .ex-card .prev-grid{display:none}
   .set-vol .sv-prevset{display:inline}
+  .set-vol .sv-prevset + .sv-sep{display:inline}
   .set-vol .sv-prev .sv-word{display:none}
 
   /* Engere Abstände rund um die Sätze */
@@ -417,6 +418,7 @@ body.in-session.timer-on{--timer-space:78px}
    sie hängt am verfügbaren Platz, nicht an der Bildschirmbreite. */
 .ex-card.prev-kompakt .prev-grid{display:none}
 .ex-card.prev-kompakt .set-vol .sv-prevset{display:inline}
+.ex-card.prev-kompakt .set-vol .sv-prevset + .sv-sep{display:inline}
 .ex-card.prev-kompakt .set-vol .sv-prev .sv-word{display:none}
 /* Kompaktere Abstände im Training, damit alles auf einen Bildschirm passt */
 .ex-card{padding:14px 16px}
@@ -741,7 +743,7 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
    letzten Trainings stehen, nicht über die ganze Zeilenbreite verteilt –
    sonst zieht die Satznummer links den Text sichtbar aus der Mitte. */
 .prev-line{grid-column:2 / 5;text-align:center;font-size:11px;color:var(--text-dim);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prev-leer .prev-line{color:var(--text-faint)}
 .prev-cell:not(:empty){color:var(--accent-dim);font-weight:600}
 .total-grid{margin-top:3px}
@@ -760,7 +762,14 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .set-vol:empty{margin-top:0;min-height:0}
 /* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
    eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
-.sv-prevset{display:none;color:var(--accent-dim);font-weight:600}
+/* Dieselbe Angabe wie in der „zuletzt“-Zeile, nur an anderer Stelle – deshalb
+   auch dieselbe Farbe und derselbe Schnitt. Vorher stand sie hier in der
+   Akzentfarbe: Im Querformat las sich „zuletzt“ dadurch grün und fett, im
+   Hochformat grau und normal, obwohl es derselbe Wert ist. */
+.sv-prevset{display:none;color:var(--text-dim);font-weight:600}
+/* Ist die Kurzform ausgeblendet, muss ihr Trennpunkt mit weichen – sonst
+   beginnt die Info-Zeile mit einem einzelnen „·“ ohne etwas davor. */
+.sv-prevset + .sv-sep{display:none}
 .sv-total{color:var(--text-dim);font-weight:700}
 .sv-prev{color:var(--text-faint);font-weight:600}
 .sv-now{color:var(--accent-dim);font-weight:700}
@@ -1285,7 +1294,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.1';
+const APP_VERSION='1.20.2';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
