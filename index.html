@@ -737,6 +737,12 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 /* Zuletzt-Werte, spaltenweise über den Feldern ausgerichtet */
 .prev-grid{margin-bottom:3px}
 .prev-cell{font-size:11px;color:var(--text-dim);text-align:center}
+/* Spalten 2 bis 4 = kg, Wdh und RIR. Genau darunter sollen die Werte des
+   letzten Trainings stehen, nicht über die ganze Zeilenbreite verteilt –
+   sonst zieht die Satznummer links den Text sichtbar aus der Mitte. */
+.prev-line{grid-column:2 / 5;text-align:center;font-size:11px;color:var(--text-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prev-leer .prev-line{color:var(--text-faint)}
 .prev-cell:not(:empty){color:var(--accent-dim);font-weight:600}
 .total-grid{margin-top:3px}
 .total-cell{font-size:11px;color:var(--text-faint);text-align:center;font-weight:600}
@@ -1279,7 +1285,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.0';
+const APP_VERSION='1.20.1';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3011,16 +3017,18 @@ function setRow(ex,ei,st,si){
      Zeile überall – dann sind die Blöcke wieder untereinander gleich. */
   const einheitHatPrev = !!(SESSION && SESSION.exercises &&
     SESSION.exercises.some(e=>(e.sets||[]).some(s=>s.prev)));
-  const prevRow = st.prev ? `<div class="set-grid prev-grid">
-      <span></span>
-      <span class="prev-cell">${zahlFeld(st.prev.weight)} kg</span>
-      <span class="prev-cell">${st.prev.reps} Wdh</span>
-      <span class="prev-cell">${(st.prev.rir!=null&&st.prev.rir!=='')?('RIR '+st.prev.rir):''}</span>
-      <span></span>
-    </div>` : (einheitHatPrev ? `<div class="set-grid prev-grid prev-leer">
-      <span></span><span class="prev-cell">–</span><span class="prev-cell">–</span>
-      <span class="prev-cell"></span><span></span>
-    </div>` : '');
+  /* Eine Zeile statt drei Spalten, in derselben Schreibweise wie der Rekord:
+     „82,5 kg × 9 Wdh“. Sie sitzt im Raster über den Spalten 2 bis 4 und damit
+     mittig unter den Eingabefeldern – die Satznummer links und das Häkchen
+     rechts zählen nicht mit, sonst stünde die Angabe sichtbar daneben. */
+  const prevTxt = st.prev
+    ? `zuletzt ${zahlFeld(st.prev.weight)} kg × ${st.prev.reps} Wdh` +
+      ((st.prev.rir!=null&&st.prev.rir!=='') ? ` · RIR ${st.prev.rir}` : '')
+    : 'zuletzt –';
+  const prevRow = (st.prev || einheitHatPrev)
+    ? `<div class="set-grid prev-grid${st.prev?'':' prev-leer'}">
+      <span class="prev-line">${prevTxt}</span>
+    </div>` : '';
   // Satz-Volumen: zuletzt (aus dem letzten Training) und heute (live).
   // f = Hantel-Faktor (2 bei zwei Hanteln), damit das Volumen zum Gesamtgewicht passt.
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
@@ -3069,7 +3077,8 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
   // eine komplette Zeile Höhe.
   if(prev){
     const rirTxt=(prev.rir!=null&&prev.rir!=='')?` · RIR ${prev.rir}`:'';
-    parts.push(`<span class="sv-prevset">zuletzt ${prev.weight}×${prev.reps}${rirTxt}</span>`);
+    // Gleiche Schreibweise wie in der „zuletzt“-Zeile und beim Rekord.
+    parts.push(`<span class="sv-prevset">zuletzt ${zahlFeld(prev.weight)} kg × ${prev.reps} Wdh${rirTxt}</span>`);
   }
   // Reihenfolge bewusst gruppiert: erst alles zum letzten Training, dann alles
   // zum heutigen Satz – sonst stünde das heutige Gesamtgewicht mitten zwischen
@@ -3094,8 +3103,8 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
      dem Moment nicht mehr die interessante Zahl. */
   if(rec){
     const txt = geschlagen
-      ? `Rekord geschlagen · ${zahlFeld(+st.weight||0)}×${+st.reps||0}`
-      : `Rekord ${zahlFeld(rec.weight)}×${rec.reps}`;
+      ? `Rekord geschlagen · ${zahlFeld(+st.weight||0)} kg × ${+st.reps||0} Wdh`
+      : `Rekord ${zahlFeld(rec.weight)} kg × ${rec.reps} Wdh`;
     parts.push(`<span class="sv-rec${geschlagen?' beat':''}">${txt}</span>`);
   }
   return parts.join('<span class="sv-sep">·</span>');
@@ -4098,8 +4107,8 @@ function showLogDetail(id){
         ${e.sets.map((s,i)=>`<div class="det-grid">
           <span class="num" style="color:var(--text-faint)">${i+1}</span>
           <span class="num" style="font-weight:600">${s.weight} kg${f===2?` <span style="color:var(--text-faint);font-weight:400">(ges. ${(+s.weight||0)*2} kg)</span>`:''}</span>
-          <span class="num" style="font-weight:600">${s.reps}</span>
-          <span class="num" style="color:var(--text-dim)">${(s.rir!=null&&s.rir!=='')?s.rir:'–'}</span>
+          <span class="num" style="font-weight:600">${s.reps} Wdh</span>
+          <span class="num" style="color:var(--text-dim)">${(s.rir!=null&&s.rir!=='')?('RIR '+s.rir):'–'}</span>
         </div>`).join('')}
       </div>`;
     }).join('')}
