@@ -113,7 +113,10 @@ body.in-session.timer-on{--timer-space:78px}
 .vc{flex-shrink:0;margin-top:12px;padding-top:11px;border-top:1px solid var(--line-soft)}
 .vc-title{display:flex;align-items:center;justify-content:space-between;
   font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);font-weight:600;margin-bottom:8px}
-.vc-delta{font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;padding:2px 7px;border-radius:5px}
+/* Polster nur waagerecht: Mit senkrechtem wuchs die Titelzeile um 5 px, sobald
+   das Plättchen erschien – also beim ersten abgehakten Satz. Damit verschob
+   sich das Grundgerüst und mit ihm der Bildrahmen, mitten im Training. */
+.vc-delta{font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;padding:0 7px;border-radius:5px;line-height:1.6}
 .vc-delta.up{color:var(--accent);background:var(--accent-glow)}
 .vc-delta.down{color:var(--red);background:rgba(255,92,92,.12)}
 .vc-delta.same{color:var(--text-faint);background:var(--surface-3)}
@@ -160,6 +163,11 @@ body.in-session.timer-on{--timer-space:78px}
    Reicht die Höhe nicht (kleiner Bildschirm, Windows-Skalierung), scrollt
    ausschließlich dieser Bereich – Timer, Punkte und Navigation bleiben sichtbar.
    flex-basis:0 ist entscheidend, damit die Begrenzung wirklich greift. */
+/* Einrasten: Der Bereich ist genau drei Satzblöcke hoch, geschoben wird frei,
+   stehen bleibt es am Anfang eines Blocks. Damit blättert man in Dreierschritten,
+   statt einen halben Satz angeschnitten stehen zu lassen. */
+.ex-sets{scroll-snap-type:y mandatory}
+.ex-sets .set-block{scroll-snap-align:start}
 .ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
   /* Platz für den Scrollbalken reservieren, damit er das Häkchen (44px-Spalte
      ganz rechts) nicht überdeckt. scrollbar-gutter:stable reserviert den Platz
@@ -204,8 +212,12 @@ body.in-session.timer-on{--timer-space:78px}
   .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
     height:100%;width:100%;object-fit:contain}
   .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
-  /* Sätze bekommen die volle Höhe der rechten Spalte */
-  .ex-sets{max-height:none !important;flex:1 1 auto;overflow-y:auto}
+  /* Sätze bekommen die volle Höhe der rechten Spalte – begrenzt nur durch
+     --sets-max, das die Drei-Satz-Zusage setzt. Das !important muss bleiben
+     (es hebt die Berechnung des Hochformats auf), deshalb bekommt es hier
+     einen Angriffspunkt: Eine per JavaScript gesetzte max-height käme gegen
+     !important nicht an, eine Custom Property schon. */
+  .ex-sets{max-height:var(--sets-max,none) !important;flex:1 1 auto;overflow-y:auto}
   /* Vergleich kompakter, damit die Sätze mehr Platz haben */
   .ex-col .vc{flex:0 0 auto;margin-top:8px;padding-top:8px}
   .ex-col .vc .vc-row{margin-bottom:3px}
@@ -377,6 +389,14 @@ body.in-session.timer-on{--timer-space:78px}
   .bld-addbtn{padding:8px 9px;font-size:11.5px;gap:4px}
   .bld-navmid{gap:5px}
 }
+/* Kompaktfassung der „zuletzt“-Zeile, wie sie das flache Panel seit jeher nutzt:
+   Die eigene Zeile entfällt, ihr Inhalt rückt in die Info-Zeile darunter. Spart
+   rund 16 px je Satz, ohne dass eine Angabe verloren geht.
+   Gesetzt wird sie NICHT über eine Breiten-Regel, sondern von fitSessImage() –
+   sie hängt am verfügbaren Platz, nicht an der Bildschirmbreite. */
+.ex-card.prev-kompakt .prev-grid{display:none}
+.ex-card.prev-kompakt .set-vol .sv-prevset{display:inline}
+.ex-card.prev-kompakt .set-vol .sv-prev .sv-word{display:none}
 /* Kompaktere Abstände im Training, damit alles auf einen Bildschirm passt */
 .ex-card{padding:14px 16px}
 .ex-card .set-block{margin-bottom:8px}
@@ -700,8 +720,16 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .total-grid{margin-top:3px}
 .total-cell{font-size:11px;color:var(--text-faint);text-align:center;font-weight:600}
 /* Satz-Volumen-Zeile: zuletzt vs. heute, direkt unter jedem Satz */
-.set-vol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
+/* Bewusst KEIN Umbruch. Diese Zeile bestimmt die Höhe des Satzblocks, und der
+   bestimmt, wie viel Platz die drei zugesagten Sätze brauchen und wie groß der
+   Bildrahmen wird. Brach sie um, wuchs der Block – je nachdem, wie viel gerade
+   drinstand –, und das Bild sprang beim Wischen zwischen den Übungen.
+   Wird es eng, gibt der Rekord nach: Er ist die einzige Angabe hier, die man
+   auch anderswo nachlesen kann. Die anderen behalten ihre Breite. */
+.set-vol{display:flex;flex-wrap:nowrap;overflow:hidden;align-items:center;justify-content:center;gap:6px;
   margin-top:4px;font-size:11px;line-height:1.3;min-height:14px}
+.set-vol > *{flex-shrink:0;white-space:nowrap}
+.set-vol .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .set-vol:empty{margin-top:0;min-height:0}
 /* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
    eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
@@ -710,7 +738,20 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .sv-prev{color:var(--text-faint);font-weight:600}
 .sv-now{color:var(--accent-dim);font-weight:700}
 .sv-sep{color:var(--line);font-weight:400}
-.sv-delta{font-weight:700;padding:1px 5px;border-radius:5px;font-size:10px}
+/* Rekord der Übung: ständige Zielmarke, deshalb zurückhaltend. Ist er
+   geschlagen, tritt er nach vorn – das ist der eine Moment, in dem er auffallen
+   soll. Kein eigener Streifen: Die Zeile gibt es ohnehin, ein neuer koste 19,5px
+   je Satz und damit die Zusage, dass immer drei Sätze zu sehen sind. */
+.sv-rec{color:var(--text-faint);font-weight:600;white-space:nowrap}
+/* Polster nur waagerecht. Senkrechtes Polster machte den Satzblock höher,
+   sobald ein Rekord fiel – und damit sprangen Satzbereich und Bildrahmen
+   mitten im Training. Farbe und Fettung reichen völlig. */
+.sv-rec.beat{color:var(--accent);font-weight:800;
+  background:var(--accent-glow);padding:0 6px;border-radius:5px}
+/* Ebenfalls ohne senkrechtes Polster – siehe .vc-delta. Dieses Plättchen sitzt
+   in der Zeile, die die Blockhöhe bestimmt; 1 px hier sind drei Sätze weiter
+   ein sichtbarer Versatz am Bildrahmen. */
+.sv-delta{font-weight:700;padding:0 5px;border-radius:5px;font-size:10px}
 .sv-delta.up{background:rgba(55,217,154,.14);color:var(--green)}
 .sv-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
 .sv-delta.same{color:var(--text-faint)}
@@ -1217,7 +1258,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.19.7';
+const APP_VERSION='1.19.8';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2018,6 +2059,36 @@ function lastPerf(exName, exId){
   }
   return null;
 }
+/* Bester Einzelsatz einer Übung – der „Rekord“.
+   Bewusst über ALLE Trainings, nicht nur über dieselbe Einheit: Ein Rekord ist
+   unabhängig davon, an welchem Tag er fiel. Genau darin unterscheidet er sich
+   von „zuletzt“, das immer die gleiche Einheit meint.
+   Gewertet wird das Volumen des Satzes. Bringt keine einzige Wiederholung
+   Volumen mit (Körpergewichtsübung), zählen stattdessen die Wiederholungen –
+   dieselbe Lesart nutzt der Vergleichsbalken schon.
+   Grundlage sind nur abgeschlossene Trainings. Die laufende SESSION bleibt
+   auszen vor, und weil DB.logs während einer Einheit unverändert bleibt, ist
+   das automatisch „der Stand, mit dem du reingegangen bist“. */
+function bestSet(exId, exName){
+  const passt=e=> (exId && e.exId===exId) || (exName && e.name===exName);
+  const f=exFactor(exName, exId);
+  let best=null, bestReps=null;
+  (DB.logs||[]).forEach(l=>{
+    (l.exercises||[]).forEach(e=>{
+      if(!passt(e)) return;
+      (e.sets||[]).forEach(s=>{
+        if(s.done===false) return;
+        const w=+s.weight||0, r=+s.reps||0;
+        if(r<=0) return;
+        const vol=w*f*r;
+        if(!best || vol>best.vol) best={weight:w, reps:r, vol, date:l.date};
+        if(!bestReps || r>bestReps.reps) bestReps={weight:w, reps:r, vol:0, date:l.date};
+      });
+    });
+  });
+  if(!best) return null;
+  return best.vol>0 ? best : bestReps;
+}
 /* ---------- Vergleich mit dem letzten Training DERSELBEN Einheit ---------- */
 // Letztes abgeschlossenes Training mit gleichem Einheitsnamen (z. B. "Montag - Rücken")
 function lastSessionLog(dayName){
@@ -2469,6 +2540,52 @@ function toggleSessImg(){
   renderView();
 }
 /* Wischen zwischen Übungen (Touch) */
+/* Wie viele Sätze immer vollständig zu sehen sind. Diese Zusage steht in der
+   Rangfolge über dem Bild – anders als bis 1.19.7, wo das Bild zuerst bediente
+   wurde und auf dem Handy zweieinhalb Sätze übrig blieben. */
+const SICHTBARE_SAETZE = 3;
+let FIT_DIAG=null;        // letzte Platzverteilung, siehe fitSessImage()
+/* Kleinstes Bild, das noch gezeigt wird. Gemessen, nicht geschätzt: Auf dem
+   Handy (500×844) bleiben bei einer Übung mit fünf Sätzen und Vorgeschichte
+   nach den drei reservierten Satzblöcken 80,6 px übrig. Der Wert muss darunter
+   liegen, sonst verschwände das Bild dort ganz. Bis 1.19.7 standen hier 110 px –
+   die Differenz ist der Preis für den dritten sichtbaren Satz. */
+const MIN_IMG_PX = 78;
+/* Höhe von genau SICHTBARE_SAETZE Satzblöcken, aus dem gerenderten Block
+   abgeleitet. Der Abstand HINTER dem letzten Block zählt bewusst nicht mit –
+   sonst lugte der vierte Block angeschnitten herein, und „genau drei“ wäre es
+   nicht mehr. Muss aufgerufen werden, solange maxHeight nicht gesetzt ist,
+   sonst misst man die eigene Vorgabe nach. */
+function dreiSatzHoehe(sets){
+  const bl=sets.querySelectorAll('.set-block');
+  if(!bl.length) return 0;
+  if(bl.length>=SICHTBARE_SAETZE){
+    /* Echt gemessen statt hochgerechnet. Die Blöcke sind NICHT gleich hoch: Ein
+       geschlagener Rekord trägt auf, und eine umbrechende Info-Zeile erst recht.
+       Der erste Block mal drei lag deshalb daneben – mal zu hoch, dann lugte der
+       vierte Satz herein, mal zu niedrig. Die Differenz zweier Rechtecke ist
+       zudem unabhängig davon, wie weit der Bereich gerade gescrollt ist. */
+    return bl[SICHTBARE_SAETZE-1].getBoundingClientRect().bottom
+         - bl[0].getBoundingClientRect().top;
+  }
+  // Weniger Sätze als zugesagt: hochrechnen, damit der Bildrahmen gleich bleibt.
+  const bh=bl[0].getBoundingClientRect().height;
+  const luecke=parseFloat(getComputedStyle(bl[0]).marginBottom)||0;
+  return SICHTBARE_SAETZE*bh + (SICHTBARE_SAETZE-1)*luecke;
+}
+/* Den Satzbereich auf drei Blöcke kappen – für die Zweige, in denen sonst
+   allein das CSS die Höhe bestimmt (Querformat und flaches Panel). Hat die
+   Übung weniger als drei Sätze, bleibt sie kürzer. */
+function begrenzeAufDreiSaetze(sets){
+  const h=dreiSatzHoehe(sets);
+  if(h>0 && sets.scrollHeight>h+1){
+    sets.style.maxHeight=Math.floor(h)+'px';
+    sets.style.setProperty('--sets-max', Math.floor(h)+'px');
+  } else {
+    sets.style.maxHeight='';
+    sets.style.removeProperty('--sets-max');
+  }
+}
 /* Bildhöhe an den tatsächlich freien Platz anpassen:
    Karte darf höchstens so hoch werden wie der Bereich zwischen Volumen-Karte und Punkten.
    Das Bild bekommt genau den Platz, der nach Kopfzeile und Sätzen übrig bleibt. */
@@ -2541,6 +2658,9 @@ function fitSessImage(){
     sets.style.maxHeight='';
     card.style.maxHeight='';
     card.classList.remove('scroll-all');
+    // Auch hier gilt die Zusage: genau drei Sätze. Sonst zeigte dasselbe Gerät
+    // im Querformat sechs und im Hochformat drei.
+    begrenzeAufDreiSaetze(sets);
     return;
   }
   // Flaches Querformat-Panel (z. B. Promethean): Größen regelt das CSS (Bild
@@ -2574,6 +2694,11 @@ function fitSessImage(){
     // Rahmen): Er ist immer exakt so hoch wie der Hauptbereich – kein Abschneiden
     // möglich. Die frühere Pixel-Berechnung entfällt; nur Altwerte aufräumen.
     if(prev){ card.style.removeProperty('--img-max'); }
+    /* Auf dem Panel regelt sonst allein das CSS die Höhe des Satzbereichs –
+       dort standen zuletzt dreieinhalb Sätze. Die Zusage „genau drei“ muss
+       deshalb auch in diesem Zweig gesetzt werden; er kehrt vorher zurück und
+       erreicht die Rechnung weiter unten nie. */
+    begrenzeAufDreiSaetze(sets);
     return;
   }
 
@@ -2581,28 +2706,25 @@ function fitSessImage(){
   if(vc) vc.style.display='';
   if(prev) prev.style.display='';
   sets.style.maxHeight='';
+  sets.style.removeProperty('--sets-max');
   card.style.maxHeight='';
   card.classList.remove('scroll-all');
+  card.classList.remove('prev-kompakt');
 
-  const setsVoll = sets.scrollHeight;
+  let setsVoll = sets.scrollHeight;
   const MIN_SETS = 120;                            // darunter wird es unbrauchbar
+  /* Muss VOR messeGrund() stehen: Dort wird die Höhe der Sätze kurzzeitig auf 0
+     gesetzt, danach ließe sich kein Satzblock mehr messen. */
+  let dreiHoehe = dreiSatzHoehe(sets) || setsVoll;
 
-  /* Der Bildrahmen soll beim Blättern stillstehen. Er ergibt sich aus dem Platz
-     NACH den Sätzen – und die sind je Übung verschieden lang. Deshalb wird nicht
-     mit der aktuellen Satzanzahl gerechnet, sondern mit der größten der Einheit:
-     Die Höhe eines Satzblocks wird aus dem gerenderten Block abgeleitet und
-     hochgerechnet. Sonst bekäme eine 3-Satz-Übung ein größeres Bild als eine
-     mit 5 Sätzen, und das Bild spränge ohne Zutun des GIFs. */
-  let setsPlan=setsVoll;
-  const bloecke=sets.querySelectorAll('.set-block');
-  if(SESSION && Array.isArray(SESSION.exercises) && bloecke.length){
-    const maxN=Math.max(...SESSION.exercises.map(e=>(e.sets||[]).length));
-    if(maxN>bloecke.length){
-      const bs=getComputedStyle(bloecke[0]);
-      const b=bloecke[0].getBoundingClientRect().height + (parseFloat(bs.marginBottom)||0);
-      setsPlan = setsVoll + (maxN-bloecke.length)*b;
-    }
-  }
+  /* Der Bildrahmen soll beim Blättern stillstehen, und immer drei Sätze sollen
+     vollständig zu sehen sein. Beides erledigt dieselbe Zahl – dreiHoehe. Der
+     Platz für die Sätze richtet sich nicht mehr nach der Satzanzahl der Übung,
+     sondern ist fest SICHTBARE_SAETZE Blöcke hoch. Dadurch ist der Bildrahmen
+     über alle Übungen hinweg gleich groß, auch bei nur zwei Sätzen.
+     Bewusst KEINE zweite Variable dafür: Eine solche hielt hier zwischenzeitlich
+     den Wert von VOR dem Einklappen der „zuletzt“-Zeile fest, und die
+     Bildrechnung arbeitete mit 270 statt mit 247 px. */
 
   /* Grundgerüst = die Karte MIT allem außer der Höhe der Sätze und der des
      Bildes: Kopfzeile, „Satz hinzufügen“, Vergleichsbalken, sämtliche Ränder
@@ -2621,25 +2743,47 @@ function fitSessImage(){
   const verfuegbar = body.clientHeight;
   let grund = messeGrund();
 
-  // Reicht der Platz nicht einmal für die Sätze? Dann Vergleich ausblenden.
-  if(vc && verfuegbar - grund < MIN_SETS){ vc.style.display='none'; grund = messeGrund(); }
+  /* Rangfolge, wenn es eng wird – von der harmlosesten Maßnahme zur härtesten:
+       1. „zuletzt“-Zeile einklappen (nichts geht verloren, spart ~16 px je Satz)
+       2. Vergleichsbalken ausblenden (steht auch im Verlauf)
+       3. Bild ausblenden
+       4. die ganze Karte scrollen lassen
+     Erst danach würde die Zusage „drei Sätze“ brechen. */
+  if(verfuegbar - grund < dreiHoehe + MIN_IMG_PX && sets.querySelector('.prev-grid')){
+    /* Ausprobieren und nur behalten, wenn es wirklich hilft. Auf schmalen
+       Geräten bringt das Einklappen nämlich NICHTS: Die zusammengefaltete
+       Angabe bricht in der Info-Zeile um und frisst die gesparte Zeile wieder
+       auf. Gemessen auf 500×844 – dort stieg die Höhe sogar leicht an. */
+    const vorher=dreiHoehe;
+    card.classList.add('prev-kompakt');
+    const nachher=dreiSatzHoehe(sets) || sets.scrollHeight;
+    if(nachher < vorher-8){
+      dreiHoehe=nachher; setsVoll=sets.scrollHeight; grund=messeGrund();
+    } else {
+      card.classList.remove('prev-kompakt');
+    }
+  }
 
-  const MIN_IMG = 110;   // darunter erkennt man auf einer Bewegungsanimation nichts
+  /* Reicht der Platz nicht für drei Sätze, tritt der Vergleichsbalken zurück –
+     er ist die einzige Angabe hier, die es auch im Verlauf nachzulesen gibt.
+     Früher griff das erst unterhalb von MIN_SETS; damit blieben auf dem Handy
+     zweieinhalb Sätze stehen, obwohl 74 px Balken zu holen gewesen wären.
+     Sobald wieder Platz ist, kommt er von selbst zurück. */
+  if(vc && verfuegbar - grund < dreiHoehe + MIN_IMG_PX){ vc.style.display='none'; grund = messeGrund(); }
 
   let imgBlock=0;
   if(prev){
-    // setsPlan statt setsVoll: nur für die BILDgröße. Die Sätze bekommen
-    // darunter unverändert ihre echte Höhe.
+    /* Umgekehrte Rangfolge seit den drei sichtbaren Sätzen: Erst bekommen die
+       Sätze ihre feste Höhe, dann das Bild den Rest. Vorher war es andersherum,
+       und auf dem Handy blieben deshalb nur zweieinhalb Sätze übrig.
+       Die Kette bei zu wenig Platz: Bild auf Mindestmaß, sonst Bild ganz weg,
+       und erst danach scrollt die ganze Karte. */
     const platz = verfuegbar - grund;          // teilen sich Bild und Sätze
-    let imgMax = Math.min(380, Math.floor(platz - setsPlan));
-    /* Reicht es nicht für beides in voller Größe – der Normalfall auf einem
-       Handy –, dann bekommt das Bild sein Mindestmaß und die Sätze scrollen.
-       Vorher hatte "die Sätze scrollen nie" Vorrang und das Bild verschwand
-       ersatzlos. Das ist die falsche Abwägung: Die Sätze SIND zum Scrollen
-       gebaut (overflow-y:auto), ein fehlendes Bild hat keinen Ersatz.
-       Weil platz und MIN_SETS nicht von der Seite abhängen, bleibt der Rahmen
-       auch in diesem Fall über alle Übungen hinweg gleich groß. */
-    if(imgMax < MIN_IMG) imgMax = Math.floor(Math.min(MIN_IMG, platz - MIN_SETS));
+    let imgMax = Math.min(380, Math.floor(platz - dreiHoehe));
+    /* Reicht der Rest nicht für ein erkennbares Bild, ist er auch nicht als
+       Briefmarke zu gebrauchen – dann lieber ganz weg und der Platz geht an
+       die Sätze. */
+    if(imgMax < MIN_IMG_PX) imgMax = 0;
     imgMax = Math.max(0, imgMax);
     if(imgMax<40){ prev.style.display='none'; card.style.setProperty('--img-max','0px'); }
     else { card.style.setProperty('--img-max', imgMax+'px'); imgBlock = imgMax; }
@@ -2647,15 +2791,33 @@ function fitSessImage(){
 
   // Was übrig bleibt, bekommen die Sätze – notfalls scrollen sie.
   const fuerSaetze = Math.floor(verfuegbar - grund - imgBlock);
-  if(fuerSaetze < MIN_SETS){
+  /* Die Zwischenwerte bleiben abrufbar. Diese Rechnung ist die fehleranfälligste
+     Stelle der App – bei der Bildgröße und beim RIR-Feld hat schon zweimal nur
+     das Nachmessen am Gerät weitergeholfen, und Raten kostete jedes Mal eine
+     Fassung. Kostet nichts und erspart beim nächsten Mal eine Sonde. */
+  FIT_DIAG={verfuegbar, grund, platz:verfuegbar-grund, dreiHoehe, setsVoll, imgBlock, fuerSaetze,
+            kompakt:card.classList.contains('prev-kompakt')?1:0, hatBild:prev?1:0};
+  // Ziel: genau drei Blöcke. Hat die Übung weniger, ist sie eben kürzer.
+  const zielSaetze = Math.min(setsVoll, dreiHoehe);
+  if(fuerSaetze < Math.min(zielSaetze, MIN_SETS)){
     // Zu wenig Platz für ein sinnvolles Aufteilen (sehr flaches Fenster,
     // starke Windows-Skalierung): dann scrollt die ganze Karte.
     // Timer, Punkte und Navigation bleiben trotzdem immer sichtbar.
     card.classList.add('scroll-all');
     sets.style.maxHeight='';
+    /* Hier scrollt die ganze Karte – Bild und Sätze konkurrieren also gar nicht
+       mehr um Platz. Dann darf das Bild auch wieder erscheinen, selbst wenn die
+       Aufteilung oben zu dem Schluss kam, es sei kein Platz. Ohne diese Zeile
+       verschwand es auf sehr flachen schmalen Fenstern ersatzlos – genau der
+       Fehler, der in 1.19.3 schon einmal behoben wurde.
+       110 px ist das Maß, das bis 1.19.7 als Mindestgröße galt. */
+    if(prev && imgBlock===0){
+      prev.style.display='';
+      card.style.setProperty('--img-max','110px');
+    }
   } else {
     card.classList.remove('scroll-all');
-    sets.style.maxHeight = Math.min(setsVoll, fuerSaetze) + 'px';
+    sets.style.maxHeight = Math.min(zielSaetze, fuerSaetze) + 'px';
   }
   // Sicherheitsnetz: Die Karte darf niemals in den Timer ragen.
   const timerEl=document.getElementById('restTimer');
@@ -2818,19 +2980,33 @@ function sugReps(st){
 function setRow(ex,ei,st,si){
   const ph=st.sug&&st.sug.weight?st.sug.weight:'';
   const f=exFactor(ex.name);
+  /* Die „zuletzt“-Zeile steht auch dann, wenn diese Übung keine Vorgeschichte
+     hat – dann mit Strichen. Grund ist nicht Kosmetik, sondern der Bildrahmen:
+     Ohne sie wären die Satzblöcke einer neu hinzugefügten Übung rund 16 px
+     niedriger als die der übrigen, der reservierte Platz fiele kleiner aus und
+     das Bild spränge beim Wischen zwischen den Übungen. Genau dieser Sprung war
+     der Fehler aus 1.19.1. Die Striche sagen zudem das Richtige: Es gibt kein
+     letztes Mal. Fehlt jede Vorgeschichte in der ganzen Einheit, entfällt die
+     Zeile überall – dann sind die Blöcke wieder untereinander gleich. */
+  const einheitHatPrev = !!(SESSION && SESSION.exercises &&
+    SESSION.exercises.some(e=>(e.sets||[]).some(s=>s.prev)));
   const prevRow = st.prev ? `<div class="set-grid prev-grid">
       <span></span>
-      <span class="prev-cell">${st.prev.weight} kg</span>
+      <span class="prev-cell">${zahlFeld(st.prev.weight)} kg</span>
       <span class="prev-cell">${st.prev.reps} Wdh</span>
       <span class="prev-cell">${(st.prev.rir!=null&&st.prev.rir!=='')?('RIR '+st.prev.rir):''}</span>
       <span></span>
-    </div>` : '';
+    </div>` : (einheitHatPrev ? `<div class="set-grid prev-grid prev-leer">
+      <span></span><span class="prev-cell">–</span><span class="prev-cell">–</span>
+      <span class="prev-cell"></span><span></span>
+    </div>` : '');
   // Satz-Volumen: zuletzt (aus dem letzten Training) und heute (live).
   // f = Hantel-Faktor (2 bei zwei Hanteln), damit das Volumen zum Gesamtgewicht passt.
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev)}</div>`;
+  const rec = bestSet(ex.exId, ex.name);
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f)}</div>`;
   // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
   const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
@@ -2855,9 +3031,18 @@ function setRow(ex,ei,st,si){
     ${volRow}
   </div>`;
 }
-// Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%)"
-function setVolText(prevVol, nowVol, totalKg, prev){
+/* Hat dieser Satz den Rekord geschlagen? Nur abgehakte Sätze zählen – sonst
+   feiert die App eine Zahl, die gerade noch geändert wird. */
+function schlaegtRekord(st, rec, f){
+  if(!rec || !st || !st.done) return false;
+  const w=+st.weight||0, r=+st.reps||0;
+  if(r<=0) return false;
+  return rec.vol>0 ? (w*f*r > rec.vol) : (w===0 && r > rec.reps);
+}
+// Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%) · Rekord 80×12"
+function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
   const parts=[];
+  const geschlagen = schlaegtRekord(st, rec, f||1);
   // Kompaktfassung der "zuletzt"-Zeile für flache Panels: dort wird die eigene
   // prev-Zeile ausgeblendet und ihr Inhalt hier mit angezeigt – spart pro Satz
   // eine komplette Zeile Höhe.
@@ -2880,6 +3065,18 @@ function setVolText(prevVol, nowVol, totalKg, prev){
   }
   // Bei 2-Hantel-Übungen: Gesamtgewicht beider Hanteln zum heutigen Satz.
   if(totalKg>0) parts.push(`<span class="sv-total">gesamt ${totalKg} kg</span>`);
+  /* Der Rekord steht bewusst hier und nicht in einer eigenen Zeile: Auf dem
+     Panel ist die „zuletzt“-Zeile ausgeblendet, auf Handy und PC sind ihre fünf
+     Spalten belegt, und ein eigener Streifen kostet auf dem Handy 19,5 px je
+     Satz – zu viel für die Zusage, dass immer drei Sätze zu sehen sind.
+     Beim Rekordbruch nennt die Zeile den HEUTIGEN Satz: Die alte Marke ist in
+     dem Moment nicht mehr die interessante Zahl. */
+  if(rec){
+    const txt = geschlagen
+      ? `Rekord geschlagen · ${zahlFeld(+st.weight||0)}×${+st.reps||0}`
+      : `Rekord ${zahlFeld(rec.weight)}×${rec.reps}`;
+    parts.push(`<span class="sv-rec${geschlagen?' beat':''}">${txt}</span>`);
+  }
   return parts.join('<span class="sv-sep">·</span>');
 }
 // Live-Aktualisierung der Satz-Volumen-Zeile beim Eintippen
@@ -2898,7 +3095,7 @@ function updateSetVol(ei,si){
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const el=document.getElementById(`vol-${ei}-${si}`);
-  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg, st.prev);
+  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg, st.prev, bestSet(ex.exId, ex.name), st, f);
 }
 function updateTotal(ei,si,val){
   SESSION.exercises[ei].sets[si].weight=feldZahl(val); // Wert schon während der Eingabe halten
@@ -2921,6 +3118,18 @@ function toggleSet(ei,si){
     if(leer(st.reps)) st.reps=sugReps(st)||ex.targetReps||'';
   }
   st.done=!st.done;
+  /* Rekord erst beim Abhaken feiern, nicht beim Tippen. Der Vergleich läuft
+     gegen den Stand aus DB.logs – die laufende Einheit steht da noch nicht
+     drin, die Marke bleibt also die, mit der man reingegangen ist. */
+  if(st.done){
+    const f=exFactor(ex.name, ex.exId);
+    const rec=bestSet(ex.exId, ex.name);
+    if(schlaegtRekord(st, rec, f)){
+      const neu=(+st.weight||0)*f*(+st.reps||0);
+      toast(rec.vol>0 ? `Rekord! ${rec.vol.toLocaleString('de-DE')} → ${neu.toLocaleString('de-DE')} kg`
+                      : `Rekord! ${rec.reps} → ${+st.reps||0} Wdh`);
+    }
+  }
   saveSession();
   renderView();
   // Pausen-Countdown automatisch starten, wenn Satz bestätigt wurde und eine Pause gesetzt ist
