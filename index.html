@@ -238,9 +238,17 @@ body.in-session.timer-on{--timer-space:78px}
      (es hebt die Berechnung des Hochformats auf), deshalb bekommt es hier
      einen Angriffspunkt: Eine per JavaScript gesetzte max-height käme gegen
      !important nicht an, eine Custom Property schon. */
-  .ex-sets{max-height:var(--sets-max,none) !important;flex:1 1 auto;overflow-y:auto}
+  /* flex:0 1 auto statt 1 1 auto: Der Bereich ist ohnehin auf drei Sätze
+     gedeckelt, Wachsen bringt ihm nichts – es verschluckt aber den freien Platz
+     der Spalte, bevor der automatische Abstand des Volumenblocks ihn bekommt.
+     Deshalb blieb der Block direkt unter der Tabelle hängen. */
+  .ex-sets{max-height:var(--sets-max,none) !important;flex:0 1 auto;overflow-y:auto}
   /* Vergleich kompakter, damit die Sätze mehr Platz haben */
-  .ex-col .vc{flex:0 0 auto;margin-top:8px;padding-top:8px}
+  /* margin-top:auto schiebt den Volumenblock ans untere Ende der rechten
+     Spalte. Die Spalte ist so hoch wie das Bild daneben, also schließt er
+     bündig mit dessen Unterkante ab. Vorher klebte er direkt unter der
+     Satztabelle und ließ darunter eine Lücke. */
+  .ex-col .vc{flex:0 0 auto;margin-top:auto;padding-top:8px}
   .ex-col .vc .vc-row{margin-bottom:3px}
 
 }
@@ -741,7 +749,12 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   .in-unit .input{padding:10px 24px 10px 8px}
   .in-unit .unit{right:7px;font-size:10px}
 }
-.set-head{font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:6px;padding:0 2px}
+/* flex-shrink:0 – sie sitzt jetzt neben dem Scrollbereich in derselben Spalte
+   und dürfte sonst zusammengedrückt werden, wenn der Platz knapp wird.
+   padding-right passend zum Scrollbalken-Platz von .ex-sets, damit die Spalten
+   der Kopfzeile genau über denen der Sätze stehen. */
+.set-head{font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:6px;
+  padding:0 2px;flex-shrink:0;padding-right:4px}
 .set-block{margin-bottom:10px}
 /* Großes, zentriertes Vorschaubild über der Satz-Tabelle */
 .ex-preview{width:100%;max-height:260px;margin:12px 0 16px;border-radius:12px;overflow:hidden;
@@ -1245,6 +1258,29 @@ h2{color:var(--accent)}
   border-color:rgba(200,255,0,.22);
   box-shadow:0 0 24px rgba(200,255,0,.12);
 }
+
+/* ===== ENGERE ABSTÄNDE AUF FLACHEN PANELS ================================
+   Steht aus demselben Grund ganz am Ende wie der Rahmen darüber: Die
+   Grundwerte für .set-head und .add-set stehen in der Datei WEITER UNTEN als
+   die Media-Query weiter oben, und bei gleicher Spezifität gewinnt die
+   spätere Regel. Beide Verdichtungen für flache Panels waren dadurch
+   wirkungslos – gemessen: margin 6px statt der dort gewünschten 2 bzw. 4.
+
+   Gebraucht werden sie, seit die Kopfzeile mit kg/Wdh/RIR außerhalb des
+   Scrollbereichs steht und dort dauerhaft Platz kostet. Ohne diese Zeilen
+   fehlten dem Panel rund 8 px für den dritten Satz. */
+@media (min-width:900px) and (max-height:720px){
+  .ex-card .set-head{margin-bottom:2px;padding-bottom:0}
+  .ex-card .add-set{margin-top:2px;padding:7px}
+}
+
+/* Volumenblock ans untere Ende der rechten Spalte, bündig mit dem Bild daneben.
+   Auch das MUSS hier unten stehen: Weiter oben setzen gleich drei
+   Panel-Regeln `.ex-col .vc{margin-top:…px}` mit derselben Spezifität, und die
+   spätere gewinnt – gemessen kam dort 7px an statt auto. */
+@media (min-width:900px) and (max-height:820px){
+  .ex-col .vc{margin-top:auto}
+}
 </style>
 </head>
 <body>
@@ -1314,7 +1350,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.4';
+const APP_VERSION='1.20.5';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2635,8 +2671,12 @@ function dreiSatzHoehe(sets){
 function begrenzeAufDreiSaetze(sets){
   const h=dreiSatzHoehe(sets);
   if(h>0 && sets.scrollHeight>h+1){
-    sets.style.maxHeight=Math.floor(h)+'px';
-    sets.style.setProperty('--sets-max', Math.floor(h)+'px');
+    /* Aufgerundet, nicht abgerundet: Die drei Blöcke messen selten eine ganze
+       Zahl. Abrunden schnitt vom dritten Satz einen Bruchteil ab – 190 statt
+       190,9 – und die Zusage war um genau diesen Rest verfehlt. */
+    const px=Math.ceil(h);
+    sets.style.maxHeight=px+'px';
+    sets.style.setProperty('--sets-max', px+'px');
   } else {
     sets.style.maxHeight='';
     sets.style.removeProperty('--sets-max');
@@ -2711,6 +2751,10 @@ function fitSessImage(){
   if(quer){
     if(vc) vc.style.display='';
     if(prev){ prev.style.display=''; card.style.removeProperty('--img-max'); }
+    /* --sets-max mit zurücksetzen, nicht nur maxHeight: Im Querformat greift
+       die Begrenzung über die Eigenschaft (die dortige Regel ist !important).
+       Ohne dies misst man beim Blättern die Vorgabe der VORHERIGEN Übung. */
+    sets.style.removeProperty('--sets-max');
     sets.style.maxHeight='';
     card.style.maxHeight='';
     card.classList.remove('scroll-all');
@@ -2724,6 +2768,8 @@ function fitSessImage(){
   // aber das Sicherheitsnetz gegen die Timer-Überlappung muss laufen.
   if(querBreit && flach){
     if(vc) vc.style.display='';
+    // siehe Querformat-Zweig: die Begrenzung läuft hier über die Eigenschaft
+    sets.style.removeProperty('--sets-max');
     sets.style.maxHeight='';
     card.style.maxHeight='';
     card.classList.remove('scroll-all');
@@ -2755,6 +2801,19 @@ function fitSessImage(){
        deshalb auch in diesem Zweig gesetzt werden; er kehrt vorher zurück und
        erreicht die Rechnung weiter unten nie. */
     begrenzeAufDreiSaetze(sets);
+    /* Der Satzbereich hat in der Spalte flex:1 1 0 und wird zusammengedrückt,
+       wenn Kopfzeile, Knopf und Vergleichsbalken nicht mehr danebenpassen.
+       Dann tritt der Vergleichsbalken zurück – dieselbe Rangfolge wie im
+       Hochformat. Geprüft wird das ERGEBNIS, nicht eine Vorhersage: Ob es
+       gepasst hat, sagt die tatsächliche Höhe nach dem Setzen. */
+    const zielHoehe=Math.min(sets.scrollHeight, dreiSatzHoehe(sets));
+    const vorher=sets.clientHeight;
+    if(vc && zielHoehe>0 && sets.clientHeight < zielHoehe-1){
+      vc.style.display='none';
+      begrenzeAufDreiSaetze(sets);
+    }
+    FIT_DIAG={zweig:'panel', zielHoehe, vorher, nachher:sets.clientHeight,
+              vcWeg: (vc && vc.style.display==='none')?1:0, maxCard};
     return;
   }
 
@@ -2940,9 +2999,14 @@ function exerciseCard(ex,ei){
         <img loading="lazy" src="${thumb}" alt="" onerror="this.parentNode.classList.add('bad')">
       </div>`:''}
       <div class="ex-col">
+        <!-- Die Kopfzeile steht bewusst AUSSERHALB von .ex-sets. Innerhalb
+             scrollte sie nicht nur mit, sondern verschwand sofort: Das Einrasten
+             zieht den ersten Satzblock an den oberen Rand und schiebt alles
+             darüber hinaus. Sichtbar wurde sie nur beim Hochziehen, und beim
+             Loslassen rastete es wieder auf die drei Sätze. -->
+        <div class="set-grid set-head">
+          <span>#</span><span>KG</span><span>WDH</span><span style="text-align:center">RIR</span><span></span></div>
         <div class="ex-sets">
-          <div class="set-grid set-head">
-            <span>#</span><span>KG</span><span>WDH</span><span style="text-align:center">RIR</span><span></span></div>
           ${ex.sets.map((st,si)=>setRow(ex,ei,st,si)).join('')}
         </div>
         <!-- Steht bewusst AUSSERHALB von .ex-sets: so bleibt der Button beim
