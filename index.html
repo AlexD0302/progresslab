@@ -238,11 +238,12 @@ body.in-session.timer-on{--timer-space:78px}
      (es hebt die Berechnung des Hochformats auf), deshalb bekommt es hier
      einen Angriffspunkt: Eine per JavaScript gesetzte max-height käme gegen
      !important nicht an, eine Custom Property schon. */
-  /* flex:0 1 auto statt 1 1 auto: Der Bereich ist ohnehin auf drei Sätze
-     gedeckelt, Wachsen bringt ihm nichts – es verschluckt aber den freien Platz
-     der Spalte, bevor der automatische Abstand des Volumenblocks ihn bekommt.
-     Deshalb blieb der Block direkt unter der Tabelle hängen. */
-  .ex-sets{max-height:var(--sets-max,none) !important;flex:0 1 auto;overflow-y:auto}
+  /* flex:1 1 auto – der Bereich darf wachsen. Genau daran misst die App, wie
+     viel Höhe die Spalte hergibt: Ohne Begrenzung füllt er sie aus, und aus
+     dieser Höhe ergibt sich, wie viele GANZE Sätze hineinpassen. Danach wird
+     begrenzt, und der frei werdende Rest geht an den automatischen Abstand
+     über „Satz hinzufügen“. */
+  .ex-sets{max-height:var(--sets-max,none) !important;flex:1 1 auto;overflow-y:auto}
   /* Vergleich kompakter, damit die Sätze mehr Platz haben */
   /* margin-top:auto schiebt den Volumenblock ans untere Ende der rechten
      Spalte. Die Spalte ist so hoch wie das Bild daneben, also schließt er
@@ -756,6 +757,10 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .set-head{font-size:11px;color:var(--text-faint);font-weight:600;margin-bottom:6px;
   padding:0 2px;flex-shrink:0;padding-right:4px}
 .set-block{margin-bottom:10px}
+/* Hinter dem LETZTEN Satz kein Abstand: Er zählt in die Scrollhöhe, macht den
+   Scrollweg um genau diesen Betrag länger als ein Vielfaches der Satzblöcke –
+   und ganz unten war deshalb der oberste sichtbare Satz angeschnitten. */
+.ex-sets .set-block:last-child{margin-bottom:0}
 /* Großes, zentriertes Vorschaubild über der Satz-Tabelle */
 .ex-preview{width:100%;max-height:260px;margin:12px 0 16px;border-radius:12px;overflow:hidden;
   background:var(--surface-2);border:1px solid var(--line-soft);cursor:pointer;display:grid;place-items:center;position:relative}
@@ -1274,12 +1279,15 @@ h2{color:var(--accent)}
   .ex-card .add-set{margin-top:2px;padding:7px}
 }
 
-/* Volumenblock ans untere Ende der rechten Spalte, bündig mit dem Bild daneben.
-   Auch das MUSS hier unten stehen: Weiter oben setzen gleich drei
-   Panel-Regeln `.ex-col .vc{margin-top:…px}` mit derselben Spezifität, und die
-   spätere gewinnt – gemessen kam dort 7px an statt auto. */
+/* Volumenblock ans untere Ende der rechten Spalte, bündig mit dem Bild daneben –
+   und „Satz hinzufügen“ direkt darüber statt an der Satztabelle klebend.
+   Der automatische Abstand sitzt deshalb am KNOPF: Dann liegt der freie Platz
+   über ihm, und Knopf und Volumenblock bilden unten eine Einheit. Säße er am
+   Volumenblock, bliebe der Knopf oben an der Tabelle hängen.
+   Auch das MUSS hier unten stehen: Weiter oben setzen mehrere Panel-Regeln
+   dieselben Eigenschaften mit derselben Spezifität, und die spätere gewinnt. */
 @media (min-width:900px) and (max-height:820px){
-  .ex-col .vc{margin-top:auto}
+  .ex-col .add-set{margin-top:auto}
 }
 </style>
 </head>
@@ -1350,7 +1358,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.5';
+const APP_VERSION='1.20.6';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2648,6 +2656,37 @@ const MIN_IMG_PX = 78;
    sonst lugte der vierte Block angeschnitten herein, und „genau drei“ wäre es
    nicht mehr. Muss aufgerufen werden, solange maxHeight nicht gesetzt ist,
    sonst misst man die eigene Vorgabe nach. */
+/* Maße eines Satzblocks: Höhe und Abstand zum nächsten. */
+function satzMasze(sets){
+  const bl=sets.querySelectorAll('.set-block');
+  if(!bl.length) return null;
+  const bh=bl[0].getBoundingClientRect().height;
+  const luecke = bl.length>1
+    ? (bl[1].getBoundingClientRect().top - bl[0].getBoundingClientRect().bottom)
+    : (parseFloat(getComputedStyle(bl[0]).marginBottom)||0);
+  return {bh, luecke, anzahl:bl.length};
+}
+// Höhe für genau n Blöcke – der Abstand hinter dem letzten zählt nicht mit.
+function hoeheFuerSaetze(n, m){ return n*m.bh + (n-1)*m.luecke; }
+/* Wie viel Höhe steht dem Satzbereich zur Verfügung? Nicht ausgerechnet, sondern
+   den Browser gefragt: Ohne Begrenzung füllt der Bereich (flex:1 1 auto) genau
+   den freien Platz der Spalte aus, und das ist die gesuchte Zahl.
+   Der frühere Weg – Bereich auf 0 und die übrigen Kinder aufsummieren – lieferte
+   auf dem Panel 0: Dort steckt ein automatischer Abstand in der Spalte, der den
+   frei werdenden Raum sofort aufsaugt und in die Scrollhöhe eingeht. */
+function platzFuerSaetze(sets){
+  const altMax=sets.style.maxHeight;
+  const altVar=sets.style.getPropertyValue('--sets-max');
+  sets.style.maxHeight='';
+  sets.style.removeProperty('--sets-max');
+  /* Rechteck statt clientHeight: Letzteres rundet auf ganze Pixel, und ein
+     Bruchteil zu wenig ließ einen Satz durchfallen, der gerade noch passte. */
+  const h=sets.getBoundingClientRect().height;
+  sets.style.maxHeight=altMax;
+  if(altVar) sets.style.setProperty('--sets-max', altVar);
+  else sets.style.removeProperty('--sets-max');
+  return h;
+}
 function dreiSatzHoehe(sets){
   const bl=sets.querySelectorAll('.set-block');
   if(!bl.length) return 0;
@@ -2668,19 +2707,30 @@ function dreiSatzHoehe(sets){
 /* Den Satzbereich auf drei Blöcke kappen – für die Zweige, in denen sonst
    allein das CSS die Höhe bestimmt (Querformat und flaches Panel). Hat die
    Übung weniger als drei Sätze, bleibt sie kürzer. */
-function begrenzeAufDreiSaetze(sets){
-  const h=dreiSatzHoehe(sets);
-  if(h>0 && sets.scrollHeight>h+1){
-    /* Aufgerundet, nicht abgerundet: Die drei Blöcke messen selten eine ganze
-       Zahl. Abrunden schnitt vom dritten Satz einen Bruchteil ab – 190 statt
-       190,9 – und die Zusage war um genau diesen Rest verfehlt. */
-    const px=Math.ceil(h);
-    sets.style.maxHeight=px+'px';
-    sets.style.setProperty('--sets-max', px+'px');
-  } else {
-    sets.style.maxHeight='';
-    sets.style.removeProperty('--sets-max');
+/* Begrenzt den Satzbereich auf so viele GANZE Sätze, wie die Spalte hergibt –
+   mindestens SICHTBARE_SAETZE, höchstens alle. Zwei Dinge fallen damit weg:
+   ein Scrollbalken, obwohl noch Platz für einen weiteren Satz wäre, und ein
+   halb angeschnittener Satz am unteren Rand.
+   Passt alles, wird gar nicht begrenzt – dann gibt es auch nichts zu scrollen. */
+function begrenzeSatzbereich(sets){
+  const m=satzMasze(sets);
+  const frei=()=>{ sets.style.maxHeight=''; sets.style.removeProperty('--sets-max'); };
+  if(!m){ frei(); return; }
+  const platz=platzFuerSaetze(sets);
+  let n=SICHTBARE_SAETZE;
+  if(platz>0){
+    /* +luecke, weil der Abstand hinter dem letzten Block nicht gebraucht wird.
+       +0.5 als Toleranz gegen Rundung: Ohne sie fiel ein Satz durch, der um
+       zwei Zehntel Pixel gepasst hätte. */
+    const passt=Math.floor((platz + m.luecke + 0.5) / (m.bh + m.luecke));
+    n=Math.max(SICHTBARE_SAETZE, Math.min(m.anzahl, passt));
   }
+  if(n>=m.anzahl){ frei(); return; }
+  /* Aufgerundet, nicht abgerundet: n Blöcke messen selten eine ganze Zahl.
+     Abrunden schnitt vom letzten sichtbaren Satz einen Bruchteil ab. */
+  const px=Math.ceil(hoeheFuerSaetze(n, m));
+  sets.style.maxHeight=px+'px';
+  sets.style.setProperty('--sets-max', px+'px');
 }
 /* Bildhöhe an den tatsächlich freien Platz anpassen:
    Karte darf höchstens so hoch werden wie der Bereich zwischen Volumen-Karte und Punkten.
@@ -2760,7 +2810,7 @@ function fitSessImage(){
     card.classList.remove('scroll-all');
     // Auch hier gilt die Zusage: genau drei Sätze. Sonst zeigte dasselbe Gerät
     // im Querformat sechs und im Hochformat drei.
-    begrenzeAufDreiSaetze(sets);
+    begrenzeSatzbereich(sets);
     return;
   }
   // Flaches Querformat-Panel (z. B. Promethean): Größen regelt das CSS (Bild
@@ -2800,7 +2850,7 @@ function fitSessImage(){
        dort standen zuletzt dreieinhalb Sätze. Die Zusage „genau drei“ muss
        deshalb auch in diesem Zweig gesetzt werden; er kehrt vorher zurück und
        erreicht die Rechnung weiter unten nie. */
-    begrenzeAufDreiSaetze(sets);
+    begrenzeSatzbereich(sets);
     /* Der Satzbereich hat in der Spalte flex:1 1 0 und wird zusammengedrückt,
        wenn Kopfzeile, Knopf und Vergleichsbalken nicht mehr danebenpassen.
        Dann tritt der Vergleichsbalken zurück – dieselbe Rangfolge wie im
@@ -2810,7 +2860,7 @@ function fitSessImage(){
     const vorher=sets.clientHeight;
     if(vc && zielHoehe>0 && sets.clientHeight < zielHoehe-1){
       vc.style.display='none';
-      begrenzeAufDreiSaetze(sets);
+      begrenzeSatzbereich(sets);
     }
     FIT_DIAG={zweig:'panel', zielHoehe, vorher, nachher:sets.clientHeight,
               vcWeg: (vc && vc.style.display==='none')?1:0, maxCard};
@@ -2912,8 +2962,17 @@ function fitSessImage(){
      Fassung. Kostet nichts und erspart beim nächsten Mal eine Sonde. */
   FIT_DIAG={verfuegbar, grund, platz:verfuegbar-grund, dreiHoehe, setsVoll, imgBlock, fuerSaetze,
             kompakt:card.classList.contains('prev-kompakt')?1:0, hatBild:prev?1:0};
-  // Ziel: genau drei Blöcke. Hat die Übung weniger, ist sie eben kürzer.
-  const zielSaetze = Math.min(setsVoll, dreiHoehe);
+  /* Ziel: so viele GANZE Sätze, wie in den übrigen Platz passen – mindestens
+     SICHTBARE_SAETZE, höchstens alle. Vorher waren es strikt drei; dadurch stand
+     ein Scrollbalken da, obwohl ein vierter Satz bequem Platz gehabt hätte.
+     Ein angeschnittener Satz am unteren Rand entsteht so ebenfalls nicht. */
+  let zielSaetze = Math.min(setsVoll, dreiHoehe);
+  const masze = satzMasze(sets);
+  if(masze){
+    const passt=Math.floor((fuerSaetze + masze.luecke + 0.5) / (masze.bh + masze.luecke));
+    const n=Math.max(SICHTBARE_SAETZE, Math.min(masze.anzahl, passt));
+    zielSaetze = (n>=masze.anzahl) ? setsVoll : hoeheFuerSaetze(n, masze);
+  }
   if(fuerSaetze < Math.min(zielSaetze, MIN_SETS)){
     // Zu wenig Platz für ein sinnvolles Aufteilen (sehr flaches Fenster,
     // starke Windows-Skalierung): dann scrollt die ganze Karte.
