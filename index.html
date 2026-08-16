@@ -1358,7 +1358,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.6';
+const APP_VERSION='1.20.7';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -3379,11 +3379,33 @@ document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState==='visible' && TIMER) tickRest();
 });
 function fmtClock(s){ const m=Math.floor(s/60), ss=s%60; return `${m}:${String(ss).padStart(2,'0')}`; }
+/* Reservierte der letzte Durchlauf Platz für den Timer? Nur wenn sich das
+   ÄNDERT, muss die Platzaufteilung neu gerechnet werden – nicht bei jedem Tick. */
+let TIMER_PLATZ=false;
+function timerPlatzMerken(an){
+  if(an===TIMER_PLATZ) return false;
+  TIMER_PLATZ=an;
+  return true;
+}
+/* Der Timer nimmt unten Platz weg und verkürzt damit die Übungskarte. Ohne eine
+   neue Aufteilung behält der Satzbereich die Höhe, die OHNE ihn gerechnet wurde:
+   Er wird zusammengedrückt, zeigt keine ganze Zahl von Sätzen mehr, und das
+   Einrasten trifft daneben. Beim Training ist genau das der Normalfall, denn
+   toggleSet() startet die Pause NACH dem Neuzeichnen. */
+function neuAufteilenWennTimerWechselt(an){
+  if(timerPlatzMerken(an) && SESSION && current==='today') fitSessImage();
+}
 function renderRestTimer(){
   const el=document.getElementById('restTimer'); if(!el) return;
   // Timer nur während einer laufenden Session zeigen
-  if(!TIMER || !SESSION){ el.classList.remove('show'); el.innerHTML=''; document.body.classList.remove('timer-on'); return; }
+  if(!TIMER || !SESSION){
+    el.classList.remove('show'); el.innerHTML='';
+    document.body.classList.remove('timer-on');
+    neuAufteilenWennTimerWechselt(false);
+    return;
+  }
   document.body.classList.add('timer-on'); // Platz im Trainings-Layout reservieren
+  neuAufteilenWennTimerWechselt(true);
   const remaining=restRemaining();
   const pct = TIMER.total? Math.max(0, Math.min(100, remaining/TIMER.total*100)) : 0;
   const ended=TIMER.ended;
