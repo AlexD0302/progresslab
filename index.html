@@ -349,7 +349,6 @@ body.in-session.timer-on{--timer-space:78px}
   .ex-card .in-unit .input{padding:9px 26px 9px 9px}
   .ex-card{--satz-gap:7px}
   .ex-card .set-grid{gap:7px}
-  .set-head{padding-bottom:4px;margin-bottom:2px}
 
   /* Vergleichsbalken kompakter, damit die Sätze mehr Platz behalten */
   .ex-col .vc{margin-top:7px;padding-top:7px}
@@ -363,7 +362,8 @@ body.in-session.timer-on{--timer-space:78px}
   .ex-card .ex-sec{display:none}            /* Sekundärmuskel-Tags ausblenden */
   .ex-card .set-block{margin-bottom:4px}
   .ex-card .in-unit .input{padding:8px 26px 8px 9px}
-  .ex-card .add-set{margin-top:4px;padding:7px}
+  /* kein margin-top: der Endblock setzt hier auto (Knopf ans untere Ende) */
+  .ex-card .add-set{padding:7px}
   .ex-col .vc{margin-top:5px;padding-top:5px}
   .vc-title{margin-bottom:3px}
   /* Das Häkchen bestimmt mit seinen fest gesetzten 44px die Zeilenhöhe –
@@ -1276,7 +1276,8 @@ h2{color:var(--accent)}
    fehlten dem Panel rund 8 px für den dritten Satz. */
 @media (min-width:900px) and (max-height:720px){
   .ex-card .set-head{margin-bottom:2px;padding-bottom:0}
-  .ex-card .add-set{margin-top:2px;padding:7px}
+  /* Kein margin-top: Der Block darunter setzt für dieselben Panels auto. */
+  .ex-card .add-set{padding:7px}
 }
 
 /* Volumenblock ans untere Ende der rechten Spalte, bündig mit dem Bild daneben –
@@ -1358,7 +1359,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.20.7';
+const APP_VERSION='1.20.8';
 const APP_BUILD='2026-08-07';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1394,12 +1395,8 @@ function rebuildExDB(){
 function exMeta(name){ return EXBYNAME[name]||null; }
 // Metadaten per ID (stabile Verknüpfung). Überlebt Umbenennen der Übung.
 function exMetaById(id){ return id ? (EXBYID[id]||null) : null; }
-// Universeller Lookup: bevorzugt die ID, fällt auf den Namen zurück.
-// Nimmt ein Objekt {exId?, name?} oder direkt (id, name).
-function resolveEx(ref, name){
-  if(ref && typeof ref==='object'){ name=ref.name; ref=ref.exId; }
-  return exMetaById(ref) || exMeta(name) || null;
-}
+// Übung nachschlagen: erst über exMetaById(), dann über exMeta() als Rückfall.
+// Ids überleben ein Umbenennen, Namen nicht.
 // Liefert die stabile ID zu einem Übungsnamen (für Migration & neues Speichern).
 function exIdForName(name){ const m=exMeta(name); return m?m.id:null; }
 
@@ -1452,7 +1449,8 @@ function load(){
     const raw = localStorage.getItem(KEY);
     if(raw){ const d=JSON.parse(raw); if(!Array.isArray(d.customEx)) d.customEx=[]; if(!Array.isArray(d.measurements)) d.measurements=[]; return d; }
   }catch(e){}
-  return {plans:[],logs:[],settings:{unit:'kg',incrementUpper:2.5,incrementLower:5},customEx:[],measurements:[]};
+  // Die App rechnet durchgehend in kg – kein unit-Schalter, weil ihn nichts liest.
+  return {plans:[],logs:[],settings:{incrementUpper:2.5,incrementLower:5},customEx:[],measurements:[]};
 }
 let saveTimer, pushTimer;
 function save(){
@@ -2311,7 +2309,6 @@ function logVolume(log){
     return sum+ex.sets.filter(s=>s.done).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
   },0);
 }
-function est1RM(w,r){ r=+r; w=+w; if(!w||!r) return 0; return w*(1+r/30); } // Epley
 // Gewichts-Faktor einer Übung: 2 bei Kurzhantel-Übungen mit zwei Hanteln, sonst 1.
 // Das gespeicherte Satz-Gewicht ist immer das Gewicht EINER Hantel.
 // Sucht per ID (stabil), Fallback auf den Namen.
@@ -2644,7 +2641,11 @@ function toggleSessImg(){
    Rangfolge über dem Bild – anders als bis 1.19.7, wo das Bild zuerst bediente
    wurde und auf dem Handy zweieinhalb Sätze übrig blieben. */
 const SICHTBARE_SAETZE = 3;
-let FIT_DIAG=null;        // letzte Platzverteilung, siehe fitSessImage()
+/* Letzte Platzverteilung, siehe fitSessImage(). Das Feld `zweig` sagt, WELCHER
+   Zweig sie gefüllt hat ('panel' oder 'hoch') – die übrigen Felder sind je
+   Zweig verschieden, weil der Panel-Zweig früher zurückkehrt und die Werte des
+   anderen gar nicht kennt. Ohne `zweig` war auf kein Feld Verlass. */
+let FIT_DIAG=null;
 /* Kleinstes Bild, das noch gezeigt wird. Gemessen, nicht geschätzt: Auf dem
    Handy (500×844) bleiben bei einer Übung mit fünf Sätzen und Vorgeschichte
    nach den drei reservierten Satzblöcken 80,6 px übrig. Der Wert muss darunter
@@ -2700,9 +2701,7 @@ function dreiSatzHoehe(sets){
          - bl[0].getBoundingClientRect().top;
   }
   // Weniger Sätze als zugesagt: hochrechnen, damit der Bildrahmen gleich bleibt.
-  const bh=bl[0].getBoundingClientRect().height;
-  const luecke=parseFloat(getComputedStyle(bl[0]).marginBottom)||0;
-  return SICHTBARE_SAETZE*bh + (SICHTBARE_SAETZE-1)*luecke;
+  return hoeheFuerSaetze(SICHTBARE_SAETZE, satzMasze(sets));
 }
 /* Den Satzbereich auf drei Blöcke kappen – für die Zweige, in denen sonst
    allein das CSS die Höhe bestimmt (Querformat und flaches Panel). Hat die
@@ -2960,8 +2959,8 @@ function fitSessImage(){
      Stelle der App – bei der Bildgröße und beim RIR-Feld hat schon zweimal nur
      das Nachmessen am Gerät weitergeholfen, und Raten kostete jedes Mal eine
      Fassung. Kostet nichts und erspart beim nächsten Mal eine Sonde. */
-  FIT_DIAG={verfuegbar, grund, platz:verfuegbar-grund, dreiHoehe, setsVoll, imgBlock, fuerSaetze,
-            kompakt:card.classList.contains('prev-kompakt')?1:0, hatBild:prev?1:0};
+  FIT_DIAG={zweig:'hoch', verfuegbar, grund, platz:verfuegbar-grund, dreiHoehe, setsVoll, imgBlock,
+            fuerSaetze, kompakt:card.classList.contains('prev-kompakt')?1:0, hatBild:prev?1:0};
   /* Ziel: so viele GANZE Sätze, wie in den übrigen Platz passen – mindestens
      SICHTBARE_SAETZE, höchstens alle. Vorher waren es strikt drei; dadurch stand
      ein Scrollbalken da, obwohl ein vierter Satz bequem Platz gehabt hätte.
@@ -3140,10 +3139,6 @@ function volCompare(ex){
       <span class="vc-val prev">${prev?fmt(prev):'–'}</span>
     </div>
   </div>`;
-}
-function fmtPrev(p){
-  if(!p) return '–';
-  return `${p.weight}×${p.reps}`;
 }
 /* Vorgeschlagene Wiederholungen – aber nur, wenn der Vorschlag KEIN Gewicht
    trägt. Genau dann stammt er aus dem Körpergewichts-Zweig von suggest(), wo
@@ -3382,18 +3377,15 @@ function fmtClock(s){ const m=Math.floor(s/60), ss=s%60; return `${m}:${String(s
 /* Reservierte der letzte Durchlauf Platz für den Timer? Nur wenn sich das
    ÄNDERT, muss die Platzaufteilung neu gerechnet werden – nicht bei jedem Tick. */
 let TIMER_PLATZ=false;
-function timerPlatzMerken(an){
-  if(an===TIMER_PLATZ) return false;
-  TIMER_PLATZ=an;
-  return true;
-}
 /* Der Timer nimmt unten Platz weg und verkürzt damit die Übungskarte. Ohne eine
    neue Aufteilung behält der Satzbereich die Höhe, die OHNE ihn gerechnet wurde:
    Er wird zusammengedrückt, zeigt keine ganze Zahl von Sätzen mehr, und das
    Einrasten trifft daneben. Beim Training ist genau das der Normalfall, denn
    toggleSet() startet die Pause NACH dem Neuzeichnen. */
 function neuAufteilenWennTimerWechselt(an){
-  if(timerPlatzMerken(an) && SESSION && current==='today') fitSessImage();
+  if(an===TIMER_PLATZ) return;          // nichts geändert, nichts zu rechnen
+  TIMER_PLATZ=an;
+  if(SESSION && current==='today') fitSessImage();
 }
 function renderRestTimer(){
   const el=document.getElementById('restTimer'); if(!el) return;
@@ -3456,7 +3448,6 @@ function addSet(ei){
   ex.sets.push({weight:'',reps:'',rir:'0',done:false,sug:prev?prev.sug:null,prev:null});
   saveSession(); renderView();
 }
-function removeSessionEx(ei){ SESSION.exercises.splice(ei,1); saveSession(); renderView(); }
 function addExerciseToSession(){
   openExercisePicker(sel=>{
     const exId=sel.id||exIdForName(sel.n);
