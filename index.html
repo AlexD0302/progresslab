@@ -29,9 +29,15 @@
   --text:#eef2f7;
   --text-dim:#9aa6b8;        /* 7.9:1 auf --bg */
   /* Wird durchgängig für 10–12px-Text benutzt (Labels, Hinweise, Wochentage).
-     Der frühere Wert #5f6c80 erreichte nur 3.7:1 und lag damit unter WCAG AA
-     (4.5:1 für normalen Text). #6d7c93 erreicht 4.6:1. */
-  --text-faint:#6d7c93;
+     Gemessen wird gegen den Untergrund, auf dem der Text wirklich steht – und
+     das ist fast immer eine Karte, nicht der Seitenhintergrund:
+        #5f6c80  3.7:1 auf --bg              (weit unter AA)
+        #6d7c93  4.6:1 auf --bg, aber nur 4.3:1 auf --surface  → verfehlt AA
+        #7d8ca6  5.6:1 auf --bg, 5.4:1 auf --surface, 4.8:1 auf --surface-2
+     Auf --surface-3 bleibt er knapp darunter (4.2:1) – dort steht kein
+     Hilfstext, und ein weiterer Schritt nach oben wäre von --text-dim nicht
+     mehr zu unterscheiden. */
+  --text-faint:#7d8ca6;
   --accent:#c8ff00;        /* volt — signature */
   --accent-dim:#8fb300;
   --accent-glow:rgba(200,255,0,.18);
@@ -39,6 +45,10 @@
   --red:#ff5c5c;
   --amber:#ffb43d;
   --green:#37d99a;
+  /* Hinter Übungsbildern steht Weiß, weil die meisten GIFs auf weißem Grund
+     freigestellt sind – kein Textkontrast, sondern eine Bildfläche. */
+  --img-bg:#fff;
+  --measure:#ff3b3b;       /* Maßlinie: kräftiger als --red, damit sie auf der Figur führt */
   --radius:14px;
   --radius-sm:9px;
   --shadow:0 8px 30px rgba(0,0,0,.45);
@@ -59,6 +69,14 @@ body{
 
 h1,h2,h3,h4,.display{font-family:var(--font-display);font-weight:700;letter-spacing:.01em;line-height:1.05}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+/* Der Standardring des Browsers ist weiß und gehört keinem Gestaltungssystem an.
+   :focus-visible statt :focus – er erscheint bei Tastaturbedienung, nicht beim
+   Antippen. */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.input:focus-visible,.chip:focus-visible,.btn-slim:focus-visible,.sync-badge:focus-visible{outline-offset:3px}
+/* Auswahl und Schreibmarke tragen die Farbe mit. */
+::selection{background:var(--accent-glow);color:var(--text)}
+input,textarea,select{caret-color:var(--accent)}
 input,select{font-family:inherit}
 .num{font-variant-numeric:tabular-nums}
 
@@ -88,7 +106,21 @@ body.in-session.timer-on{--timer-space:78px}
 .sess-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
   padding:7px 11px;border-radius:9px;background:transparent;border:1px solid var(--line);color:var(--text-dim);transition:all .12s}
 .sess-btn svg{width:14px;height:14px;stroke-width:2.4}
-.sess-btn.solid{background:var(--accent);border-color:var(--accent);color:#0a0c10}
+/* Im Training ist jeder Pixel Höhe verplant – die Karte teilt den Platz exakt
+   auf. Die Bedienelemente hier werden deshalb nicht größer, sie bekommen nur
+   eine unsichtbare Trefferfläche. Das Layout bleibt auf den Pixel gleich. */
+.sess-btn{position:relative}
+.sess-btn::after{content:"";position:absolute;inset:-9px -4px}
+.sess-arrow{position:relative}
+.sess-arrow::after{content:"";position:absolute;inset:-3px}
+.ex-card .add-set,.add-set{position:relative}
+.add-set::after{content:"";position:absolute;inset:-6px 0}
+/* Die Punkte zeigen die Übung an und sind nur der zweite Weg – gewischt wird
+   ohnehin. Sie wachsen nach oben und unten, nicht zur Seite: Seitlich lägen
+   die Trefferflächen der Nachbarn übereinander und man träfe den falschen. */
+.sess-dot{position:relative}
+.sess-dot::after{content:"";position:absolute;inset:-17px -3px}
+.sess-btn.solid{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .sess-btn.danger{color:var(--red);border-color:rgba(255,92,92,.3)}
 /* Uhrzeit im Training (24h).
    Die Höhe wird NICHT hier festgelegt, sondern von den Knöpfen daneben geerbt:
@@ -172,7 +204,7 @@ body.in-session.timer-on{--timer-space:78px}
      Die GIFs liegen auf Weiß; mit dunklem Grund stand ein weißes Rechteck mit
      ECKIGEN Ecken in einem runden Rahmen. So ist die sichtbare Fläche der
      Rahmen selbst – und der ist rund. */
-  background:#fff}
+  background:var(--img-bg)}
 /* contain statt cover: Bei einer Bewegungsanimation würde ein beschnittener
    Rand ein Stück der Ausführung verschlucken.
    Kein border-radius am Bild: Es füllt den ganzen Rahmen, seine Ecken liegen
@@ -324,7 +356,10 @@ body.in-session.timer-on{--timer-space:78px}
 
   /* Nav-Leiste flacher und näher am Rand */
   body .nav{margin-bottom:calc(6px + env(safe-area-inset-bottom));padding:5px}
-  body .nav button{padding:5px 2px;font-size:9px;gap:1px}
+  /* Hier gilt die 44px-Regel bewusst nicht: Auf dem breiten, flachen Panel ist
+     jeder Reiter über 140px breit – die Trefferfläche ist reichlich, sie liegt
+     nur quer. Höhe ist auf diesem Bildschirm das knappe Gut. */
+  body .nav button{padding:5px 2px;min-height:0;font-size:9px;gap:1px}
   body .nav button svg{width:17px;height:17px}
 
   /* Rest-Timer flacher und direkt über der (nun flacheren) Nav-Leiste */
@@ -456,6 +491,11 @@ body.in-session.timer-on{--timer-space:78px}
   padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;
   background:transparent;border:1px solid var(--line);color:var(--text-dim);
   transition:all .15s;max-width:46%}
+/* Die Kopfzeile steht fest und darf nicht wachsen. Statt den Knopf höher zu
+   machen, bekommt er eine unsichtbare Trefferfläche von 44px – das Layout
+   bleibt auf den Pixel gleich, der Daumen trifft trotzdem. */
+.sync-badge{position:relative}
+.sync-badge::after{content:"";position:absolute;inset:-7px;border-radius:inherit}
 .sync-badge:hover{background:var(--surface-2)}
 .sync-badge:active{transform:scale(.95)}
 .sync-badge svg{width:14px;height:14px;stroke-width:2;flex-shrink:0}
@@ -510,7 +550,7 @@ body.in-session.timer-on{--timer-space:78px}
 }
 body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrollen */
 .nav button{
-  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  flex:1;min-width:0;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   padding:8px 2px;border-radius:10px;color:var(--text-faint);
   font-size:9.5px;font-weight:600;letter-spacing:.02em;transition:color .18s;
 }
@@ -582,16 +622,16 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .btn.ghost.acc{color:var(--accent);border-color:var(--accent-dim)}
 .btn.ghost.acc:hover{background:var(--accent-glow);border-color:var(--accent);color:var(--accent)}
 .btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,92,92,.3)}
-.btn.sm{padding:9px 14px;font-size:13.5px;width:auto}
+.btn.sm{padding:9px 14px;min-height:44px;font-size:13.5px;width:auto}
 .btn.wauto{width:auto}
 /* schlanker Aktions-Button (z. B. Neuer Plan) */
-.btn-slim{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
+.btn-slim{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:44px;
   padding:10px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;
   background:transparent;border:1px solid var(--accent-dim);color:var(--accent);transition:all .15s}
 .btn-slim svg{width:16px;height:16px;stroke-width:2.4}
 .btn-slim:hover{background:var(--accent-glow)}
 .btn-slim:active{transform:scale(.98)}
-.btn-slim.solid{background:var(--accent);border-color:var(--accent);color:#0a0c10}
+.btn-slim.solid{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .btn-slim.solid:hover{box-shadow:0 0 18px var(--accent-glow);background:var(--accent)}
 
 .chip{
@@ -600,11 +640,14 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
   padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text-dim);
   transition:all .15s;
 }
+/* Nur die schaltenden Chips brauchen Daumenmaß. Die reinen Beschriftungen
+   („3 Übungen", „kg Volumen") bleiben schmal – sie werden nicht angetippt. */
+.chip[onclick]{min-height:44px;min-width:44px;justify-content:center}
 .chip:hover{background:var(--surface-2);color:var(--text)}
 .chip svg{width:15px;height:15px;stroke-width:2.2;flex-shrink:0}
 .ic-bench{width:auto !important;height:13px !important;vertical-align:-1px;display:inline-block;flex-shrink:0}
 .chip .ic-bench{height:15px !important;margin-right:-1px}
-.chip.on{background:var(--accent);color:#0a0c10;border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .add-set{margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;
   padding:9px;border-radius:9px;background:transparent;border:1px dashed var(--line);
   color:var(--text-dim);font-size:13px;font-weight:600;transition:all .15s}
@@ -635,12 +678,12 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 /* Polster 5 statt 6: Seit select.input eine ausdrückliche Zeilenhöhe hat
    (gegen das Abschneiden auf dem Panel), ist der Zeilenkasten 16,8 statt 16 px
    hoch. Ohne diesen Ausgleich stünde das Feld 1,8 px über dem Papierkorb. */
-select.input.pw-sel{width:auto;padding:5px 21px 5px 9px;font-size:12px;font-weight:700;
+select.input.pw-sel{width:auto;min-height:44px;padding:5px 21px 5px 9px;font-size:12px;font-weight:700;
   border-radius:9px;flex-shrink:0;background-position:right 6px center;
   background-color:transparent;color:var(--text-dim)}
 .day-name{font-weight:700;font-size:15px;margin-bottom:2px}
 .day-go{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;
-  background:var(--accent);color:#0a0c10}
+  background:var(--accent);color:var(--bg)}
 .day-go svg{width:15px;height:15px}
 
 /* Verlauf: Aktionsbuttons pro Training */
@@ -659,7 +702,7 @@ select.input.pw-sel{width:auto;padding:5px 21px 5px 9px;font-size:12px;font-weig
   padding:16px 14px;max-width:460px;margin:0 auto}
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .cal-title{font-family:var(--font-display);font-size:21px;font-weight:700;letter-spacing:.01em;text-transform:capitalize}
-.cal-nav{width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+.cal-nav{width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;color:var(--text-dim);
   font-size:20px;line-height:1;cursor:pointer;transition:all .12s;flex-shrink:0}
 .cal-nav:hover:not(:disabled){background:var(--surface-3);color:var(--text)}
@@ -670,7 +713,7 @@ select.input.pw-sel{width:auto;padding:5px 21px 5px 9px;font-size:12px;font-weig
 .cal-wd{margin-bottom:6px}
 .cal-wdlbl{text-align:center;font-size:10.5px;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;color:var(--text-faint);padding:2px 0}
-.cal-cell{position:relative;aspect-ratio:1;min-width:0;display:flex;align-items:center;justify-content:center;
+.cal-cell{position:relative;aspect-ratio:1;min-height:44px;min-width:0;display:flex;align-items:center;justify-content:center;
   border-radius:10px;background:var(--surface-2);border:1px solid transparent}
 .cal-cell.empty{background:transparent}
 .cal-num{font-size:14px;font-weight:600;color:var(--text-dim);font-variant-numeric:tabular-nums}
@@ -848,7 +891,7 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .stat-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
 /* Zeitraum-Umschalter der Statistik */
 .seg{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:4px}
-.seg-btn{flex:1;padding:8px 6px;border-radius:9px;background:transparent;border:none;
+.seg-btn{flex:1;padding:8px 6px;min-height:44px;border-radius:9px;background:transparent;border:none;
   color:var(--text-faint);font-size:12.5px;font-weight:700;letter-spacing:.02em;transition:all .15s}
 .seg-btn.on{background:var(--accent-glow);color:var(--accent)}
 .seg-btn:active{transform:scale(.97)}
@@ -860,7 +903,7 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .wk-delta{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px}
 .wk-delta.up{background:rgba(55,217,154,.14);color:var(--green)}
 .wk-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
-.wk-delta.same{background:var(--surface-3);color:var(--text-faint)}
+.wk-delta.same{background:var(--surface-3);color:var(--text-dim)}   /* faint erreicht auf --surface-3 nur 4.2:1 */
 /* Sätze pro Muskelgruppe: Balken mit 10–20-Zielzone (Wochenansicht) */
 .spm-track{position:relative;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden}
 .spm-zone{position:absolute;top:0;bottom:0;background:rgba(200,255,0,.12);
@@ -901,11 +944,11 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 /* Dunkler Halo darunter, damit die Linie auch auf heller Markierung lesbar bleibt */
 .body-fig .mess-linie line.halo{stroke:var(--bg);stroke-width:4.6;stroke-linecap:round;
   vector-effect:non-scaling-stroke;opacity:.85}
-.body-fig .mess-linie line{stroke:#ff3b3b;stroke-width:2;stroke-linecap:round;
+.body-fig .mess-linie line{stroke:var(--measure);stroke-width:2;stroke-linecap:round;
   vector-effect:non-scaling-stroke}
 .body-fig .mess-linie line.tick{stroke-width:2.6}
 .body-fig .mess-linie line.tick.halo{stroke:var(--bg);stroke-width:5}
-.body-fig .mess-linie path{fill:#ff3b3b;stroke:var(--bg);stroke-width:.8}
+.body-fig .mess-linie path{fill:var(--measure);stroke:var(--bg);stroke-width:.8}
 .body-cap{text-align:center;margin-top:12px;max-width:280px}
 .body-cap-t{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--accent)}
 .body-cap-h{font-size:11.5px;color:var(--text-faint);margin-top:3px;line-height:1.45}
@@ -980,8 +1023,9 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .ms-pill{font-size:11px;padding:3px 8px;border-radius:7px;background:var(--surface-2);
   color:var(--text-faint);white-space:nowrap}
 .ms-pill b{color:var(--text);font-weight:700}
-.ms-del{width:30px;height:30px;display:grid;place-items:center;background:transparent;
+.ms-del{position:relative;width:30px;height:30px;display:grid;place-items:center;background:transparent;
   border:1px solid var(--line);border-radius:8px;color:var(--text-faint);flex-shrink:0}
+.ms-del::after{content:"";position:absolute;inset:-7px}
 .ms-del:hover{color:var(--red);border-color:rgba(255,92,92,.35)}
 .ms-del svg{width:14px;height:14px}
 
@@ -1031,7 +1075,7 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .ex-row{display:flex;align-items:center;gap:14px;padding:10px;margin-bottom:10px;background:transparent;border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:background .15s,border-color .15s}
 .ex-row:hover{background:var(--surface-2);border-color:var(--accent-dim)}
 .ex-row:active{transform:scale(.99)}
-.ex-thumb{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;background:#fff;display:grid;place-items:center}
+.ex-thumb{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;background:var(--img-bg);display:grid;place-items:center}
 .ex-row .ex-thumb{width:104px;height:104px;border-radius:12px}
 .ex-thumb img{width:100%;height:100%;object-fit:cover}
 .ex-thumb.noimg{background:var(--surface-3)}
@@ -1054,10 +1098,14 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 /* Filter: umbrechende Chips, ausklappbar */
 .filt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .filt-toggle{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent-dim);padding:4px 6px;border-radius:7px;transition:background .15s}
+/* Sitzt in einer Zeile neben Text – Höhe geben würde die Zeile auseinander-
+   ziehen. Also wieder nur die Trefferfläche. */
+.filt-toggle{position:relative}
+.filt-toggle::after{content:"";position:absolute;inset:-11px -8px;border-radius:10px}
 .filt-toggle:hover{background:var(--accent-glow)}
 .filt-caret{display:inline-flex;transition:transform .2s}
 /* Einklappbare Pläne */
-.plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;
   padding:0;background:none;border:none;cursor:pointer;text-align:left}
 .plan-head:active{opacity:.7}
 .plan-caret{display:inline-flex;flex-shrink:0;color:var(--text-faint);transition:transform .22s}
@@ -1123,7 +1171,7 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .ex-list::-webkit-scrollbar-track{background:transparent}
 
 /* ---- exercise detail hero (animated image pair) ---- */
-.ex-hero{position:relative;width:100%;aspect-ratio:4/3;max-height:340px;border-radius:14px;overflow:hidden;background:#fff}
+.ex-hero{position:relative;width:100%;aspect-ratio:4/3;max-height:340px;border-radius:14px;overflow:hidden;background:var(--img-bg)}
 .ex-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease}
 .ex-hero img.on{opacity:1}
 .ex-hero.single{background:var(--surface-2)}
@@ -1136,7 +1184,7 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .noimg-hero{display:grid;place-items:center;background:var(--surface-2);border:1px dashed var(--line)}
 .noimg-hero svg{width:52px;height:52px;color:var(--text-faint)}
 /* Badge „Eigen“ */
-.ex-tag-own{background:var(--accent);color:#0a0c10}
+.ex-tag-own{background:var(--accent);color:var(--bg)}
 /* Eigene-Übung-Formular: Bildquelle-Umschalter */
 .cx-imgmode{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:3px}
 .sec-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:none}
@@ -1156,11 +1204,11 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .chip-x{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;
   background:var(--surface-3);color:var(--text-faint);flex-shrink:0;padding:0;transition:all .12s}
 .chip-x svg{width:9px;height:9px;stroke-width:3}
-.chip-x:hover{background:var(--red);color:#fff}
+.chip-x:hover{background:var(--red);color:var(--text)}
 .chip.on .chip-x{background:rgba(0,0,0,.22);color:rgba(0,0,0,.6)}
-.chip.on .chip-x:hover{background:rgba(0,0,0,.45);color:#fff}
+.chip.on .chip-x:hover{background:rgba(0,0,0,.45);color:var(--text)}
 .cx-seg{flex:1;padding:8px;border-radius:7px;font-size:13px;font-weight:600;color:var(--text-dim);transition:all .15s}
-.cx-seg.on{background:var(--accent);color:#0a0c10}
+.cx-seg.on{background:var(--accent);color:var(--bg)}
 /* Bild-Vorschau (GIF skaliert automatisch, ohne Verzerrung) */
 .cx-preview{margin-top:12px;width:100%;aspect-ratio:4/3;max-height:260px;border-radius:12px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line-soft);display:grid;place-items:center}
 .cx-preview img{width:100%;height:100%;object-fit:contain}
@@ -1241,6 +1289,22 @@ body.undo-on #toast{bottom:170px}
   padding-bottom:16px;                                  /* eigener, kleinerer Innenabstand */
 }
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+/* Wer im Betriebssystem weniger Bewegung eingestellt hat, bekommt keine
+   Verschiebungen mehr. Bewusst kein pauschales Abwürgen auf 0.01s: Der
+   Pausen-Balken und der Ladekreisel sind Rückmeldung, keine Zierde, und
+   Zustandswechsel bleiben sichtbar – nur eben ohne Fahrt. */
+@media (prefers-reduced-motion: reduce){
+  /* Aufblenden bleibt, Fahrt fällt weg – der Dialog erscheint weiterhin
+     erkennbar, er fährt nur nicht mehr von unten herein. */
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes popin{from{opacity:0}to{opacity:1}}
+  @keyframes slideup{from{opacity:0}to{opacity:1}}
+  *{transition-duration:.01ms !important}
+  /* Ausnahmen: Diese drei Balken sind Messwerte in Bewegung, keine Zierde. */
+  .rt-fill,.vc-fill,.sess-fill{transition-duration:.3s !important}
+  .sync-badge.busy .sync-ico{animation-duration:1.6s !important}
+}
 .modal .grab{width:40px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 18px;flex-shrink:0}
 .modal h2{font-size:23px;margin-bottom:4px;color:var(--accent)}
 /* Hauptüberschriften durchgängig in Akzentfarbe */
@@ -1293,13 +1357,13 @@ h2{color:var(--accent)}
 </style>
 </head>
 <body>
-<div id="app">
+<main id="app">
   <!-- views injected/managed by JS below -->
-</div>
+</main>
 <div id="toast"></div>
 <div id="undoBar"></div>
 <div id="restTimer" class="rest-timer"></div>
-<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox" role="dialog" aria-modal="true" aria-label="Dialog"></div></div>
 
 <!-- nav -->
 <div class="nav-fade"></div>
@@ -1359,7 +1423,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.21.1';
+const APP_VERSION='1.22.0';
 const APP_BUILD='2026-08-16';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -2155,6 +2219,54 @@ async function initCloud(){
   }
 }
 
+/* ================================================================
+   TASTATUR UND VORLESESOFTWARE
+   Die Ansichten entstehen als HTML-Zeichenketten. Statt an zwölf Stellen
+   Markup umzubauen (und beim nächsten neuen Chip wieder daran zu denken),
+   läuft nach jedem Zeichnen ein Durchgang über das Ergebnis:
+
+   - Was einen onclick hat, aber kein Knopf ist (die Filter-Chips, die
+     Übungszeilen), bekommt Rolle, Tastaturfokus und – bei Chips – den
+     Schaltzustand. Ein echtes <button> wäre sauberer, ginge aber nicht
+     überall: In den Sekundärmuskel-Chips steckt bereits ein Lösch-Knopf,
+     und Knopf-in-Knopf ist ungültig.
+   - Jede Beschriftung in einem .field wird an ihr Eingabefeld gebunden.
+     Antippen setzt damit den Fokus ins Feld, und die Vorlesesoftware nennt
+     den Namen statt nur den Platzhalter.
+   ================================================================ */
+let _fldSeq=0;
+function a11y(root){
+  const r=root||document;
+  r.querySelectorAll('[onclick]').forEach(el=>{
+    if(el instanceof SVGElement) return;
+    if(['BUTTON','A','INPUT','SELECT','TEXTAREA','LABEL'].includes(el.tagName)) return;
+    if(!el.hasAttribute('role')) el.setAttribute('role','button');
+    if(!el.hasAttribute('tabindex')) el.tabIndex=0;
+    if(el.classList.contains('chip')) el.setAttribute('aria-pressed', el.classList.contains('on')?'true':'false');
+  });
+  r.querySelectorAll('.field').forEach(f=>{
+    const l=f.querySelector('label'), c=f.querySelector('input,select,textarea');
+    if(!l || !c || l.htmlFor) return;
+    if(!c.id) c.id='fld'+(++_fldSeq);
+    l.htmlFor=c.id;
+  });
+}
+/* Leertaste und Eingabetaste lösen aus, was die Maus per Klick auslöst. */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter' && e.key!==' ') return;
+  const el=e.target;
+  if(!el || el.getAttribute('role')!=='button' || el.tagName==='BUTTON') return;
+  e.preventDefault(); el.click();
+});
+/* Escape schließt den Dialog – über tryCloseModal, damit der Schutz vor
+   ungespeicherten Änderungen genauso greift wie beim Klick daneben. */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  const bg=document.getElementById('modalBg');
+  if(!bg || !bg.classList.contains('show')) return;
+  e.preventDefault(); tryCloseModal();
+});
+
 /* ---------- Helpers ---------- */
 const $=(s,el=document)=>el.querySelector(s);
 const $$=(s,el=document)=>[...el.querySelectorAll(s)];
@@ -2506,12 +2618,19 @@ let current='today';
 
 function renderNav(){
   document.getElementById('nav').innerHTML=TABS.map(t=>
-    `<button class="${t.id===current?'on':''}" onclick="go('${t.id}')">${t.icon}<span>${t.label}</span></button>`
+    `<button class="${t.id===current?'on':''}" ${t.id===current?'aria-current="page"':''} onclick="go('${t.id}')">${t.icon}<span>${t.label}</span></button>`
   ).join('');
 }
 function go(tab){ current=tab; renderNav(); renderView(); window.scrollTo(0,0); }
 function renderView(){
   const app=document.getElementById('app');
+  /* Jedes Zeichnen ersetzt den gesamten Inhalt – das erschlägt auch das Element,
+     auf dem der Tastaturfokus stand. Wer mit der Tastatur bedient, landete danach
+     wieder ganz oben. Gemerkt wird nicht die id (die neu gebauten Knöpfe haben
+     keine), sondern der Weg durch den Baum: dieselbe Stelle nach dem Neubau ist
+     fast immer dasselbe Bedienelement. Eingabefelder bleiben außen vor, sonst
+     springt auf dem Handy die Bildschirmtastatur auf. */
+  const merk = fokusPfad(app);
   if(current==='today') app.innerHTML=viewToday();
   else if(current==='plans') app.innerHTML=viewPlans();
   else if(current==='exercises') app.innerHTML=viewExercises();
@@ -2529,11 +2648,29 @@ function renderView(){
   if(inSession){ initSessSwipe(); fitSessImage(); }
   renderRestTimer(); // Pausen-Timer über allen Views konsistent halten
   tickSessClock();   // Uhrzeit im Training sofort auf den aktuellen Stand bringen
+  a11y(app);
+  fokusZurueck(app, merk);
+}
+/* Weg vom Behälter zum fokussierten Element, als Liste von Kind-Nummern. */
+function fokusPfad(app){
+  const el=document.activeElement;
+  if(!el || el===document.body || !app.contains(el)) return null;
+  if(['INPUT','SELECT','TEXTAREA'].includes(el.tagName)) return null;
+  const pfad=[]; let n=el;
+  while(n && n!==app){ pfad.unshift([...n.parentNode.children].indexOf(n)); n=n.parentNode; }
+  return pfad;
+}
+function fokusZurueck(app, pfad){
+  if(!pfad) return;
+  let n=app;
+  for(const i of pfad){ n=n.children[i]; if(!n) return; }
+  // Nur auf etwas Bedienbares zurückspringen – sonst lieber gar nicht.
+  if(n.tagName==='BUTTON' || n.tabIndex>=0) n.focus({preventScroll:true});
 }
 function topbar(sub){
   return `<div class="topbar"><div class="brand">
       <div class="mark">${I.dumb}</div>
-      <div><div class="name">Progress<b>Lab</b></div>
+      <div><h1 class="name">Progress<b>Lab</b></h1>
       <div class="sub">${sub||'Strength · Data · Progress'}</div></div>
     </div>${syncBadge()}</div>`;
 }
@@ -3375,7 +3512,7 @@ function setRow(ex,ei,st,si){
       <div class="in-unit">${wInput}<span class="unit">kg</span></div>
       <div class="in-unit">${rInput}<span class="unit">Wdh</span></div>
       ${rirSel}
-      <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:#0a0c10;border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
+      <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
     </div>
     ${volRow}
   </div>`;
@@ -3882,7 +4019,7 @@ function renderBuilder(){
                 ondragover="dragOver(event,${di},${eei})" ondrop="dragDrop(event,${di},${eei})"
                 ondragleave="dragLeave(event)">
               <div class="bld-grip" title="Ziehen zum Umsortieren">${I.grip}</div>
-              ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+              ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
               <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
               ${(prim||sec.length)?`<div class="bld-musc">
                 ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
@@ -4443,7 +4580,7 @@ function showLogDetail(id){
       return `<div class="det-ex">
         <div class="row between" style="margin-bottom:10px">
           <div class="row" style="gap:10px;min-width:0">
-            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
             <div style="min-width:0"><div style="font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
             <div class="faint" style="font-size:11px">${esc(e.muscle||'')} · ${evol.toLocaleString('de-DE')} kg${f===2?' · 2 Hanteln':''}</div></div>
           </div>
@@ -4876,7 +5013,7 @@ function logEditBody(){
     return `<div class="det-ex">
       <div class="row between" style="margin-bottom:10px">
         <div class="row" style="gap:10px;min-width:0">
-          ${th?`<div class="ex-thumb" style="width:38px;height:38px"><img loading="lazy" src="${th}" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+          ${th?`<div class="ex-thumb" style="width:38px;height:38px"><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
           <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
         </div>
         <button class="chip" onclick="logEditDelEx(${ei})" style="padding:6px 9px">${I.trash}</button>
@@ -6097,11 +6234,31 @@ function removeEquip(){
 /* ================================================================
    MODAL / CONFIRM
    ================================================================ */
-function openModal(html, tall, extraClass){ const bg=document.getElementById('modalBg'); const box=document.getElementById('modalBox'); box.className='modal'+(tall?' tall':'')+(extraClass?' '+extraClass:''); box.innerHTML=html; bg.classList.add('show'); }
+function openModal(html, tall, extraClass){
+  const bg=document.getElementById('modalBg'); const box=document.getElementById('modalBox');
+  const vorher=document.activeElement;
+  if(!bg.classList.contains('show')) MODAL_OPENER = (vorher && vorher.id) ? vorher.id : null;
+  box.className='modal'+(tall?' tall':'')+(extraClass?' '+extraClass:''); box.innerHTML=html; bg.classList.add('show');
+  a11y(box);
+  // Die Überschrift des Dialogs benennt ihn – sonst sagt die Vorlesesoftware nur „Dialog".
+  const h=box.querySelector('h2');
+  if(h){ h.id=h.id||'modalTitel'; box.setAttribute('aria-labelledby',h.id); box.removeAttribute('aria-label'); }
+  else { box.removeAttribute('aria-labelledby'); box.setAttribute('aria-label','Dialog'); }
+  // Alles hinter dem Dialog aus der Tastaturreihenfolge nehmen.
+  document.getElementById('app').inert=true;
+  document.getElementById('nav').inert=true;
+}
+let MODAL_OPENER=null;
 // Hart schließen: Overlay weg + alle Zustände (Editor, Rücksprung, Guard) zurücksetzen
 function closeModal(){ MODAL_GUARD=null; BUILDER_OPEN=false; CUSTOM_RETURN=null; _pickCb=null; closeOverlay(); }
 // Weich schließen: nur ausblenden – für Zwischenschritte, bei denen die Kette erhalten bleibt
-function closeOverlay(){ document.getElementById('modalBg').classList.remove('show'); }
+function closeOverlay(){
+  document.getElementById('modalBg').classList.remove('show');
+  document.getElementById('app').inert=false;
+  document.getElementById('nav').inert=false;
+  // Der Fokus geht dorthin zurück, wo er den Dialog geöffnet hat.
+  if(MODAL_OPENER){ const el=document.getElementById(MODAL_OPENER); if(el) el.focus(); MODAL_OPENER=null; }
+}
 /* Schutz vor Datenverlust: Solange ein Formular ungespeicherte Änderungen hat,
    fragt ein Klick daneben nach, statt einfach zu schließen.
    restore() zeichnet das Formular wieder, falls der Nutzer doch nicht verwerfen will. */
