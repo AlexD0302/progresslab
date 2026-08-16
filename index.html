@@ -1359,7 +1359,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.21.0';
+const APP_VERSION='1.21.1';
 const APP_BUILD='2026-08-16';
 
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
@@ -1626,8 +1626,12 @@ async function cloudFetch(path, opts={}){
 }
 
 /* ---- Anmeldung ---- */
+/* Die Rückkehr-Adresse für die Links in den Mails: immer die Seite, auf der die
+   App gerade läuft. Ohne diese Angabe nimmt Supabase seine "Site URL" – und die
+   zeigt gern auf die falsche Stelle. */
+function cloudRedirect(){ return encodeURIComponent(location.origin + location.pathname); }
 async function cloudSignUp(email, password){
-  const r=await fetch(`${CLOUD.url}/auth/v1/signup`,{
+  const r=await fetch(`${CLOUD.url}/auth/v1/signup?redirect_to=${cloudRedirect()}`,{
     method:'POST',
     headers:{'apikey':CLOUD.key,'Content-Type':'application/json'},
     body:JSON.stringify({email,password})
@@ -1653,8 +1657,7 @@ async function cloudSignIn(email, password){
    Die Rückkehr-Adresse ist die Seite selbst – so stimmt sie überall, wo die
    Datei liegt. Sie muss in Supabase unter "URL Configuration" erlaubt sein. */
 async function cloudRecover(email){
-  const back = encodeURIComponent(location.origin + location.pathname);
-  const r=await fetch(`${CLOUD.url}/auth/v1/recover?redirect_to=${back}`,{
+  const r=await fetch(`${CLOUD.url}/auth/v1/recover?redirect_to=${cloudRedirect()}`,{
     method:'POST',
     headers:{'apikey':CLOUD.key,'Content-Type':'application/json'},
     body:JSON.stringify({email})
@@ -2027,7 +2030,14 @@ function recoveryFromUrl(){
     clean();
     return {error: p.get('error_description')||p.get('error_code')||'Der Link hat nicht funktioniert'};
   }
-  if(p.get('type')!=='recovery' || !p.get('access_token')) return null;
+  const typ=p.get('type');
+  if(typ && typ!=='recovery'){
+    // Bestätigte Registrierung: Der Server hat seine Arbeit schon getan.
+    // Hier bleibt nur, die Kennmarken aus der Adresszeile zu räumen.
+    clean();
+    return {confirmed:true};
+  }
+  if(typ!=='recovery' || !p.get('access_token')) return null;
   clean();
   return {
     access_token: p.get('access_token'),
@@ -2123,12 +2133,13 @@ async function initCloud(){
   // Kommt der Benutzer über den Link aus der Rücksetz-Mail, geht das vor:
   // eine alte Sitzung auf diesem Gerät wäre jetzt die falsche.
   const rec=recoveryFromUrl();
-  if(rec){
+  if(rec && !rec.confirmed){
     setSync('signed-out','Nicht angemeldet'); renderView();
     if(rec.error){ _authMode='in'; renderAuthForm(authErrText({message:rec.error})); }
     else { RECOVERY=rec; renderNewPassword(''); }
     return;
   }
+  if(rec && rec.confirmed) toast('E-Mail bestätigt');
   let saved=null;
   try{ saved=JSON.parse(localStorage.getItem(AUTH_KEY)); }catch(e){}
   if(!saved || !saved.refresh){ setSync('signed-out','Nicht angemeldet'); renderView(); return; }
