@@ -246,6 +246,13 @@ body.in-session.timer-on{--timer-space:78px}
    rückt in die Mitte. Nur eine Breitenbegrenzung, keine Höhenänderung – die
    Aufteilung der Höhe bleibt unangetastet. */
 .ex-main.ohne-bild .ex-col{max-width:560px;width:100%;margin-inline:auto}
+/* Ohne Bild ist die Karte deutlich niedriger als der Platz, den sie hat, und
+   klebte am oberen Rand – darunter blieb ein leeres Drittel stehen, das wie
+   eine halb geladene Seite aussieht. `margin-block:auto` schiebt sie in die
+   Mitte des freien Raums. Kein `:has()` – das Panel läuft auf einem älteren
+   Chromium. Im Querformat greift es nicht: Dort füllt die Karte die Höhe
+   ohnehin (flex:1 1 auto), und auto-Ränder haben nichts zu verteilen. */
+.ex-card.ohne-bild{margin-block:auto}
 
 /* ===== QUERFORMAT: breiter, flacher Bildschirm (z. B. Fernseher, Laptop im Wohnzimmer) =====
    Dann steht das Bild links NEBEN den Sätzen, und die App darf breiter werden.
@@ -1463,7 +1470,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.24.0';
+const APP_VERSION='1.24.1';
 const APP_BUILD='2026-08-16';
 
 /* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
@@ -3486,7 +3493,7 @@ function exerciseCard(ex,ei){
   // bereits in der Zeile darüber steht – dieselbe Logik wie in der Übungsliste.
   const prim=(meta&&Array.isArray(meta.pm))?meta.pm.filter(m=>m!==ex.muscle):[];
   const hidden=!!SESSION.hideImg;
-  return `<div class="card ex-card">
+  return `<div class="card ex-card${(thumb&&!hidden)?'':' ohne-bild'}">
     <div class="row between" style="margin-bottom:4px;flex-shrink:0">
       <div style="min-width:0">
         <div class="display" style="font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ex.name)}</div>
