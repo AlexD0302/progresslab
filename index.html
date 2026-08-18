@@ -491,6 +491,32 @@ body.in-session.timer-on{--timer-space:78px}
   padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;
   background:transparent;border:1px solid var(--line);color:var(--text-dim);
   transition:all .15s;max-width:46%}
+/* Der Vorschlag ist der einzige Knopf auf dem Startbildschirm, der die Volt-
+   Fläche bekommt. Er trägt die Farbe, die sonst nur bestätigende Aktionen
+   tragen — weil er in neun von zehn Fällen das ist, was man vorhat. */
+.next-card{display:block;width:100%;text-align:left;margin-top:22px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);
+  padding:15px 17px;box-shadow:0 6px 22px rgba(200,255,0,.14);transition:transform .12s,box-shadow .2s}
+.next-card:hover{box-shadow:0 8px 28px rgba(200,255,0,.22)}
+.next-card:active{transform:scale(.99)}
+.next-lbl{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  opacity:.62;margin-bottom:5px}
+/* Auf der Volt-Fläche wäre grauer Sekundärtext unlesbar – die gedämpfte Stufe
+   kommt hier aus der Grundfarbe selbst, nicht aus den Grautönen. */
+.next-card .faint{color:rgba(10,12,16,.72)}
+.next-card .display{color:var(--bg)}
+.next-go{display:grid;place-items:center;width:38px;height:38px;flex-shrink:0;
+  border-radius:50%;background:rgba(10,12,16,.14)}
+.next-go svg{width:19px;height:19px;stroke-width:2.4}
+
+/* Zahnrad in der Kopfzeile: gleiche stille Behandlung wie das Sync-Abzeichen –
+   sichtbar 30px, Trefferfläche 44px, damit die Kopfzeile ihre Höhe behält. */
+.topbar-ico{position:relative;width:30px;height:30px;display:grid;place-items:center;
+  border-radius:9px;color:var(--text-faint);flex-shrink:0;transition:color .15s,background .15s}
+.topbar-ico::after{content:"";position:absolute;inset:-7px;border-radius:12px}
+.topbar-ico:hover{color:var(--text-dim);background:var(--surface-2)}
+.topbar-ico svg{width:17px;height:17px;stroke-width:2}
+
 /* Die Kopfzeile steht fest und darf nicht wachsen. Statt den Knopf höher zu
    machen, bekommt er eine unsichtbare Trefferfläche von 44px – das Layout
    bleibt auf den Pixel gleich, der Daumen trifft trotzdem. */
@@ -608,7 +634,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .btn{
   background:transparent;color:var(--accent);font-weight:700;
   border:1px solid var(--accent-dim);
-  padding:11px 18px;border-radius:var(--radius-sm);font-size:14px;
+  padding:11px 18px;min-height:44px;border-radius:var(--radius-sm);font-size:14px;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   transition:all .15s;width:100%;
 }
@@ -854,7 +880,7 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .sv-prevset + .sv-sep{display:none}
 .sv-total{color:var(--text-dim);font-weight:700}
 .sv-now{color:var(--accent-dim);font-weight:700}
-.sv-sep{color:var(--line);font-weight:400}
+.sv-sep{color:var(--text-faint);font-weight:400}   /* war var(--line) = 1.4:1 und damit unsichtbar */
 /* Rekord der Übung: ständige Zielmarke, deshalb zurückhaltend. Ist er
    geschlagen, tritt er nach vorn – das ist der eine Moment, in dem er auffallen
    soll. Kein eigener Streifen: Die Zeile gibt es ohnehin, ein neuer koste 19,5px
@@ -1140,11 +1166,11 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .bld-musc-p{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;
   background:var(--accent-glow);color:var(--accent-dim);white-space:nowrap}
 .bld-musc-s{font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;
-  background:var(--surface-3);color:var(--text-faint);white-space:nowrap}
+  background:var(--surface-3);color:var(--text-dim);white-space:nowrap}
 /* Muskeln in der Trainingskarte: erst primär, dann sekundär */
 .ex-sec{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
 .ex-sec-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;
-  background:var(--surface-3);color:var(--text-faint);white-space:nowrap}
+  background:var(--surface-3);color:var(--text-dim);white-space:nowrap}   /* faint erreicht auf --surface-3 nur 4.2:1 */
 /* Der Primärmuskel trägt Farbe und Stärke des Übungsnamens – gleiche Chip-Form
    wie die sekundären, nur eben nicht gedämpft. */
 .ex-sec-tag.prim{color:var(--text);font-weight:700}
@@ -1381,6 +1407,8 @@ window.EXDB_RAW=[];
 /* ---------- Icons ---------- */
 const I = {
   today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7z" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+  // Zahnrad im Strichmaß der übrigen Symbole (kein Emoji, kein Fremdsatz).
+  settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8M18.6 18.6l-1.8-1.8M7.2 7.2 5.4 5.4" stroke-linecap="round"/></svg>',
   plans:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18" stroke-linecap="round"/></svg>',
   history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5M12 7v5l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   stats:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" stroke-linecap="round"/></svg>',
@@ -1423,10 +1451,34 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.22.0';
+const APP_VERSION='1.23.0';
 const APP_BUILD='2026-08-16';
 
+/* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
+   vergessen („1 Übungen"). Eine Funktion statt acht Bedingungen im Markup. */
+function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
+
 const MUSCLES = ['Chest','Back','Shoulders','Arms','Legs','Core'];
+/* Gespeichert wird englisch, angezeigt deutsch.
+   Warum nicht die Daten umstellen? Die englischen Namen stecken in jeder
+   gespeicherten Übung, in jedem Protokolleintrag und in der Cloud-Kopie der
+   zweiten Person. Eine Migration müsste all das anfassen und bei jedem
+   Cloud-Abgleich erneut greifen. Eine Übersetzung beim Anzeigen kostet
+   nichts, ist jederzeit umkehrbar und lässt die Daten in Ruhe.
+   Eigene Muskeln, die hier nicht stehen, gehen unverändert durch. */
+const MUSKEL_DE = {
+  'Chest':'Brust','Back':'Rücken','Shoulders':'Schultern','Arms':'Arme','Legs':'Beine','Core':'Rumpf',
+  'Upper Chest':'Obere Brust','Mid Chest':'Mittlere Brust','Lower Chest':'Untere Brust',
+  'Lats':'Latissimus','Upper Back':'Oberer Rücken','Mid Back':'Mittlerer Rücken',
+  'Lower Back':'Unterer Rücken','Traps':'Trapez',
+  'Front Delts':'Vordere Schulter','Side Delts':'Seitliche Schulter','Rear Delts':'Hintere Schulter',
+  'Biceps':'Bizeps','Triceps':'Trizeps','Forearms':'Unterarme',
+  'Brachialis':'Brachialis','Brachioradialis':'Brachioradialis',
+  'Quads':'Quadrizeps','Hamstrings':'Beinbeuger','Glutes':'Gesäß','Calves':'Waden',
+  'Adductors':'Adduktoren','Abductors':'Abduktoren',
+  'Abs':'Bauch','Obliques':'Schräge Bauchmuskeln','Serratus':'Sägemuskel','Neck':'Nacken'
+};
+function mDE(name){ return MUSKEL_DE[name] || name || ''; }
 // Ordnet jeden Einzelmuskel seiner Körperregion zu (für Filter und Statistik).
 const REGION_OF = {
   'Chest':'Chest', 'Upper Chest':'Chest', 'Mid Chest':'Chest', 'Lower Chest':'Chest',
@@ -2672,7 +2724,9 @@ function topbar(sub){
       <div class="mark">${I.dumb}</div>
       <div><h1 class="name">Progress<b>Lab</b></h1>
       <div class="sub">${sub||'Strength · Data · Progress'}</div></div>
-    </div>${syncBadge()}</div>`;
+    </div><div class="row" style="gap:6px;align-items:center;flex-shrink:0">
+      <button class="topbar-ico" onclick="openSettings()" aria-label="Daten und Backup">${I.settings}</button>
+      ${syncBadge()}</div></div>`;
 }
 /* Statusanzeige der Cloud – zeigt, was gerade passiert */
 function syncBadge(){
@@ -2722,10 +2776,38 @@ function setAllPlans(area, collapsed){
 }
 function anyOpen(area){ return DB.plans.some(p=>!isCollapsed(area,p.id)); }
 
+/* Welche Einheit ist als Nächstes dran?
+   Die Regel ist die, nach der man ohnehin trainiert: Es geht im Plan eine
+   Einheit weiter, gerechnet ab der zuletzt absolvierten. Gibt es zu einem
+   Plan noch kein Training, ist es die erste Einheit.
+   Bei mehreren Plänen zählt der zuletzt benutzte – wer zwei Pläne führt, hat
+   den aktiven zuletzt angefasst.
+   Der Vorschlag ersetzt die Auswahl nicht, er stellt sie nur voran. Die
+   Plankarten darunter bleiben unverändert; jede andere Einheit ist weiterhin
+   ein Tipp entfernt. */
+function naechsteEinheit(){
+  if(!DB.plans.length) return null;
+  const logs=DB.logs.slice().sort((a,b)=>+a.date-+b.date);
+  const letzterMitPlan=[...logs].reverse().find(l=>l.planId && DB.plans.some(p=>p.id===l.planId));
+  const plan = letzterMitPlan ? DB.plans.find(p=>p.id===letzterMitPlan.planId) : DB.plans[0];
+  if(!plan || !plan.days.length) return null;
+  const letzterDieses=[...logs].reverse().find(l=>l.planId===plan.id);
+  let i=0;
+  if(letzterDieses){
+    const war=plan.days.findIndex(d=>d.name===letzterDieses.dayName);
+    i = war<0 ? 0 : (war+1) % plan.days.length;
+  }
+  return {plan, tag:plan.days[i], index:i, ersteRunde:!letzterDieses};
+}
+
 function viewToday(){
   if(SESSION) return sessionScreen();
   const streak=calcStreak();
-  const lastLog=DB.logs[DB.logs.length-1];
+  const next=naechsteEinheit();
+  // Nicht der letzte Eintrag im Feld, sondern der mit dem jüngsten Datum:
+  // Im Protokoll-Editor lässt sich ein Datum ändern, ohne dass sich die
+  // Reihenfolge im Feld mitdreht.
+  const lastLog=DB.logs.length? DB.logs.reduce((a,b)=>(+b.date>+a.date?b:a)) : null;
   const planCards=DB.plans.map(p=>{
     const dc=p.days.length;
     const open=!isCollapsed('today',p.id);
@@ -2757,8 +2839,19 @@ function viewToday(){
       ${weekBar()}
       ${lastLog?`<div class="hr"></div><div class="row between"><span class="faint" style="font-size:13px">Letztes Training</span><span class="muted" style="font-size:13px;font-weight:600">${esc(lastLog.dayName)} · ${fmtDate(lastLog.date)}</span></div>`:''}
     </div>
+    ${next?`<button class="next-card" onclick="startSession(_plan('${next.plan.id}'),_plan('${next.plan.id}').days[${next.index}])">
+      <div class="next-lbl">${next.ersteRunde?'Los geht’s mit':'Als Nächstes'}</div>
+      <div class="row between" style="gap:12px;align-items:center">
+        <div style="min-width:0;text-align:left">
+          <div class="display" style="font-size:23px;line-height:1.1">${esc(next.tag.name)}</div>
+          <div class="faint" style="font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${next.tag.exercises.map(e=>esc(e.name)).join(' · ')||'Noch keine Übungen'}</div>
+        </div>
+        <span class="next-go">${I.play}</span>
+      </div>
+    </button>`:''}
+
     <div class="row between" style="margin:24px 4px 12px">
-      <div class="eyebrow">Training starten</div>
+      <div class="eyebrow">${next?'Andere Einheit':'Training starten'}</div>
       ${DB.plans.length>1?`<button class="filt-toggle" onclick="setAllPlans('today',${anyOpen('today')})">
         ${anyOpen('today')?'Alle einklappen':'Alle ausklappen'}
       </button>`:''}
@@ -3353,8 +3446,8 @@ function exerciseCard(ex,ei){
     <div class="row between" style="margin-bottom:4px;flex-shrink:0">
       <div style="min-width:0">
         <div class="display" style="font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ex.name)}</div>
-        <div class="faint" style="font-size:11.5px">${esc(ex.muscle)}${bench?' · '+I.bench+' '+esc(bench):''}${twoDb?' · 2 Hanteln':''}</div>
-        ${(prim.length||sec.length)?`<div class="ex-sec">${prim.map(m=>`<span class="ex-sec-tag prim">${esc(m)}</span>`).join('')}${sec.map(m=>`<span class="ex-sec-tag">${esc(m)}</span>`).join('')}</div>`:''}
+        <div class="faint" style="font-size:11.5px">${esc(mDE(ex.muscle))}${bench?' · '+I.bench+' '+esc(bench):''}${twoDb?' · 2 Hanteln':''}</div>
+        ${(prim.length||sec.length)?`<div class="ex-sec">${prim.map(m=>`<span class="ex-sec-tag prim">${esc(mDE(m))}</span>`).join('')}${sec.map(m=>`<span class="ex-sec-tag">${esc(mDE(m))}</span>`).join('')}</div>`:''}
       </div>
       <div class="row" style="gap:5px;flex-shrink:0">
         ${thumb?`<button class="chip" onclick="toggleSessImg()" style="padding:6px 9px" title="${hidden?'Bild einblenden':'Bild ausblenden'}">${hidden?I.eye:I.eyeOff}</button>`:''}
@@ -3811,7 +3904,7 @@ function planCard(p){
       <button class="plan-head" style="flex:1;min-width:0" onclick="togglePlan('plans','${p.id}')">
         <div style="min-width:0;text-align:left">
           <div class="display" style="font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
-          <div class="faint" style="font-size:12px;margin-top:2px">${dc} ${dc===1?'Einheit':'Einheiten'} · ${ec} Übungen</div>
+          <div class="faint" style="font-size:12px;margin-top:2px">${mz(dc,'Einheit','Einheiten')} · ${mz(ec,'Übung','Übungen')}</div>
         </div>
         <span class="plan-caret ${open?'up':''}">${I.chevron}</span>
       </button>
@@ -3825,7 +3918,7 @@ function planCard(p){
     ${open?`<div style="margin-top:12px">
       ${p.days.map((d,di)=>`<button class="day-box" onclick="openPlanBuilder('${p.id}',${di})">
         <div class="row between"><span style="font-weight:700;font-size:14px">${esc(d.name)}</span>
-        <span class="row" style="gap:6px;flex-shrink:0"><span class="faint" style="font-size:11px">${d.exercises.length} Übungen</span>
+        <span class="row" style="gap:6px;flex-shrink:0"><span class="faint" style="font-size:11px">${mz(d.exercises.length,'Übung','Übungen')}</span>
         <span class="day-arrow">${I.chevron}</span></span></div>
         <div class="faint" style="font-size:12px;margin-top:4px">${d.exercises.map(e=>esc(e.name)).join(' · ')||'—'}</div>
       </button>`).join('')}
@@ -3874,7 +3967,7 @@ function showPlanOverview(id){
     const arr=Object.entries(count).sort((a,b)=>b[1]-a[1]);
     if(!arr.length) return `<div class="faint" style="font-size:11.5px;padding:2px 0 6px">–</div>`;
     return arr.map(([m,n])=>`<div class="ov-row">
-      <span class="ov-lbl">${esc(m)}</span>
+      <span class="ov-lbl">${esc(mDE(m))}</span>
       <div class="ov-track"><div class="ov-fill ${sekundaer?'sec':'acc'}" style="width:${Math.round(n/max*100)}%"></div></div>
       <span class="ov-val">${n}×</span>
     </div>`).join('');
@@ -3894,7 +3987,7 @@ function showPlanOverview(id){
       return `<div class="card" style="padding:13px 15px;margin-bottom:10px">
         <div class="row between" style="margin-bottom:10px">
           <span style="font-weight:700;font-size:14px">${esc(d.name)}</span>
-          <span class="faint" style="font-size:11px">${d.exCount} Übungen</span>
+          <span class="faint" style="font-size:11px">${mz(d.exCount,'Übung','Übungen')}</span>
         </div>
         ${d.exCount? `
           <div class="ov-sub">Primär</div>
@@ -4023,7 +4116,7 @@ function renderBuilder(){
               <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
               ${(prim||sec.length)?`<div class="bld-musc">
                 ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
-                ${sec.map(m=>`<span class="bld-musc-s">${esc(m)}</span>`).join('')}
+                ${sec.map(m=>`<span class="bld-musc-s">${esc(mDE(m))}</span>`).join('')}
               </div>`:''}
               <div class="row wrap" style="gap:8px 10px;margin-top:5px;align-items:center">
                 <span class="bld-lbl">Sätze</span>
@@ -4241,7 +4334,7 @@ function viewExercises(){
         <div class="filt-label">Körperregion</div>
         <div class="filt-chips">
           <span class="chip ${!_exMuscle?'on':''}" onclick="_exMuscle='';renderView()">Alle</span>
-          ${MUSCLES.map(m=>`<span class="chip ${_exMuscle===m?'on':''}" onclick="_exMuscle='${esc(m)}';renderView()">${m}</span>`).join('')}
+          ${MUSCLES.map(m=>`<span class="chip ${_exMuscle===m?'on':''}" onclick="_exMuscle='${esc(m)}';renderView()">${mDE(m)}</span>`).join('')}
         </div>
       </div>
       <div class="filt-group">
@@ -4279,11 +4372,11 @@ function exListHTML(list){
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
-          <span class="ex-tag ex-tag-m">${esc(e.m)}</span>
-          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(m)}</span>`).join('')}
+          <span class="ex-tag ex-tag-m">${esc(mDE(e.m))}</span>
+          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(mDE(m))}</span>`).join('')}
           <span class="ex-tag">${esc(e.t)}</span>
         </div>
-        ${sec.length?`<div class="ex-sec" style="margin-top:4px">${sec.map(s=>`<span class="ex-sec-tag">${esc(s)}</span>`).join('')}${(e._.sm||[]).length>3?`<span class="ex-sec-tag">+${(e._.sm||[]).length-3}</span>`:''}</div>`:''}
+        ${sec.length?`<div class="ex-sec" style="margin-top:4px">${sec.map(s=>`<span class="ex-sec-tag">${esc(mDE(s))}</span>`).join('')}${(e._.sm||[]).length>3?`<span class="ex-sec-tag">+${(e._.sm||[]).length-3}</span>`:''}</div>`:''}
       </div>
       <span class="ex-info${isCustom?' acc':''}" style="pointer-events:none">${isCustom?I.edit:I.chevron}</span>
     </div>`;
@@ -4392,8 +4485,8 @@ function calendarHtml(){
     <div class="cal-grid cal-wd">${wd.map(d=>`<div class="cal-wdlbl">${d}</div>`).join('')}</div>
     <div class="cal-grid">${cells}</div>
     ${monthLogs.length?`<div class="cal-summary">
-      <div class="cal-sum-item"><span class="cal-sum-num">${trainDays}</span><span class="cal-sum-lbl">Trainingstage</span></div>
-      <div class="cal-sum-item"><span class="cal-sum-num">${monthLogs.length}</span><span class="cal-sum-lbl">Einheiten</span></div>
+      <div class="cal-sum-item"><span class="cal-sum-num">${trainDays}</span><span class="cal-sum-lbl">${trainDays===1?'Trainingstag':'Trainingstage'}</span></div>
+      <div class="cal-sum-item"><span class="cal-sum-num">${monthLogs.length}</span><span class="cal-sum-lbl">${monthLogs.length===1?'Einheit':'Einheiten'}</span></div>
       <div class="cal-sum-item"><span class="cal-sum-num">${(mVol/1000).toFixed(1)}<span style="font-size:13px;color:var(--text-dim)">t</span></span><span class="cal-sum-lbl">Volumen</span></div>
     </div>`:`<div class="cal-empty-month">In diesem Monat kein Training</div>`}
   </div>`;
@@ -4582,7 +4675,7 @@ function showLogDetail(id){
           <div class="row" style="gap:10px;min-width:0">
             ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
             <div style="min-width:0"><div style="font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
-            <div class="faint" style="font-size:11px">${esc(e.muscle||'')} · ${evol.toLocaleString('de-DE')} kg${f===2?' · 2 Hanteln':''}</div></div>
+            <div class="faint" style="font-size:11px">${esc(mDE(e.muscle))} · ${evol.toLocaleString('de-DE')} kg${f===2?' · 2 Hanteln':''}</div></div>
           </div>
         </div>
         <div class="det-grid det-head"><span>Satz</span><span>Gewicht</span><span>Wdh</span><span>RIR</span></div>
@@ -5069,16 +5162,22 @@ function saveLogEdit(){
 /* ================================================================
    DATEN: Export / Import (Backup)
    ================================================================ */
-function backupCard(){
+/* Sicherung, Speicher und Version saßen unten in der Statistik. Dort sucht sie
+   niemand: Die Statistik beantwortet „werde ich stärker?", das Backup „verliere
+   ich meine Daten?". Jetzt hinter dem Zahnrad in der Kopfzeile, von jeder
+   Ansicht aus erreichbar. */
+function openSettings(){ openModal(backupCard(true), true); }
+function backupCard(imDialog){
   const nLogs=DB.logs.length, nPlans=DB.plans.length;
   // Speicherbalken: ~5 MB ist das übliche localStorage-Limit pro Seite.
   const used=storageBytes(), limit=5*1024*1024;
   const pct=Math.min(100, Math.round(used/limit*100));
   const eng = pct>=80;   // ab 80 % wird es kritisch
-  return `<div class="card" style="margin-top:14px">
+  // Im Dialog ohne Kartenrahmen – eine Karte in einer Karte ist immer falsch.
+  return `${imDialog?'<div class="grab"></div>':'<div class="card" style="margin-top:14px">'}
     <div class="row" style="gap:9px;margin-bottom:4px">
       <span style="color:var(--accent)">${I.database}</span>
-      <div class="eyebrow" style="margin:0">Daten &amp; Backup</div>
+      ${imDialog?'<h2 style="margin:0">Daten &amp; Backup</h2>':'<div class="eyebrow" style="margin:0">Daten &amp; Backup</div>'}
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 14px">Sichere alle Pläne und deinen Verlauf als Datei (z. B. in OneDrive, iCloud oder Google Drive) und stelle sie bei Bedarf wieder her. ${nPlans} Pläne · ${nLogs} Trainings.</p>
     <div style="margin-bottom:14px">
@@ -5095,7 +5194,8 @@ function backupCard(){
     <button class="btn-slim" onclick="document.getElementById('importFile').click()">${I.upload}<span>Backup wiederherstellen</span></button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
     <div class="app-version">ProgressLab v${APP_VERSION} · Stand ${APP_BUILD}</div>
-  </div>`;
+    ${imDialog?`<button class="btn ghost" style="margin-top:12px" onclick="closeModal()">Schließen</button>`:''}
+  ${imDialog?'':'</div>'}`;
 }
 function exportData(){
   const payload={
@@ -5221,9 +5321,9 @@ function deltaChip(cur, prev, unit, neutral){
   return `<span class="wk-delta ${cls}">${txt}</span>`;
 }
 function viewStats(){
-  if(!DB.logs.length) return topbar('Statistics')+`<div class="pad"><div class="empty">${I.stats}
+  if(!DB.logs.length) return topbar('Your statistics')+`<div class="pad"><div class="empty">${I.stats}
     <h3>Keine Daten</h3><p style="font-size:13.5px">Trainiere ein paar Mal — dann zeigen wir deinen Fortschritt.</p></div>
-    ${backupCard()}</div>`;
+    </div>`;
   // Zeitraum-Filter: Woche (ab Montag) / Monat / Jahr / Gesamt
   const per=statsPeriod(STATS_RANGE);
   const rangeLogs=DB.logs.filter(l=>l.date>=per.from);
@@ -5274,15 +5374,19 @@ function viewStats(){
     <div class="row" style="gap:12px;align-items:stretch;margin-top:12px">
       <div class="card stat-tile">
         <div class="display stat-num" style="color:var(--accent)">${rEinheiten}</div>
-        <div class="faint stat-lbl">Einheiten</div></div>
+        <div class="faint stat-lbl">${rEinheiten===1?'Einheit':'Einheiten'}</div></div>
       <div class="card stat-tile">
         <div class="display stat-num">${rSets}</div>
-        <div class="faint stat-lbl">Sätze</div></div>
+        <div class="faint stat-lbl">${rSets===1?'Satz':'Sätze'}</div></div>
       <div class="card stat-tile">
         <div class="display stat-num">${(rVol/1000).toFixed(1)}<span style="font-size:15px;color:var(--text-dim)">t</span></div>
         <div class="faint stat-lbl">Volumen</div></div>
     </div>
-    <p class="faint" style="font-size:10.5px;text-align:center;margin:6px 0 0;letter-spacing:.04em;text-transform:uppercase">${rangeLabel}</p>
+    ${/* Die Zeitraum-Beschriftung stand hier ein zweites Mal – direkt unter der
+          Umschaltleiste, die den Zeitraum setzt, und direkt über der Karte, die
+          ihn noch einmal nennt. Drei Mal dasselbe Wort in Folge. Nur bei
+          „Gesamt" bleibt sie, weil dort keine Vergleichskarte folgt. */''}
+    ${lw?'':`<p class="faint" style="font-size:10.5px;text-align:center;margin:6px 0 0;letter-spacing:.04em;text-transform:uppercase">${rangeLabel}</p>`}
 
     ${lw?`<div class="card" style="margin-top:14px">
       <div class="eyebrow" style="margin-bottom:12px">${per.titel}</div>
@@ -5311,7 +5415,7 @@ function viewStats(){
       <div class="eyebrow" style="margin-bottom:4px">Sätze pro Muskelgruppe</div>
       <p class="faint" style="font-size:11px;margin-bottom:12px">Harte Sätze nach Primärmuskel · ${rangeLabel}${STATS_RANGE==='week'?' · Richtwert 10–20/Woche':''}</p>
       ${mArr.length? mArr.map(([m,v])=>`<div style="margin-bottom:11px">
-        <div class="row between" style="margin-bottom:4px"><span style="font-size:13px;font-weight:600">${m}</span>
+        <div class="row between" style="margin-bottom:4px"><span style="font-size:13px;font-weight:600">${esc(mDE(m))}</span>
         <span class="faint num" style="font-size:12px">${v}×</span></div>
         <div class="spm-track">
           ${STATS_RANGE==='week'?`<div class="spm-zone" style="left:${10/maxM*100}%;width:${10/maxM*100}%"></div>`:''}
@@ -5330,7 +5434,7 @@ function viewStats(){
       <div id="strChart"></div>
     </div>
 
-    ${backupCard()}
+
   </div>`;
 }
 // Fortschritt einer Übung: Volumen pro Training als Kurve + Tabelle aller Werte
@@ -5453,7 +5557,7 @@ function renderPicker(){
           <div class="filt-label">Körperregion</div>
           <div class="filt-chips">
             <span class="chip ${!_pickMuscle?'on':''}" onclick="_pickMuscle='';renderPicker()">Alle</span>
-            ${MUSCLES.map(m=>`<span class="chip ${_pickMuscle===m?'on':''}" onclick="_pickMuscle='${m}';renderPicker()">${m}</span>`).join('')}
+            ${MUSCLES.map(m=>`<span class="chip ${_pickMuscle===m?'on':''}" onclick="_pickMuscle='${m}';renderPicker()">${mDE(m)}</span>`).join('')}
           </div>
         </div>
         <div class="filt-group">
@@ -5489,8 +5593,8 @@ function pickerListHTML(list){
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
-          <span class="ex-tag ex-tag-m">${esc(e.m)}</span>
-          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(m)}</span>`).join('')}
+          <span class="ex-tag ex-tag-m">${esc(mDE(e.m))}</span>
+          ${prim.map(m=>`<span class="ex-tag ex-tag-p">${esc(mDE(m))}</span>`).join('')}
           <span class="ex-tag">${esc(e.t)}</span>
 
         </div>
@@ -5509,7 +5613,7 @@ function muscleChipsHTML(){
   const q=(_pickMuscleSearch||'').toLowerCase().trim();
   const opts=pickerMuscleOptions().filter(m=>!q || m.toLowerCase().includes(q));
   return `<span class="chip ${!_pickMuscleDetail?'on':''}" onclick="setPickMuscleDetail('')">Alle</span>`
-    + opts.map(m=>`<span class="chip ${_pickMuscleDetail===m?'on':''}" onclick="setPickMuscleDetail('${escAttr(m)}')">${esc(m)}</span>`).join('')
+    + opts.map(m=>`<span class="chip ${_pickMuscleDetail===m?'on':''}" onclick="setPickMuscleDetail('${escAttr(m)}')">${esc(mDE(m))}</span>`).join('')
     + (opts.length?'':`<span class="faint" style="font-size:12px;padding:4px 2px">Kein Muskel gefunden.</span>`);
 }
 // Nur die Kacheln neu zeichnen – so bleibt der Fokus im Suchfeld erhalten.
@@ -5550,7 +5654,7 @@ function showExercise(name, fromPicker){
       ${isCustom?`<span class="ex-tag ex-tag-own" style="flex-shrink:0">Eigene Übung</span>`:''}
     </div>
     <div class="row wrap" style="gap:6px;margin:10px 0 4px">
-      <span class="chip on" style="cursor:default">${esc(m.g)}</span>
+      <span class="chip on" style="cursor:default">${esc(mDE(m.g))}</span>
       <span class="chip" style="cursor:default">${esc(m.eq)}</span>
       ${m.bench?`<span class="chip" style="cursor:default">${I.bench} ${esc(m.bench)}</span>`:''}
       ${m.dumbbells===2?`<span class="chip" style="cursor:default">2 Hanteln</span>`:''}
@@ -5560,9 +5664,9 @@ function showExercise(name, fromPicker){
     <div class="hr"></div>
     <div class="row" style="gap:20px;margin-bottom:14px">
       <div><div class="faint" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Primär</div>
-        <div style="font-weight:600;font-size:13.5px;margin-top:2px">${(m.pm||[]).map(esc).join(', ')||esc(m.g)}</div></div>
+        <div style="font-weight:600;font-size:13.5px;margin-top:2px">${(m.pm||[]).map(x=>esc(mDE(x))).join(', ')||esc(mDE(m.g))}</div></div>
       ${(m.sm&&m.sm.length)?`<div><div class="faint" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Sekundär</div>
-        <div class="muted" style="font-size:13.5px;margin-top:2px">${m.sm.map(esc).join(', ')}</div></div>`:''}
+        <div class="muted" style="font-size:13.5px;margin-top:2px">${m.sm.map(x=>esc(mDE(x))).join(', ')}</div></div>`:''}
     </div>
     <div class="eyebrow" style="margin-bottom:10px">Ausführung</div>
     ${m.ins&&m.ins.length?`<ol class="ex-steps">${m.ins.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
@@ -5911,14 +6015,14 @@ function renderCustomForm(isEdit){
       <input class="input" id="cxName" placeholder="z. B. Enges Bankdrücken" value="${esc(c.n)}" oninput="CUSTOM.n=this.value"></div>
     <div class="field"><label>Körperregion <span class="faint" style="font-weight:400">(primär)</span></label>
       <select class="input" id="cxMuscle" onchange="CUSTOM.g=this.value">
-        ${MUSCLES.map(m=>`<option ${c.g===m?'selected':''}>${m}</option>`).join('')}
+        ${MUSCLES.map(m=>`<option value="${esc(m)}" ${c.g===m?'selected':''}>${esc(mDE(m))}</option>`).join('')}
       </select></div>
     <div class="field"><label>Primärmuskeln <span class="faint" style="font-weight:400">(Hauptbelastung, mehrere möglich)</span></label>
       <div class="sec-chips">
         ${allMuscles().map(m=>{
           const on=(c._pmChips||[]).includes(m);
           const own=customMuscles().includes(m);
-          return `<span class="chip chip-prim ${on?'on':''} ${own?'own':''}" onclick="togglePrimMuscle('${escAttr(m)}')">${esc(m)}</span>`;
+          return `<span class="chip chip-prim ${on?'on':''} ${own?'own':''}" onclick="togglePrimMuscle('${escAttr(m)}')">${esc(mDE(m))}</span>`;
         }).join('')}
       </div>
       ${(c._pmChips||[]).length?'':`<p class="faint" style="font-size:11px;margin-top:8px">Ohne Auswahl wird die Körperregion als Primärmuskel gespeichert.</p>`}
@@ -5928,7 +6032,7 @@ function renderCustomForm(isEdit){
         ${allMuscles().map(m=>{
           const on=(c._smChips||[]).includes(m);
           const own=customMuscles().includes(m);
-          return `<span class="chip ${on?'on':''} ${own?'own':''}" onclick="toggleSecMuscle('${escAttr(m)}')">${esc(m)}${own?`<button class="chip-x" onclick="event.stopPropagation();deleteCustomMuscle('${escAttr(m)}')" title="Muskel entfernen" aria-label="Muskel ${escAttr(m)} entfernen">${I.x}</button>`:''}</span>`;
+          return `<span class="chip ${on?'on':''} ${own?'own':''}" onclick="toggleSecMuscle('${escAttr(m)}')">${esc(mDE(m))}${own?`<button class="chip-x" onclick="event.stopPropagation();deleteCustomMuscle('${escAttr(m)}')" title="Muskel entfernen" aria-label="Muskel ${escAttr(m)} entfernen">${I.x}</button>`:''}</span>`;
         }).join('')}
       </div>
       <div class="row" style="gap:7px;margin-top:10px">
