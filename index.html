@@ -887,9 +887,6 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   align-items:center;justify-content:flex-start;gap:6px;min-width:0}
 .sv-inner > *{flex-shrink:0;white-space:nowrap}
 .sv-inner .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-/* Die Begründung des Vorschlags: gleiche Zeile, gleiche Höhe, aber in der
-   Akzentfarbe – sie sagt etwas über das, was gleich passieren soll. */
-.sv-inner .sv-note{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--accent-dim)}
 .set-vol:empty{margin-top:0;min-height:0}
 /* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
    eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
@@ -1479,7 +1476,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.25.1';
+const APP_VERSION='1.26.0';
 const APP_BUILD='2026-08-16';
 
 /* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
@@ -2434,8 +2431,6 @@ function fmtDate(ts){
 }
 function fmtDay(ts){ return new Date(ts).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'}); }
 // Unterkörper: bestimmt, ob beim Vorschlag der große oder kleine Gewichtssprung gilt.
-function isLower(m){ return ['Legs','Quads','Hamstrings','Glutes','Calves','Adductors','Abductors'].includes(m); }
-function round(x,step){ return Math.round(x/step)*step; }
 
 /* ================================================================
    GERÄTE: welche Gewichte lassen sich an einem Gerät überhaupt einstellen?
@@ -2497,18 +2492,6 @@ function equipWeightsFrom(c){
     out.push(Math.round(v*1000)/1000);
   }
   return out;
-}
-/* Nächstes einstellbares Gewicht, `stufen` Stufen über dem aktuellen.
-   amEnde = das aktuelle Gewicht liegt bereits auf oder über der letzten Stufe;
-   dann geht es an diesem Gerät körperlich nicht weiter. */
-function nextEquipWeight(list, aktuell, stufen){
-  if(!list.length) return {weight:aktuell, amEnde:false};
-  const a=+aktuell||0;
-  let idx=-1;   // letzter Eintrag <= aktuell; -1 wenn aktuell unter der ersten Stufe liegt
-  for(let i=0;i<list.length;i++){ if(list[i]<=a+1e-9) idx=i; else break; }
-  if(idx===list.length-1) return {weight:list[idx], amEnde:true};
-  const ziel=Math.min(idx+Math.max(1,stufen|0), list.length-1);
-  return {weight:list[ziel], amEnde:false};
 }
 /* Geräte, für die sich eine Einrichtung lohnt. Körpergewicht und „Ohne Gerät“
    haben keine einstellbaren Gewichte und stehen deshalb nicht zur Auswahl. */
@@ -2604,92 +2587,8 @@ function exVolumeNow(ex){
    doppelten Sprung nahelegen, obwohl der letzte Satz gerade so ging.
    Rückgabe null, wenn nichts Verwertbares erfasst ist (Altdaten, leeres Feld).
    Die Trainingsansicht speichert den RIR als Zeichenkette, deshalb +s.rir. */
-function minRir(sets, weight){
-  let m=null;
-  sets.forEach(s=>{
-    if((+s.weight||0)!==weight) return;
-    if(s.rir==null || s.rir==='') return;
-    const v=+s.rir;
-    if(!isFinite(v)) return;
-    if(m==null || v<m) m=v;
-  });
-  return m;
-}
 /* Wie viele Schritte auf einmal? Reserve heißt: die Last war zu leicht.
    null (nicht erfasst) gilt als „keine Reserve“ – also wie bisher ein Schritt. */
-function rirFactor(rir){
-  if(rir==null) return 1;
-  if(rir>=4) return 3;
-  if(rir>=2) return 2;
-  return 1;
-}
-function suggest(exName, targetReps, muscle, exId, dayName){
-  const p=lastPerfUnit(exName, exId, dayName);
-  const inc = isLower(muscle)?DB.settings.incrementLower:DB.settings.incrementUpper;
-  if(!p){ return {weight:'', reps:targetReps, note:'Erstes Mal — taste dich heran'}; }
-  const done=p.ex.sets.filter(s=>s.done);
-  const tgt=+targetReps||p.ex.targetReps||10;
-
-  /* Übung ohne Gewicht (Klimmzüge, Liegestütze …): Der Fortschritt läuft über
-     Wiederholungen. Dieselbe Lesart nutzt der Vergleichsbalken im Training
-     schon – Volumen 0 bedeutet dort: Wiederholungen vergleichen.
-     Erkannt am tatsächlich protokollierten Gewicht, nicht am Geräte-Feld:
-     Klimmzüge mit Gewichtsgürtel sollen weiter über das Gewicht laufen.
-     Ohne diesen Zweig blieb top unten auf {weight:0,reps:0} stehen, weil
-     0 > 0 falsch ist – die Übung landete dann dauerhaft bei „Ziel minus 2“,
-     selbst wenn das Ziel übertroffen wurde. */
-  const maxW=done.reduce((a,s)=>Math.max(a,+s.weight||0),0);
-  if(maxW===0){
-    const best=done.reduce((a,s)=>Math.max(a,+s.reps||0),0);
-    if(best>=tgt){
-      const plus=rirFactor(minRir(done,0));
-      const ziel=best+plus;
-      return {weight:'', reps:ziel,
-        note: plus>1 ? `Ziel geschafft mit Reserve — versuch ${ziel} Wdh`
-                     : `Ziel geschafft — versuch ${ziel} Wdh`};
-    }
-    return {weight:'', reps:tgt, note:`Hol dir die ${tgt}. Wdh`};
-  }
-
-  const top=done.reduce((a,s)=>(+s.weight> a.weight?{weight:+s.weight,reps:+s.reps}:a),{weight:0,reps:0});
-  const rir=minRir(done, top.weight);
-  // Hat der User im Top-Satz das Wdh-Ziel erreicht/übertroffen? -> Gewicht hoch.
-  // Mit Reserve fällt der Sprung größer aus; bei RIR 0/1 bleibt alles wie bisher.
-  if(top.reps>=tgt){
-    const f=rirFactor(rir);
-    const grund = f>1 ? `Ziel geschafft mit ${rir} RIR Reserve` : 'Ziel letztes Mal geschafft';
-    // Ist das Gerät eingerichtet, zählt der RIR-Faktor in STUFEN statt in Kilo –
-    // der Vorschlag fällt dann immer auf ein Gewicht, das sich einstellen lässt.
-    const meta=exMetaById(exId)||exMeta(exName);
-    const leiter=equipWeights(meta&&meta.eq);
-    if(leiter.length){
-      const st=nextEquipWeight(leiter, top.weight, f);
-      if(st.amEnde){
-        // Oberes Ende des Geräts: mehr Gewicht gibt es nicht, also über die
-        // Wiederholungen weiter. repsVorschlag, weil hier ausnahmsweise ein
-        // Vorschlag MIT Gewicht trotzdem die Wiederholungen meint.
-        return {weight:top.weight, reps:top.reps+f, repsVorschlag:true,
-          note:`${meta.eq} am Anschlag (${fmtKg(top.weight)} kg) — steigere über Wiederholungen`};
-      }
-      const stufen = f===1 ? 'nächste Stufe' : `${f} Stufen weiter`;
-      return {weight:st.weight, reps:tgt,
-        note:`${fmtKg(st.weight)} kg — ${stufen}, ${grund} (${top.reps} Wdh)`};
-    }
-    const plus=inc*f;
-    const nw=round(top.weight+plus,inc>=5?2.5:1.25);
-    return {weight:nw, reps:tgt, note:`+${fmtKg(plus)} kg — ${grund} (${top.reps} Wdh)`};
-  }
-  // knapp dran -> gleiches Gewicht, mehr Wdh anpeilen.
-  // Reserve trotz verfehltem Ziel ist ein Widerspruch, der benannt gehört.
-  if(top.reps>=tgt-2){
-    const note = (rir!=null && rir>=2)
-      ? `Gleiches Gewicht — ${rir} Wdh waren noch drin, hol dir die ${tgt}.`
-      : `Gleiches Gewicht — hol dir die ${tgt}. Wdh`;
-    return {weight:top.weight, reps:tgt, note};
-  }
-  // deutlich drunter -> Gewicht halten, Technik/Wdh festigen
-  return {weight:top.weight, reps:Math.max(top.reps,tgt-2), note:'Gewicht halten & Wiederholungen aufbauen'};
-}
 
 /* ---------- Volume / Stats helpers ---------- */
 function logVolume(log){
@@ -3011,13 +2910,12 @@ function startSession(plan, day){
       const meta = exMetaById(exId);
       const name = meta ? meta.n : ex.name;
       const muscle = meta ? meta.g : ex.muscle;
-      const sg=suggest(name, ex.reps, muscle, exId, day.name);
       const prevSets=prevPerfSets(name, day.name, exId); // Sätze aus dem letzten Training (kann leer sein)
       // Satzanzahl richtet sich nach dem letzten Training; ohne Vorgeschichte gilt der Plan
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
       return {exId, name, muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
         sets:Array.from({length:n},(_,i)=>({
-          weight:'', reps:'', rir:'0', done:false, sug:sg,   // RIR startet bei 0
+          weight:'', reps:'', rir:'0', done:false,   // RIR startet bei 0
           prev: prevSets[i] || null   // Ergebnis desselben Satzes im letzten Training
         }))};
     })
@@ -3613,19 +3511,7 @@ function volCompare(ex){
     </div>
   </div>`;
 }
-/* Vorgeschlagene Wiederholungen – aber nur, wenn der Vorschlag KEIN Gewicht
-   trägt. Genau dann stammt er aus dem Körpergewichts-Zweig von suggest(), wo
-   der Fortschritt über Wiederholungen läuft. Bei Übungen mit Gewicht ist
-   sug.weight immer > 0, dort bleibt der Planwert maßgeblich. */
-function sugReps(st){
-  const s = st && st.sug;
-  if(!s || !s.reps) return null;
-  // Kein Gewicht = Körpergewichtsübung. repsVorschlag = Gerät am Anschlag:
-  // Dort steht ein Gewicht dabei und die Wiederholungen sind trotzdem gemeint.
-  return (!s.weight || s.repsVorschlag) ? s.reps : null;
-}
 function setRow(ex,ei,st,si){
-  const ph=st.sug&&st.sug.weight?st.sug.weight:'';
   const f=exFactor(ex.name);
   /* Die „zuletzt“-Zeile steht auch dann, wenn diese Übung keine Vorgeschichte
      hat – dann mit Strichen. Grund ist nicht Kosmetik, sondern der Bildrahmen:
@@ -3655,24 +3541,18 @@ function setRow(ex,ei,st,si){
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const rec = bestSet(ex.exId, ex.name);
-  /* Die Begründung des Vorschlags („+2,5 kg — Ziel letztes Mal geschafft")
-     wurde bisher berechnet und weggeworfen. Sie steht jetzt in der Zeile, die
-     ohnehin da ist – und nur beim ersten noch offenen Satz, sonst stünde
-     dreimal dasselbe untereinander. */
-  const ersterOffen = ex.sets.findIndex(x=>!x.done)===si;
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f, ersterOffen)}</div>`;
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f)}</div>`;
   // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
   const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR Satz ${si+1}, ${esc(ex.name)}">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
       ${[0,1,2,3,4,5].map(v=>`<option value="${v}"${String(st.rir)===String(v)?' selected':''}>${v}</option>`).join('')}
     </select>`;
   const wInput = f===2
-    ? `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg je Hantel" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
-    : `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
-  // Trägt ein Vorschlag KEIN Gewicht, aber Wiederholungen, dann sind diese
-  // Wiederholungen der Vorschlag (Körpergewichtsübungen). Bei Übungen mit
-  // Gewicht ist sug.weight immer > 0, dort greift die Regel also nie.
-  const rInput = `<input class="input" aria-label="Wiederholungen Satz ${si+1}, ${esc(ex.name)}" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
+    ? `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg je Hantel" inputmode="decimal" placeholder="–" value="${zahlFeld(st.weight)}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
+    : `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg" inputmode="decimal" placeholder="–" value="${zahlFeld(st.weight)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
+  // Im Wiederholungsfeld steht der Zielwert aus dem Plan als Platzhalter – das
+  // ist eine eigene Angabe, kein aus der Vorgeschichte errechneter Vorschlag.
+  const rInput = `<input class="input" aria-label="Wiederholungen Satz ${si+1}, ${esc(ex.name)}" inputmode="numeric" placeholder="${ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
     ${prevRow}
     <div class="set-grid">
@@ -3694,7 +3574,7 @@ function schlaegtRekord(st, rec, f){
   return rec.vol>0 ? (w*f*r > rec.vol) : (w===0 && r > rec.reps);
 }
 // Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%) · Rekord 80×12"
-function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f, ersterOffen){
+function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
   const parts=[];
   const geschlagen = schlaegtRekord(st, rec, f||1);
   // Kompaktfassung der "zuletzt"-Zeile für flache Panels: dort wird die eigene
@@ -3729,16 +3609,7 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f, ersterOffen){
      Satz – zu viel für die Zusage, dass immer drei Sätze zu sehen sind.
      Beim Rekordbruch nennt die Zeile den HEUTIGEN Satz: Die alte Marke ist in
      dem Moment nicht mehr die interessante Zahl. */
-  /* Beim ersten offenen Satz tritt die Begründung an die Stelle des Rekords.
-     Kein Zusatz, sondern ein Tausch: Die Zeile bricht nicht um (nowrap), ein
-     dritter Teil würde den Rekord ohnehin zu Punkten verkürzen. Wer gerade
-     entscheidet, was er auflegt, ist mit dem Warum besser bedient als mit der
-     alten Bestmarke – die steht bei jedem weiteren Satz wieder da. */
-  const nochLeer = (st.weight===''||st.weight==null);
-  const notiz = (ersterOffen && !st.done && nochLeer && st.sug && st.sug.note) ? st.sug.note : '';
-  if(notiz){
-    parts.push(`<span class="sv-note">${esc(notiz)}</span>`);
-  } else if(rec){
+  if(rec){
     const txt = geschlagen
       ? `Rekord geschlagen · ${zahlFeld(+st.weight||0)} kg × ${+st.reps||0} Wdh`
       : `Rekord ${zahlFeld(rec.weight)} kg × ${rec.reps} Wdh`;
@@ -3780,13 +3651,13 @@ function toggleSet(ei,si){
   const ex=SESSION.exercises[ei];
   const st=ex.sets[si];
   if(!st.done){
-    /* „Nichts eingetragen“ heißt leer – nicht null. Vor 1.19.7 stand hier eine
-       Zeichenkette im Feld, und "0" ist truthy; seit die Felder echte Zahlen
-       liefern, wäre eine bewusst eingetragene 0 sonst vom Vorschlag
-       überschrieben worden. */
+    /* Das Gewicht wird NICHT mehr ergänzt – es gibt keinen Vorschlag mehr, und
+       geraten wird nicht. Die Wiederholungen bekommen den Planwert, falls das
+       Feld leer blieb: Ohne ihn landete ein abgehaktes „nichts" als 0 × 0 im
+       Protokoll und verfälschte Volumen und Rekord.
+       „Leer" heißt leer, nicht null – eine bewusst eingetragene 0 bleibt stehen. */
     const leer=v=>v===''||v==null;
-    if(leer(st.weight) && st.sug && st.sug.weight) st.weight=st.sug.weight;
-    if(leer(st.reps)) st.reps=sugReps(st)||ex.targetReps||'';
+    if(leer(st.reps)) st.reps=ex.targetReps||'';
   }
   st.done=!st.done;
   /* Rekord erst beim Abhaken feiern, nicht beim Tippen. Der Vergleich läuft
@@ -3932,17 +3803,16 @@ function restAlert(){
 }
 function addSet(ei){
   const ex=SESSION.exercises[ei]; const prev=ex.sets[ex.sets.length-1];
-  ex.sets.push({weight:'',reps:'',rir:'0',done:false,sug:prev?prev.sug:null,prev:null});
+  ex.sets.push({weight:'',reps:'',rir:'0',done:false,prev:null});
   saveSession(); renderView();
 }
 function addExerciseToSession(){
   openExercisePicker(sel=>{
     const exId=sel.id||exIdForName(sel.n);
-    const sg=suggest(sel.n,10,sel.m,exId,SESSION.dayName);
     const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3; // wie beim letzten Mal, sonst 3
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
-      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,sug:sg,prev:prevSets[i]||null}))});
+      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,prev:prevSets[i]||null}))});
     SESSION.page=SESSION.exercises.length-1; // direkt zur neuen Übung
     saveSession();
     closeModal(); renderView();
