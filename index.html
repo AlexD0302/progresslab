@@ -1479,7 +1479,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.25.0';
+const APP_VERSION='1.25.1';
 const APP_BUILD='2026-08-16';
 
 /* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
@@ -2529,6 +2529,23 @@ function lastPerf(exName, exId){
   }
   return null;
 }
+/* „Letztes Mal" für DIESE Einheit.
+   Vorher gab es zwei Auslegungen davon, und sie widersprachen einander auf
+   demselben Bildschirm: Die „zuletzt"-Zeile je Satz nahm das letzte Training
+   DERSELBEN Einheit, der Vorschlag darüber nahm über lastPerf() das letzte
+   Vorkommen der Übung ÜBERHAUPT. Steht dieselbe Übung in zwei Einheiten (bei
+   einem 6er Upper/Lower der Normalfall), rechnete der Vorschlag mit einem
+   Training, das gar nicht dastand – „zuletzt 17,5 kg × 17" und darunter
+   „Gleiches Gewicht — hol dir die 10. Wdh" bei 22 kg im Feld.
+   Beide Seiten holen ihre Daten jetzt hier. */
+function lastPerfUnit(exName, exId, dayName){
+  if(dayName){
+    const log=lastSessionLog(dayName);
+    const ex=log && log.exercises.find(e=> (exId && e.exId===exId) || e.name===exName);
+    if(ex && ex.sets.some(s=>s.done!==false)) return {log, ex};
+  }
+  return lastPerf(exName, exId);
+}
 /* Bester Einzelsatz einer Übung – der „Rekord“.
    Bewusst über ALLE Trainings, nicht nur über dieselbe Einheit: Ein Rekord ist
    unabhängig davon, an welchem Tag er fiel. Genau darin unterscheidet er sich
@@ -2606,8 +2623,8 @@ function rirFactor(rir){
   if(rir>=2) return 2;
   return 1;
 }
-function suggest(exName, targetReps, muscle, exId){
-  const p=lastPerf(exName, exId);
+function suggest(exName, targetReps, muscle, exId, dayName){
+  const p=lastPerfUnit(exName, exId, dayName);
   const inc = isLower(muscle)?DB.settings.incrementLower:DB.settings.incrementUpper;
   if(!p){ return {weight:'', reps:targetReps, note:'Erstes Mal — taste dich heran'}; }
   const done=p.ex.sets.filter(s=>s.done);
@@ -2994,7 +3011,7 @@ function startSession(plan, day){
       const meta = exMetaById(exId);
       const name = meta ? meta.n : ex.name;
       const muscle = meta ? meta.g : ex.muscle;
-      const sg=suggest(name, ex.reps, muscle, exId);
+      const sg=suggest(name, ex.reps, muscle, exId, day.name);
       const prevSets=prevPerfSets(name, day.name, exId); // Sätze aus dem letzten Training (kann leer sein)
       // Satzanzahl richtet sich nach dem letzten Training; ohne Vorgeschichte gilt der Plan
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
@@ -3011,16 +3028,9 @@ function startSession(plan, day){
 // Liefert die abgehakten Sätze der Übung aus dem letzten Training (als {weight,reps}).
 // Bevorzugt das letzte Training DERSELBEN Einheit; sonst das letzte Vorkommen überhaupt.
 function prevPerfSets(exName, dayName, exId){
-  if(dayName){
-    const log=lastSessionLog(dayName);
-    const ex=log && log.exercises.find(e=> (exId && e.exId===exId) || e.name===exName);
-    if(ex && ex.sets.some(s=>s.done!==false)){
-      return ex.sets.filter(s=>s.done!==false).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
-    }
-  }
-  const p=lastPerf(exName, exId);
+  const p=lastPerfUnit(exName, exId, dayName);
   if(!p) return [];
-  return p.ex.sets.filter(s=>s.done).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
+  return p.ex.sets.filter(s=>s.done!==false).map(s=>({weight:+s.weight||0, reps:+s.reps||0, rir:(s.rir!=null?s.rir:'')}));
 }
 function startFreestyle(){ SESSION={planId:null,planName:'Freies Training',dayName:'Freies Training',date:Date.now(),exercises:[]}; saveSession(); go('today'); }
 
@@ -3928,7 +3938,7 @@ function addSet(ei){
 function addExerciseToSession(){
   openExercisePicker(sel=>{
     const exId=sel.id||exIdForName(sel.n);
-    const sg=suggest(sel.n,10,sel.m,exId);
+    const sg=suggest(sel.n,10,sel.m,exId,SESSION.dayName);
     const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3; // wie beim letzten Mal, sonst 3
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
