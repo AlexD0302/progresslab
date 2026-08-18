@@ -172,7 +172,16 @@ body.in-session.timer-on{--timer-space:78px}
 .vc-delta{font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;padding:0 7px;border-radius:5px;line-height:1.6}
 .vc-delta.up{color:var(--accent);background:var(--accent-glow)}
 .vc-delta.down{color:var(--red);background:rgba(255,92,92,.12)}
-.vc-delta.same{color:var(--text-faint);background:var(--surface-3)}
+.vc-delta.same{color:var(--text-dim);background:var(--surface-3)}   /* faint erreicht auf --surface-3 nur 4.2:1 */
+/* Rekordblock der Abschlussbilanz – das einzige Neue an diesem Dialog. */
+.bilanz-rek{margin-top:14px;padding:11px 13px;border-radius:var(--radius-sm);
+  background:var(--accent-glow);border:1px solid var(--accent-dim)}
+/* Symbole neben Dialog-Überschriften hatten nie eine Größe und wurden mit 0x0
+   gezeichnet – in sechs Dialogen stand ein unsichtbares SVG. Ein <svg> ohne
+   Breitenangabe erbt hier nichts; die App vergibt Größen sonst immer über eine
+   Klasse am Elternelement (.chip svg, .btn-slim svg, .cal-nav svg …). */
+.dlg-ico{display:inline-flex;align-items:center;flex-shrink:0}
+.dlg-ico svg{width:19px;height:19px;stroke-width:2.2}
 .vc-row{display:grid;grid-template-columns:48px 1fr 74px;align-items:center;gap:9px;margin-bottom:5px}
 .vc-row:last-child{margin-bottom:0}
 .vc-lbl{font-size:11px;color:var(--text-faint);font-weight:600}
@@ -704,7 +713,7 @@ body.in-session .nav-fade{display:none}   /* im Training gibt es nichts zu scrol
 .day-row:active{transform:scale(.99)}
 /* Einheit auf der Plankarte: antippbar, öffnet den Editor auf genau dieser
    Einheit. Rückmeldung wie bei .day-row – ohne sie sähe die Fläche tot aus. */
-.day-box{display:block;width:100%;text-align:left;background:transparent;
+.day-box{display:block;width:100%;min-height:44px;text-align:left;background:transparent;
   border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px;
   transition:background .15s,border-color .15s,transform .12s}
 .day-box:last-of-type{margin-bottom:0}
@@ -1470,7 +1479,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.24.1';
+const APP_VERSION='1.25.0';
 const APP_BUILD='2026-08-16';
 
 /* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
@@ -2023,7 +2032,7 @@ function renderAuthForm(err, busy){
   const up = _authMode==='up';
   openModal(`<div class="grab"></div>
     <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
-      <span style="color:var(--accent)">${I.cloud}</span>
+      <span class="dlg-ico" style="color:var(--accent)">${I.cloud}</span>
       <h2 style="margin:0">${up?'Konto erstellen':'Anmelden'}</h2>
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 18px">
@@ -2112,7 +2121,7 @@ function authErrText(e){
 function renderResetRequest(err, busy, mail){
   openModal(`<div class="grab"></div>
     <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
-      <span style="color:var(--accent)">${I.cloud}</span>
+      <span class="dlg-ico" style="color:var(--accent)">${I.cloud}</span>
       <h2 style="margin:0">Passwort vergessen</h2>
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 18px">
@@ -2183,7 +2192,7 @@ function recoveryFromUrl(){
 function renderNewPassword(err, busy){
   openModal(`<div class="grab"></div>
     <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
-      <span style="color:var(--accent)">${I.cloud}</span>
+      <span class="dlg-ico" style="color:var(--accent)">${I.cloud}</span>
       <h2 style="margin:0">Neues Passwort</h2>
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 18px">
@@ -2237,7 +2246,7 @@ function openAccountPanel(){
   }[SYNC.state] || SYNC.msg;
   openModal(`<div class="grab"></div>
     <div class="row" style="gap:10px;align-items:center;margin-bottom:4px">
-      <span style="color:var(--accent)">${I.cloudOk}</span>
+      <span class="dlg-ico" style="color:var(--accent)">${I.cloudOk}</span>
       <h2 style="margin:0">Cloud</h2>
     </div>
 
@@ -3942,14 +3951,126 @@ function cancelSession(){
     registerUndo('Training verworfen', ()=>{ SESSION=weg; saveSession(); renderView(); });
   }, null, 'Weitertrainieren');
 }
+/* Wiederholungen eines Logs – das Gegenstück zu logVolume() für Übungen ohne
+   Gewicht, bei denen das Volumen immer 0 wäre. */
+function logReps(log){
+  return log.exercises.reduce((a,ex)=>
+    a+ex.sets.filter(x=>x.done!==false).reduce((b,x)=>b+(+x.reps||0),0), 0);
+}
+function dauerText(ms){
+  const min=Math.max(1, Math.round(ms/60000));
+  if(min<60) return min+' Minuten';
+  const h=Math.floor(min/60), m=min%60;
+  return h+' Std'+(m?' '+m+' Min':'');
+}
+
 function finishSession(){
   const s=SESSION;
   const exercises=s.exercises.map(ex=>({exId:ex.exId||exIdForName(ex.name),name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
     sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:(x.rir===''||x.rir==null)?null:+x.rir,done:true}))}))
     .filter(ex=>ex.sets.length);
   if(!exercises.length){ toast('Noch keine Sätze abgehakt'); return; }
-  DB.logs.push({id:uid(),date:s.date,planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises});
-  save(); SESSION=null; clearStoredSession(); closeRest(); toast('Training gespeichert 💪'); go('history');
+
+  /* Die Reihenfolge ist hier nicht beliebig.
+     Rekorde und Vergleichswert werden ERMITTELT, BEVOR der Log geschrieben
+     wird – sonst schlägt das Training seinen eigenen Rekord und vergleicht sich
+     mit sich selbst. Die Serie dagegen wird NACH dem Schreiben gezählt, denn
+     calcStreak() liest DB.logs und soll das eben beendete Training mitzählen. */
+  const rekorde=[];
+  exercises.forEach(ex=>{
+    const f=exFactor(ex.name, ex.exId);
+    const alt=bestSet(ex.exId, ex.name);       // Bestmarke OHNE dieses Training
+    let best=null;
+    ex.sets.forEach(st=>{
+      if(!schlaegtRekord(st, alt, f)) return;
+      const vol=(+st.weight||0)*f*(+st.reps||0);
+      if(!best || vol>best.vol || (vol===0 && (+st.reps||0)>best.reps))
+        best={weight:+st.weight||0, reps:+st.reps||0, vol};
+    });
+    // Höchstens eine Zeile je Übung – an einem Volumentag wäre die Liste sonst lang.
+    if(best) rekorde.push({name:ex.name, weight:best.weight, reps:best.reps});
+  });
+
+  const vorLog=lastSessionLog(s.dayName);      // dieselbe Vergleichseinheit wie im Training
+  const neu={id:uid(),date:s.date,planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises};
+
+  const bilanz={
+    tag: s.dayName || 'Training',
+    dauer: dauerText(Date.now() - (+s.date || Date.now())),
+    saetze: logDoneSets(neu),
+    jetzt: logVolume(neu),
+    vorher: vorLog ? logVolume(vorLog) : 0,
+    einheit: 'kg',
+    rekorde
+  };
+  // Reine Körpergewichts-Einheit: Kilogramm sind hier immer 0, also Wiederholungen
+  // vergleichen – dieselbe Ausweichregel, die volCompare() je Übung anwendet.
+  if(bilanz.jetzt===0 && bilanz.vorher===0){
+    bilanz.jetzt = logReps(neu);
+    bilanz.vorher = vorLog ? logReps(vorLog) : 0;
+    bilanz.einheit = 'Wdh';
+  }
+
+  DB.logs.push(neu);
+  save(); SESSION=null; clearStoredSession(); closeRest();
+  bilanz.serie = calcStreak();                 // zählt das eben Gespeicherte mit
+
+  go('today');                                 // Hintergrund steht, bevor der Dialog kommt
+  zeigeBilanz(bilanz);
+}
+
+/* Der Abschluss war bisher ein Toast von drei Sekunden und ein Sprung in den
+   Kalender – nach 45 Minuten Arbeit die einzige Stelle ohne Zahlen, ausgerechnet
+   in der Sekunde, in der der Fortschritt entsteht. */
+function zeigeBilanz(b){
+  const max=Math.max(b.jetzt, b.vorher, 1);
+  const fmt=v=>v.toLocaleString('de-DE')+' '+b.einheit;
+  let delta='';
+  if(b.vorher>0 && b.jetzt>0){
+    const d=Math.round((b.jetzt/b.vorher-1)*100);
+    delta=`<span class="vc-delta ${d>0?'up':(d<0?'down':'same')}">${d>0?'+':''}${d}%</span>`;
+  } else if(!b.vorher){
+    delta=`<span class="vc-delta same">erstes Mal</span>`;
+  }
+  openModal(`<div class="grab"></div>
+    <div class="row" style="gap:10px;align-items:center;margin-bottom:2px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.check}</span>
+      <h2 style="margin:0">${esc(b.tag)} geschafft</h2>
+    </div>
+    <p class="faint" style="font-size:12.5px;margin:6px 0 0">
+      ${b.dauer} · ${b.saetze} ${b.saetze===1?'Satz':'Sätze'}
+    </p>
+
+    <div class="vc">
+      <div class="vc-title"><span>${b.einheit==='kg'?'Volumen':'Wiederholungen'}</span>${delta}</div>
+      <div class="vc-row">
+        <span class="vc-lbl">Heute</span>
+        <div class="vc-track"><div class="vc-fill now" style="width:${Math.round(b.jetzt/max*100)}%"></div></div>
+        <span class="vc-val">${fmt(b.jetzt)}</span>
+      </div>
+      <div class="vc-row">
+        <span class="vc-lbl">Zuletzt</span>
+        <div class="vc-track"><div class="vc-fill prev" style="width:${Math.round(b.vorher/max*100)}%"></div></div>
+        <span class="vc-val prev">${b.vorher?fmt(b.vorher):'–'}</span>
+      </div>
+    </div>
+
+    ${b.rekorde.length?`<div class="bilanz-rek">
+      <div class="row" style="gap:7px;align-items:center;margin-bottom:7px">
+        <span class="dlg-ico" style="color:var(--accent)">${I.fire}</span>
+        <span class="eyebrow" style="margin:0;color:var(--accent)">${b.rekorde.length===1?'Neuer Rekord':'Neue Rekorde'}</span>
+      </div>
+      ${b.rekorde.map(r=>`<div class="row between" style="font-size:12.5px;margin-top:3px">
+        <span class="muted">${esc(r.name)}</span>
+        <b class="num">${r.weight>0 ? fmtKg(r.weight)+' kg × '+r.reps : r.reps+' Wdh'}</b>
+      </div>`).join('')}
+    </div>`:''}
+
+    ${b.serie>1?`<p class="faint" style="font-size:12.5px;margin:14px 0 0;text-align:center">
+      ${b.serie}. Training in Folge</p>`:''}
+
+    <button class="btn-slim solid" style="margin-top:18px" onclick="closeModal()"><span>Fertig</span></button>
+  `);
 }
 
 /* ================================================================
@@ -5252,7 +5373,7 @@ function backupCard(imDialog){
   // Im Dialog ohne Kartenrahmen – eine Karte in einer Karte ist immer falsch.
   return `${imDialog?'<div class="grab"></div>':'<div class="card" style="margin-top:14px">'}
     <div class="row" style="gap:9px;margin-bottom:4px">
-      <span style="color:var(--accent)">${I.database}</span>
+      <span class="dlg-ico" style="color:var(--accent)">${I.database}</span>
       ${imDialog?'<h2 style="margin:0">Daten &amp; Backup</h2>':'<div class="eyebrow" style="margin:0">Daten &amp; Backup</div>'}
     </div>
     <p class="faint" style="font-size:12px;margin:6px 0 14px">Sichere alle Pläne und deinen Verlauf als Datei (z. B. in OneDrive, iCloud oder Google Drive) und stelle sie bei Bedarf wieder her. ${nPlans} Pläne · ${nLogs} Trainings.</p>
@@ -6293,7 +6414,7 @@ function viewEquipment(){
   return topbar('Your equipment')+`<div class="pad">
     <div class="card">
       <div class="row" style="gap:9px;margin-bottom:4px">
-        <span style="color:var(--accent)">${I.plate}</span>
+        <span class="dlg-ico" style="color:var(--accent)">${I.plate}</span>
         <div class="eyebrow" style="margin:0">Einstellbare Gewichte</div>
       </div>
       <p class="faint" style="font-size:12.5px;line-height:1.5;margin-top:8px">
