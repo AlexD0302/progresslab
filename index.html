@@ -110,7 +110,7 @@ body.in-session.timer-on{--timer-space:78px}
    auf. Die Bedienelemente hier werden deshalb nicht größer, sie bekommen nur
    eine unsichtbare Trefferfläche. Das Layout bleibt auf den Pixel gleich. */
 .sess-btn{position:relative}
-.sess-btn::after{content:"";position:absolute;inset:-9px -4px}
+.sess-btn::after{content:"";position:absolute;inset:-9px 0}   /* -4px seitlich liess die Flaechen der Nachbarn ueberlappen */
 .sess-arrow{position:relative}
 .sess-arrow::after{content:"";position:absolute;inset:-3px}
 .ex-card .add-set,.add-set{position:relative}
@@ -239,6 +239,13 @@ body.in-session.timer-on{--timer-space:78px}
 /* Standard: Bild über den Sätzen (hochkant) */
 .ex-main{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
 .ex-col{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
+/* Ohne Übungsbild – der Normalfall, denn die mitgelieferte Übungsdatenbank ist
+   leer und ein Bild hat nur, wer eins hochlädt. Die Sätze bekamen dann die
+   ganze Breite: auf dem Panel 438px breite Felder für Eingaben wie „80".
+   Die Spalte behält deshalb das Maß, das sie neben einem Bild hätte, und
+   rückt in die Mitte. Nur eine Breitenbegrenzung, keine Höhenänderung – die
+   Aufteilung der Höhe bleibt unangetastet. */
+.ex-main.ohne-bild .ex-col{max-width:560px;width:100%;margin-inline:auto}
 
 /* ===== QUERFORMAT: breiter, flacher Bildschirm (z. B. Fernseher, Laptop im Wohnzimmer) =====
    Dann steht das Bild links NEBEN den Sätzen, und die App darf breiter werden.
@@ -864,6 +871,9 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
   align-items:center;justify-content:flex-start;gap:6px;min-width:0}
 .sv-inner > *{flex-shrink:0;white-space:nowrap}
 .sv-inner .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Die Begründung des Vorschlags: gleiche Zeile, gleiche Höhe, aber in der
+   Akzentfarbe – sie sagt etwas über das, was gleich passieren soll. */
+.sv-inner .sv-note{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--accent-dim)}
 .set-vol:empty{margin-top:0;min-height:0}
 /* Kompaktfassung der "zuletzt"-Werte: nur auf flachen Panels sichtbar, wo die
    eigene prev-Zeile ausgeblendet wird (siehe Media-Query weiter oben). */
@@ -1386,9 +1396,13 @@ h2{color:var(--accent)}
 <main id="app">
   <!-- views injected/managed by JS below -->
 </main>
-<div id="toast"></div>
-<div id="undoBar"></div>
-<div id="restTimer" class="rest-timer"></div>
+<!-- Live-Bereiche: Diese drei melden Dinge, die sonst nur zu sehen sind –
+     Rekorde, gespeicherte Trainings, die ablaufende Frist der Rücknahme.
+     Der Pausen-Timer bleibt bewusst stumm (aria-live="off"): Er zählt jede
+     Sekunde herunter und würde eine Vorlesesoftware sonst dauerhaft belegen. -->
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="undoBar" role="status" aria-live="polite"></div>
+<div id="restTimer" class="rest-timer" aria-live="off"></div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox" role="dialog" aria-modal="true" aria-label="Dialog"></div></div>
 
 <!-- nav -->
@@ -1449,7 +1463,7 @@ const I = {
 /* Primär = Körperregion. Die alten, feineren Gruppen des Datensatzes werden zugeordnet. */
 /* App-Version. Bei jeder Änderung hier hochzählen – wird in "Daten & Backup"
    und in jedem exportierten Backup mitgeführt. */
-const APP_VERSION='1.23.1';
+const APP_VERSION='1.24.0';
 const APP_BUILD='2026-08-16';
 
 /* Ein- und Mehrzahl. Die App hatte das an vier Stellen richtig und an vier
@@ -1965,7 +1979,7 @@ function showConflict(){
 
     <p class="faint" style="font-size:11.5px;margin-top:14px;line-height:1.5">
       Der nicht gewählte Stand wird überschrieben. Lade vorher ein Backup herunter,
-      wenn du unsicher bist (Statistik → Backup).
+      wenn du unsicher bist (Zahnrad oben rechts → Daten & Backup).
     </p>
   `);
 }
@@ -2288,10 +2302,14 @@ let _fldSeq=0;
 function a11y(root){
   const r=root||document;
   r.querySelectorAll('[onclick]').forEach(el=>{
-    if(el instanceof SVGElement) return;
     if(['BUTTON','A','INPUT','SELECT','TEXTAREA','LABEL'].includes(el.tagName)) return;
     if(!el.hasAttribute('role')) el.setAttribute('role','button');
-    if(!el.hasAttribute('tabindex')) el.tabIndex=0;
+    /* SVG war hier zunächst ausgenommen, um dekorative Symbole nicht zu Knöpfen
+       zu erklären. Das war zu grob: Die anklickbaren Flächen der Maß-Figur sind
+       echte Bedienelemente und blieben als einzige Ansicht ohne Tastaturzugang.
+       Dekoratives SVG hat ohnehin kein onclick und wird hier gar nicht erfasst.
+       `el.tabIndex=0` greift bei SVG nicht überall – deshalb das Attribut. */
+    if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
     if(el.classList.contains('chip')) el.setAttribute('aria-pressed', el.classList.contains('on')?'true':'false');
   });
   r.querySelectorAll('.field').forEach(f=>{
@@ -2306,7 +2324,10 @@ document.addEventListener('keydown', e=>{
   if(e.key!=='Enter' && e.key!==' ') return;
   const el=e.target;
   if(!el || el.getAttribute('role')!=='button' || el.tagName==='BUTTON') return;
-  e.preventDefault(); el.click();
+  e.preventDefault();
+  // SVG-Elemente haben kein .click() – dort das Ereignis selbst schicken.
+  if(typeof el.click==='function') el.click();
+  else el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
 });
 /* Escape schließt den Dialog – über tryCloseModal, damit der Schutz vor
    ungespeicherten Änderungen genauso greift wie beim Klick daneben. */
@@ -2623,7 +2644,7 @@ function suggest(exName, targetReps, muscle, exId){
     }
     const plus=inc*f;
     const nw=round(top.weight+plus,inc>=5?2.5:1.25);
-    return {weight:nw, reps:tgt, note:`+${plus} kg — ${grund} (${top.reps} Wdh)`};
+    return {weight:nw, reps:tgt, note:`+${fmtKg(plus)} kg — ${grund} (${top.reps} Wdh)`};
   }
   // knapp dran -> gleiches Gewicht, mehr Wdh anpeilen.
   // Reserve trotz verfehltem Ziel ist ein Widerspruch, der benannt gehört.
@@ -2681,6 +2702,7 @@ function renderView(){
      fast immer dasselbe Bedienelement. Eingabefelder bleiben außen vor, sonst
      springt auf dem Handy die Bildschirmtastatur auf. */
   const merk = fokusPfad(app);
+  const rollen = rollPfade(app);
   if(current==='today') app.innerHTML=viewToday();
   else if(current==='plans') app.innerHTML=viewPlans();
   else if(current==='exercises') app.innerHTML=viewExercises();
@@ -2700,6 +2722,30 @@ function renderView(){
   tickSessClock();   // Uhrzeit im Training sofort auf den aktuellen Stand bringen
   a11y(app);
   fokusZurueck(app, merk);
+  rollZurueck(app, rollen);
+}
+/* Dasselbe Problem wie beim Tastaturfokus, nur schwerer zu bemerken: Das
+   Neuzeichnen ersetzt den Inhalt, und die Satzliste steht wieder oben. Wer den
+   fünften Satz abhakt, verliert im selben Moment die Stelle – und die
+   Bestätigung, dass der Satz gezählt wurde, verschwindet mit ihr.
+   Gemerkt wird wie beim Fokus der Weg durch den Baum, nicht eine id. */
+function rollPfade(app){
+  const out=[];
+  app.querySelectorAll('*').forEach(el=>{
+    if(el.scrollTop<=0 || el.scrollHeight<=el.clientHeight) return;
+    const pfad=[]; let n=el;
+    while(n && n!==app){ pfad.unshift([...n.parentNode.children].indexOf(n)); n=n.parentNode; }
+    out.push({pfad, top:el.scrollTop});
+  });
+  return out;
+}
+function rollZurueck(app, liste){
+  if(!liste || !liste.length) return;
+  liste.forEach(({pfad, top})=>{
+    let n=app;
+    for(const i of pfad){ n=n.children[i]; if(!n) return; }
+    if(n.scrollHeight>n.clientHeight) n.scrollTop=top;
+  });
 }
 /* Weg vom Behälter zum fokussierten Element, als Liste von Kind-Nummern. */
 function fokusPfad(app){
@@ -3449,11 +3495,11 @@ function exerciseCard(ex,ei){
       </div>
       <div class="row" style="gap:5px;flex-shrink:0">
         ${thumb?`<button class="chip" onclick="toggleSessImg()" style="padding:6px 9px" title="${hidden?'Bild einblenden':'Bild ausblenden'}">${hidden?I.eye:I.eyeOff}</button>`:''}
-        ${meta?`<button class="chip" onclick='showExercise("${escAttr(ex.name)}")' style="padding:6px 9px">${I.info}</button>`:''}
+        ${meta?`<button class="chip" onclick='showExercise("${escAttr(ex.name)}")' style="padding:6px 9px" aria-label="Ausführung von ${escAttr(ex.name)} anzeigen">${I.info}</button>`:''}
       </div>
     </div>
     <!-- Bild + Sätze: untereinander (hoch) oder nebeneinander (breit & flach) -->
-    <div class="ex-main">
+    <div class="ex-main${(thumb&&!hidden)?'':' ohne-bild'}">
       ${thumb&&!hidden?`<div class="ex-preview" onclick='showExercise("${escAttr(ex.name)}")'>
         <img loading="lazy" src="${thumb}" alt="" onerror="this.parentNode.classList.add('bad')">
       </div>`:''}
@@ -3583,19 +3629,24 @@ function setRow(ex,ei,st,si){
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const rec = bestSet(ex.exId, ex.name);
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f)}</div>`;
+  /* Die Begründung des Vorschlags („+2,5 kg — Ziel letztes Mal geschafft")
+     wurde bisher berechnet und weggeworfen. Sie steht jetzt in der Zeile, die
+     ohnehin da ist – und nur beim ersten noch offenen Satz, sonst stünde
+     dreimal dasselbe untereinander. */
+  const ersterOffen = ex.sets.findIndex(x=>!x.done)===si;
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f, ersterOffen)}</div>`;
   // RIR (Reps in Reserve): optionale Angabe pro Satz, 0–5
-  const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR">
+  const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR Satz ${si+1}, ${esc(ex.name)}">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
       ${[0,1,2,3,4,5].map(v=>`<option value="${v}"${String(st.rir)===String(v)?' selected':''}>${v}</option>`).join('')}
     </select>`;
   const wInput = f===2
-    ? `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
-    : `<input class="input" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
+    ? `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg je Hantel" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateTotal(${ei},${si},this.value)" onchange="setVal(${ei},${si},'weight',this.value)">`
+    : `<input class="input" aria-label="Gewicht Satz ${si+1}, ${esc(ex.name)}, kg" inputmode="decimal" placeholder="${ph||'–'}" value="${zahlFeld(st.weight)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'weight',this.value)">`;
   // Trägt ein Vorschlag KEIN Gewicht, aber Wiederholungen, dann sind diese
   // Wiederholungen der Vorschlag (Körpergewichtsübungen). Bei Übungen mit
   // Gewicht ist sug.weight immer > 0, dort greift die Regel also nie.
-  const rInput = `<input class="input" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
+  const rInput = `<input class="input" aria-label="Wiederholungen Satz ${si+1}, ${esc(ex.name)}" inputmode="numeric" placeholder="${sugReps(st)||ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
     ${prevRow}
     <div class="set-grid">
@@ -3603,7 +3654,7 @@ function setRow(ex,ei,st,si){
       <div class="in-unit">${wInput}<span class="unit">kg</span></div>
       <div class="in-unit">${rInput}<span class="unit">Wdh</span></div>
       ${rirSel}
-      <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})">${I.check}</button>
+      <button class="chip" style="width:44px;height:44px;justify-content:center;padding:0;${st.done?'background:var(--accent);color:var(--bg);border-color:var(--accent)':''}" onclick="toggleSet(${ei},${si})" aria-pressed="${st.done?'true':'false'}" aria-label="Satz ${si+1} von ${esc(ex.name)} ${st.done?'wieder öffnen':'abhaken'}">${I.check}</button>
     </div>
     ${volRow}
   </div>`;
@@ -3617,7 +3668,7 @@ function schlaegtRekord(st, rec, f){
   return rec.vol>0 ? (w*f*r > rec.vol) : (w===0 && r > rec.reps);
 }
 // Text für die Satz-Volumen-Zeile: "zuletzt X · heute Y (+Z%) · Rekord 80×12"
-function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
+function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f, ersterOffen){
   const parts=[];
   const geschlagen = schlaegtRekord(st, rec, f||1);
   // Kompaktfassung der "zuletzt"-Zeile für flache Panels: dort wird die eigene
@@ -3652,7 +3703,16 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f){
      Satz – zu viel für die Zusage, dass immer drei Sätze zu sehen sind.
      Beim Rekordbruch nennt die Zeile den HEUTIGEN Satz: Die alte Marke ist in
      dem Moment nicht mehr die interessante Zahl. */
-  if(rec){
+  /* Beim ersten offenen Satz tritt die Begründung an die Stelle des Rekords.
+     Kein Zusatz, sondern ein Tausch: Die Zeile bricht nicht um (nowrap), ein
+     dritter Teil würde den Rekord ohnehin zu Punkten verkürzen. Wer gerade
+     entscheidet, was er auflegt, ist mit dem Warum besser bedient als mit der
+     alten Bestmarke – die steht bei jedem weiteren Satz wieder da. */
+  const nochLeer = (st.weight===''||st.weight==null);
+  const notiz = (ersterOffen && !st.done && nochLeer && st.sug && st.sug.note) ? st.sug.note : '';
+  if(notiz){
+    parts.push(`<span class="sv-note">${esc(notiz)}</span>`);
+  } else if(rec){
     const txt = geschlagen
       ? `Rekord geschlagen · ${zahlFeld(+st.weight||0)} kg × ${+st.reps||0} Wdh`
       : `Rekord ${zahlFeld(rec.weight)} kg × ${rec.reps} Wdh`;
@@ -3863,9 +3923,17 @@ function addExerciseToSession(){
   });
 }
 function cancelSession(){
-  confirmModal('Training abbrechen?','Nicht gespeicherte Sätze gehen verloren.','Abbrechen',()=>{
+  /* Die Schaltfläche hieß „Abbrechen" – im Deutschen die übliche Beschriftung
+     dafür, einen Dialog zu VERLASSEN. Hier löschte sie das Training. Alle acht
+     anderen Bestätigungen der App benennen die Tat („Löschen", „Verwerfen",
+     „Entfernen"); ausgerechnet die eine unter Zeitdruck tat das Gegenteil.
+     Dazu die Rücknahme: Das Verwerfen war die einzige zerstörende Aktion ohne
+     sie – und die einzige, die eine ganze Trainingseinheit kostet. */
+  confirmModal('Training verwerfen?','Nicht gespeicherte Sätze gehen verloren.','Training verwerfen',()=>{
+    const weg=SESSION;
     SESSION=null; clearStoredSession(); closeRest(); renderView();
-  });
+    registerUndo('Training verworfen', ()=>{ SESSION=weg; saveSession(); renderView(); });
+  }, null, 'Weitertrainieren');
 }
 function finishSession(){
   const s=SESSION;
@@ -3906,7 +3974,7 @@ function planCard(p){
         </div>
         <span class="plan-caret ${open?'up':''}">${I.chevron}</span>
       </button>
-      <select class="input pw-sel" style="align-self:flex-start"
+      <select class="input pw-sel" aria-label="Trainingseinheiten pro Woche" style="align-self:flex-start"
               title="Trainingseinheiten pro Woche"
               onchange="setPlanPerWeek('${p.id}', this.value)">
         ${[1,2,3,4,5,6,7].map(x=>`<option value="${x}" ${(+p.perWeek||p.days.length)===x?'selected':''}>${x}×/Wo</option>`).join('')}
@@ -4856,7 +4924,10 @@ function bodySvg(active, opts){
     ${BODY_DEKO.map(d=>`<path class="body-deko" d="${d}"/>`).join('')}
     ${Object.keys(BODY_REGIONS).map(k=>{
       const m=BODY_METRICS.find(x=>x.region===k);
+      // Ohne Namen meldet die Vorlesesoftware nur „Schaltfläche" – dreizehnmal.
+      const nm = m ? m.label : '';
       return `<path class="body-reg${active===k?' on':''}" d="${BODY_REGIONS[k]}"
+        ${klick&&nm?`aria-label="${escAttr(nm)} messen"`:''}
         ${klick?`onclick="editMeasure('${m?m.key:''}')"`:''}></path>`;
     }).join('')}
     <path class="body-outline" d="${BODY_SIL}"/>
@@ -4899,7 +4970,7 @@ function viewBody(){
       <div class="eyebrow" style="margin-bottom:6px">Entwicklung</div>
       <p class="faint" style="font-size:11px;margin-bottom:10px">Verlauf einer Messstelle über alle Messtage</p>
       <div class="field" style="margin:0 0 4px">
-        <select class="input" id="msSel" onchange="renderMeasureChart(this.value)">
+        <select class="input" id="msSel" aria-label="Messstelle für den Verlauf" onchange="renderMeasureChart(this.value)">
           ${gemessen.map(m=>{
             const pct=measureTrend(m.key);
             return `<option value="${m.key}">${esc(m.label)}${pct!=null?`  ·  ${pct>0?'+':''}${pct}${m.unit}`:''}</option>`;
@@ -5426,7 +5497,7 @@ function viewStats(){
       <div class="eyebrow" style="margin-bottom:6px">Fortschritt pro Übung</div>
       <p class="faint" style="font-size:11.5px;margin-bottom:10px">Volumen (kg × Wdh) im Verlauf der Zeit</p>
       <div class="field" style="margin:4px 0 4px">
-        <select class="input" id="strEx" onchange="renderExerciseProgress(this.value)">
+        <select class="input" id="strEx" aria-label="Übung für den Fortschrittsverlauf" onchange="renderExerciseProgress(this.value)">
           ${exList.map(x=>`<option value="${escAttr(x.key)}">${esc(x.label)}${x.pct!=null?`  ·  ${x.pct>0?'+':''}${x.pct}%`:''}</option>`).join('')}
         </select></div>
       <div id="strChart"></div>
@@ -6393,11 +6464,11 @@ document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id=
 function confirmInEditor(title, msg, label, onOk, restore){
   confirmModal(title, msg, label, ()=>{ onOk(); restore(); }, ()=>{ restore(); });
 }
-function confirmModal(title,msg,confirmLabel,onOk,onCancel){
+function confirmModal(title,msg,confirmLabel,onOk,onCancel,cancelLabel){
   openModal(`<div class="grab"></div><h2>${esc(title)}</h2>
     ${msg?`<p class="muted" style="margin:6px 0 20px">${esc(msg)}</p>`:'<div style="height:16px"></div>'}
     <button class="btn danger" style="margin-bottom:10px" id="_cok">${esc(confirmLabel)}</button>
-    <button class="btn ghost" id="_cno">Zurück</button>`);
+    <button class="btn ghost" id="_cno">${esc(cancelLabel||'Zurück')}</button>`);
   document.getElementById('_cok').onclick=()=>{ closeOverlay(); onOk(); };
   document.getElementById('_cno').onclick=()=>{ if(onCancel) onCancel(); else closeModal(); };
 }
