@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Display-Diagnose</title>
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  html,body{margin:0;background:#0a0c10;color:#eef2f7;font-family:system-ui,sans-serif}
+  .wrap{padding:18px;max-width:960px;margin:0 auto}
+  h1{color:#c8ff00;font-size:24px;margin:0 0 4px}
+  p.sub{color:#9aa6b8;margin:0 0 16px;font-size:14px}
+  .mode{margin:0 0 16px;padding:14px;border-radius:14px;border:2px solid #3d9bff;text-align:center}
+  .mode .n{font-size:26px;font-weight:800;color:#3d9bff}
+  .mode .l{color:#9aa6b8;font-size:13px;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:18px}
+  td{padding:10px 8px;border-bottom:1px solid #2a3240;vertical-align:top}
+  td.k{color:#9aa6b8;width:56%}
+  td.v{color:#c8ff00;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+  .big{margin:18px 0;padding:16px;border:2px solid #c8ff00;border-radius:14px;text-align:center}
+  .big .n{font-size:42px;font-weight:800;color:#c8ff00;line-height:1.1}
+  .big .l{color:#9aa6b8;font-size:14px;margin-top:6px}
+  .hint{margin-top:18px;padding:12px;border-radius:10px;background:#12151c;color:#9aa6b8;font-size:13px;line-height:1.5}
+
+  .verdict{margin-top:18px;padding:16px;border-radius:14px;border:2px solid #2a3240;text-align:center}
+  .verdict .n{font-size:22px;font-weight:800}
+  .verdict .l{color:#9aa6b8;font-size:13px;margin-top:6px;line-height:1.5}
+  .copy{margin-top:14px;width:100%;padding:14px;border-radius:12px;border:1px solid #c8ff00;
+        background:transparent;color:#c8ff00;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
+  .copy:active{transform:scale(.99)}
+  #dump{margin-top:12px;width:100%;min-height:150px;background:#12151c;color:#9aa6b8;border:1px solid #2a3240;
+        border-radius:10px;padding:10px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5}
+
+  .rirblock{margin-top:26px;padding:16px;border:2px solid #c8ff00;border-radius:14px;background:#12151c}
+  .rirblock h2{color:#c8ff00;font-size:19px;margin:0 0 4px}
+  .rirblock p{color:#9aa6b8;font-size:13.5px;line-height:1.5;margin:0 0 14px}
+  .variant{margin-bottom:14px;padding:12px;border:1px solid #2a3240;border-radius:11px;background:#0f1319}
+  .variant .lbl{color:#eef2f7;font-size:13px;font-weight:700;margin-bottom:8px}
+  .variant .lbl span{color:#6d7c93;font-weight:400}
+  .mark{margin-top:10px;width:100%;padding:11px;border-radius:9px;border:1px solid #2a3240;
+        background:transparent;color:#9aa6b8;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer}
+  .mark.bad{border-color:#ff5c5c;color:#ff5c5c}
+  .mark.good{border-color:#37d99a;color:#37d99a}
+
+  .rirblock, .rirblock *{box-sizing:border-box}
+  .rirblock .set-grid{display:grid;grid-template-columns:24px 1fr 1fr 50px 44px;gap:8px;align-items:center;
+    font-family:'Inter',system-ui,-apple-system,sans-serif}
+  .rirblock .input,.rirblock select.input{
+    width:100%;background:#161b23;border:1px solid #2a3240;
+    color:#eef2f7;padding:12px 14px;border-radius:9px;font-size:15px;font-family:inherit}
+  .rirblock select.input{appearance:none;-webkit-appearance:none;background-image:none}
+  .rirblock .in-unit{position:relative;display:flex;align-items:center;align-self:stretch}
+  .rirblock .in-unit .input{padding:10px 30px 10px 12px;text-align:center;width:100%;height:100%}
+  .rirblock .unit{position:absolute;right:10px;font-size:11px;color:#6d7c93;font-weight:600;pointer-events:none}
+  .rirblock .nr{font-family:'Barlow Condensed',system-ui,sans-serif;font-weight:700;
+    font-size:15px;color:#6d7c93;text-align:center}
+  .rirblock .chip{display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid #2a3240;padding:6px 12px;border-radius:999px;
+    font-size:12.5px;font-weight:600;color:#9aa6b8;width:44px;height:44px}
+
+  .rirblock select.input.v-a{padding:0 2px;align-self:stretch;text-align:center;text-align-last:center}
+
+  .rirblock select.input.v-b{padding:10px 2px;text-align:center;text-align-last:center}
+
+  .rirblock select.input.v-c{padding:0 2px;align-self:stretch;line-height:1.4;text-align:center;text-align-last:center}
+
+  .rirblock select.input.v-d{padding:0 2px;height:44px;line-height:44px;text-align:center;text-align-last:center}
+
+  .rirblock select.v-e{appearance:auto;-webkit-appearance:menulist;padding:0 2px;align-self:stretch}
+
+  .v-f-wrap{position:relative;align-self:stretch;display:flex;align-items:center;justify-content:center;
+    background:#161b23;border:1px solid #2a3240;border-radius:9px}
+  .v-f-txt{font-size:15px;color:#eef2f7;font-family:'Inter',system-ui,sans-serif}
+  .rirblock select.v-f{position:absolute;inset:0;width:100%;height:100%;opacity:0;padding:0;border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Display-Diagnose</h1>
+  <p class="sub">Bitte GENAU SO öffnen, wie Make FMC Fit Again bei dir läuft — also im Standalone-Modus vom Startbildschirm. Foto genügt.</p>
+
+  <div class="mode">
+    <div class="n" id="mode">–</div>
+    <div class="l">Anzeigemodus</div>
+  </div>
+
+  <div class="big">
+    <div class="n" id="css">–</div>
+    <div class="l">window.innerWidth × innerHeight (CSS-Pixel)</div>
+  </div>
+
+  <table>
+    <tr><td class="k">window.innerWidth × innerHeight</td><td class="v" id="inner">–</td></tr>
+    <tr><td class="k">documentElement client W × H</td><td class="v" id="client">–</td></tr>
+    <tr><td class="k">visualViewport W × H</td><td class="v" id="vv">–</td></tr>
+    <tr><td class="k">screen.width × height</td><td class="v" id="screen">–</td></tr>
+    <tr><td class="k">screen.availWidth × availHeight</td><td class="v" id="avail">–</td></tr>
+    <tr><td class="k">100dvh gemessen</td><td class="v" id="dvh">–</td></tr>
+    <tr><td class="k">100vh gemessen</td><td class="v" id="vh">–</td></tr>
+    <tr><td class="k">100% (Body) gemessen</td><td class="v" id="pct">–</td></tr>
+    <tr><td class="k">devicePixelRatio</td><td class="v" id="dpr">–</td></tr>
+    <tr><td class="k">orientation</td><td class="v" id="ori">–</td></tr>
+    <tr><td class="k">User-Agent</td><td class="v" id="ua" style="font-size:11px;font-weight:400;color:#6d7c93">–</td></tr>
+  </table>
+
+  <div class="verdict" id="verdict">
+    <div class="n" id="vn">–</div>
+    <div class="l" id="vl">Greift das kompakte Panel-Layout von Make FMC Fit Again?</div>
+  </div>
+
+  <button class="copy" id="copyBtn">Alle Werte als Text kopieren</button>
+  <textarea id="dump" readonly></textarea>
+
+  <div class="rirblock">
+    <h2>RIR-Feld: welche Variante schneidet ab?</h2>
+    <p>Unten stehen sechs Satzzeilen, genau wie im Training. Nur das <b>RIR-Feld</b>
+       (die schmale Spalte mit der 3) ist jeweils anders gebaut. Tippe bei jeder Zeile
+       an, ob die <b>3</b> vollständig zu sehen ist oder oben angeschnitten.
+       Danach unten auf Kopieren.</p>
+    <div id="varianten"></div>
+    <button class="copy" id="copyRir">RIR-Ergebnis als Text kopieren</button>
+    <textarea id="rirDump" readonly style="margin-top:12px;width:100%;min-height:170px;background:#12151c;
+      color:#9aa6b8;border:1px solid #2a3240;border-radius:10px;padding:10px;
+      font-family:ui-monospace,monospace;font-size:12px;line-height:1.5"></textarea>
+  </div>
+
+  <div class="hint">
+    Am wichtigsten sind der <b>Anzeigemodus</b> (oben, blau) und die Zeilen <b>100dvh</b>, <b>100vh</b> und <b>innerHeight</b>.
+    Wenn diese Werte im Standalone-Modus voneinander abweichen, ist genau das die Ursache der Überlappung.
+  </div>
+
+  <div id="probeDvh" style="position:absolute;top:0;left:-9999px;height:100dvh"></div>
+  <div id="probeVh"  style="position:absolute;top:0;left:-9999px;height:100vh"></div>
+  <div id="probePct" style="position:absolute;top:0;left:-9999px;height:100%"></div>
+</div>
+
+<script>
+  function px(el){ return el ? Math.round(el.getBoundingClientRect().height) : '–'; }
+  function upd(){
+    var iw=window.innerWidth, ih=window.innerHeight;
+    document.getElementById('css').textContent = iw+' × '+ih;
+    document.getElementById('inner').textContent = iw+' × '+ih;
+    document.getElementById('client').textContent =
+      document.documentElement.clientWidth+' × '+document.documentElement.clientHeight;
+    if(window.visualViewport){
+      document.getElementById('vv').textContent =
+        Math.round(visualViewport.width)+' × '+Math.round(visualViewport.height);
+    } else { document.getElementById('vv').textContent = 'n/a'; }
+    document.getElementById('screen').textContent = screen.width+' × '+screen.height;
+    document.getElementById('avail').textContent = screen.availWidth+' × '+screen.availHeight;
+    document.getElementById('dvh').textContent = px(document.getElementById('probeDvh'))+' px';
+    document.getElementById('vh').textContent  = px(document.getElementById('probeVh'))+' px';
+    document.getElementById('pct').textContent = px(document.getElementById('probePct'))+' px';
+    document.getElementById('dpr').textContent = (window.devicePixelRatio||1);
+    document.getElementById('ori').textContent = (iw>ih?'quer (landscape)':'hoch (portrait)');
+    document.getElementById('ua').textContent = navigator.userAgent;
+
+    var standalone = false, how = 'Browser-Tab';
+    if(window.matchMedia){
+      if(matchMedia('(display-mode: standalone)').matches){ standalone=true; how='Standalone (App/Vollbild)'; }
+      else if(matchMedia('(display-mode: fullscreen)').matches){ standalone=true; how='Fullscreen'; }
+      else if(matchMedia('(display-mode: minimal-ui)').matches){ how='Minimal-UI'; }
+    }
+    if(!standalone && ('standalone' in navigator) && navigator.standalone){ standalone=true; how='Standalone (iOS)'; }
+    document.getElementById('mode').textContent = how;
+    document.getElementById('mode').parentElement.style.borderColor = standalone ? '#37d99a' : '#3d9bff';
+
+    var breit = iw >= 900;
+    var flach = breit && (ih <= 720 || (standalone && ih <= 900));
+    var vn=document.getElementById('vn'), vl=document.getElementById('vl');
+    vn.textContent = flach ? 'JA — kompaktes Panel-Layout' : 'NEIN — normales Layout';
+    vn.style.color = flach ? '#37d99a' : '#ffb43d';
+    document.getElementById('verdict').style.borderColor = flach ? '#37d99a' : '#ffb43d';
+    vl.innerHTML = 'Regel: Breite &ge; 900 UND (H&ouml;he &le; 720 ODER App-Modus mit H&ouml;he &le; 900)'
+      + '<br>Hier: Breite ' + iw + ', H&ouml;he ' + ih + ', ' + (standalone?'App-Modus':'Browser-Tab');
+
+    document.getElementById('dump').value =
+      'Make FMC Fit Again Display-Diagnose\n'+
+      'Anzeigemodus : '+how+'\n'+
+      'innerW x H   : '+iw+' x '+ih+'\n'+
+      'client W x H : '+document.documentElement.clientWidth+' x '+document.documentElement.clientHeight+'\n'+
+      'visualViewport: '+(window.visualViewport?Math.round(visualViewport.width)+' x '+Math.round(visualViewport.height):'n/a')+'\n'+
+      'screen       : '+screen.width+' x '+screen.height+'\n'+
+      'avail        : '+screen.availWidth+' x '+screen.availHeight+'\n'+
+      '100dvh       : '+px(document.getElementById('probeDvh'))+' px\n'+
+      '100vh        : '+px(document.getElementById('probeVh'))+' px\n'+
+      '100%         : '+px(document.getElementById('probePct'))+' px\n'+
+      'dpr          : '+(window.devicePixelRatio||1)+'\n'+
+      'Panel-Layout : '+(flach?'JA':'NEIN')+'\n'+
+      'UA           : '+navigator.userAgent;
+  }
+  upd();
+  window.addEventListener('resize', upd);
+  if(window.visualViewport){ visualViewport.addEventListener('resize', upd); }
+  window.addEventListener('orientationchange', ()=>setTimeout(upd,300));
+
+  var VARIANTEN=[
+    {id:'A', cls:'v-a', txt:'wie jetzt in der App (v1.19.4) – kein Polster, stretch'},
+    {id:'B', cls:'v-b', txt:'wie vor v1.19.4 – Polster 10px oben und unten'},
+    {id:'C', cls:'v-c', txt:'kein Polster, aber ausdrueckliche Zeilenhoehe 1.4'},
+    {id:'D', cls:'v-d', txt:'feste Hoehe 44px UND Zeilenhoehe 44px'},
+    {id:'E', cls:'v-e', txt:'natives Auswahlfeld (ohne appearance:none)'},
+    {id:'F', cls:'v-f', txt:'gar kein Auswahlfeld sichtbar – Zahl als normaler Text'}
+  ];
+  var marken={};
+  function optionen(){
+    var s='<option value="">–</option>';
+    for(var v=0; v<=5; v++) s+='<option value="'+v+'"'+(v===3?' selected':'')+'>'+v+'</option>';
+    return s;
+  }
+  function baueVarianten(){
+    var host=document.getElementById('varianten'), html='';
+    VARIANTEN.forEach(function(v){
+      var feld = (v.id==='F')
+        ? '<div class="v-f-wrap"><span class="v-f-txt">3</span>'+
+          '<select class="v-f" id="sel'+v.id+'">'+optionen()+'</select></div>'
+        : '<select class="input '+v.cls+'" id="sel'+v.id+'">'+optionen()+'</select>';
+      html+=
+        '<div class="variant">'+
+          '<div class="lbl">'+v.id+' <span>— '+v.txt+'</span></div>'+
+          '<div class="set-grid">'+
+            '<span class="nr">1</span>'+
+            '<div class="in-unit"><input class="input" value="50"><span class="unit">kg</span></div>'+
+            '<div class="in-unit"><input class="input" value="10"><span class="unit">Wdh</span></div>'+
+            feld+
+            '<span class="chip">✓</span>'+
+          '</div>'+
+          '<button class="mark" data-v="'+v.id+'">Wie sieht die 3 aus? Antippen</button>'+
+        '</div>';
+    });
+    host.innerHTML=html;
+    host.addEventListener('click', function(e){
+      var b=e.target.closest('.mark'); if(!b) return;
+      var id=b.getAttribute('data-v');
+
+      if(marken[id]==='bad'){ marken[id]='good'; b.className='mark good'; b.textContent='in Ordnung – vollstaendig zu sehen'; }
+      else if(marken[id]==='good'){ delete marken[id]; b.className='mark'; b.textContent='Wie sieht die 3 aus? Antippen'; }
+      else { marken[id]='bad'; b.className='mark bad'; b.textContent='ABGESCHNITTEN'; }
+      rirDump();
+    });
+  }
+
+  function noetig(el){
+    var s=getComputedStyle(el);
+    var p=el.cloneNode(true);
+    p.style.cssText='position:absolute;visibility:hidden;left:-9999px;padding:0;height:auto;'+
+      'min-height:0;border:0;box-sizing:content-box;-webkit-appearance:none;appearance:none;'+
+      'font:'+s.font+';line-height:'+s.lineHeight+';';
+    document.body.appendChild(p);
+    var h=p.getBoundingClientRect().height;
+    p.remove();
+    return h;
+  }
+  function interDa(){
+    try{ return document.fonts && document.fonts.check ? document.fonts.check('15px Inter') : null; }
+    catch(e){ return null; }
+  }
+  function rirDump(){
+    var z=['Make FMC Fit Again RIR-Feld-Diagnose',
+           'UA           : '+navigator.userAgent,
+           'Inter geladen: '+(interDa()===null?'nicht feststellbar':(interDa()?'JA':'NEIN')),
+           'innerW x H   : '+window.innerWidth+' x '+window.innerHeight,
+           ''];
+    VARIANTEN.forEach(function(v){
+      var el=document.getElementById('sel'+v.id);
+      if(!el) return;
+      var s=getComputedStyle(el), r=el.getBoundingClientRect();
+      var inhalt=el.clientHeight-(parseFloat(s.paddingTop)||0)-(parseFloat(s.paddingBottom)||0);
+      z.push(v.id+' '+(marken[v.id]==='bad'?'ABGESCHNITTEN':(marken[v.id]==='good'?'in Ordnung  ':'nicht bewertet')) +
+        ' | aussen '+r.height.toFixed(1)+
+        ' inhalt '+inhalt.toFixed(1)+
+        ' noetig '+noetig(el).toFixed(1)+
+        ' | pad '+s.paddingTop+'/'+s.paddingBottom+
+        ' lh '+s.lineHeight+
+        ' font '+s.fontSize+' '+s.fontFamily.split(',')[0]);
+    });
+
+    var kg=document.querySelector('.rirblock .in-unit .input');
+    if(kg){
+      var ks=getComputedStyle(kg);
+      z.push('', 'kg-Feld zum Vergleich | aussen '+kg.getBoundingClientRect().height.toFixed(1)+
+        ' inhalt '+(kg.clientHeight-(parseFloat(ks.paddingTop)||0)-(parseFloat(ks.paddingBottom)||0)).toFixed(1)+
+        ' noetig '+noetig(kg).toFixed(1));
+    }
+    document.getElementById('rirDump').value=z.join('\n');
+  }
+  baueVarianten();
+
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(rirDump); }
+  rirDump();
+  document.getElementById('copyRir').addEventListener('click', function(){
+    var ta=document.getElementById('rirDump');
+    ta.select(); ta.setSelectionRange(0,99999);
+    var ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){}
+    if(!ok && navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(function(){},function(){}); ok=true; }
+    this.textContent = ok ? 'Kopiert ✓' : 'Text unten markieren und kopieren';
+    var self=this;
+    setTimeout(function(){ self.textContent='RIR-Ergebnis als Text kopieren'; }, 2000);
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var ta=document.getElementById('dump');
+    ta.select(); ta.setSelectionRange(0,99999);
+    var ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){}
+    if(!ok && navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(()=>{},()=>{}); ok=true; }
+    this.textContent = ok ? 'Kopiert ✓' : 'Text unten markieren und kopieren';
+    setTimeout(()=>{ this.textContent='Alle Werte als Text kopieren'; }, 2000);
+  });
+</script>
+</body>
+</html>
