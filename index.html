@@ -1227,6 +1227,39 @@ h2{color:var(--accent)}
 .bld-fields .bld-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
 .bld-fields .bld-num{width:100%;min-height:38px;font-size:14px}
 
+.art-wahl{display:grid;grid-template-columns:1fr;gap:8px}
+.art-opt{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
+  gap:2px 11px;align-items:center;text-align:left;padding:11px 13px;border-radius:12px;
+  border:1px solid var(--line-strong);background:transparent;transition:all .15s;min-height:56px}
+.art-opt:hover{border-color:var(--accent-dim)}
+.art-ico{grid-row:1 / span 2;display:grid;place-items:center;width:34px;height:34px;
+  border-radius:9px;background:var(--surface-3);color:var(--text-dim)}
+.art-ico svg{width:19px;height:19px;stroke-width:2}
+.art-name{font-weight:700;font-size:14px;color:var(--text)}
+.art-sub{font-size:11.5px;color:var(--text-faint)}
+.art-opt.on{border-color:var(--accent);background:var(--accent-glow)}
+.art-opt.on .art-ico{background:var(--accent);color:var(--bg)}
+.art-opt.on .art-name{color:var(--accent)}
+.art-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  padding:4px 9px;border-radius:999px;border:1px solid var(--line-strong);
+  color:var(--text-dim);white-space:nowrap}
+.art-tag svg{width:13px;height:13px;stroke-width:2}
+
+.cardio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cardio-feld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.cardio-feld label{font-size:11px;color:var(--text-faint);font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em}
+.cardio-feld .in-unit .input{font-size:19px;min-height:50px;text-align:center;padding-right:34px}
+.cardio-sum{margin-top:14px;padding:11px 13px;border-radius:var(--radius-sm);
+  background:var(--surface-2);border:1px solid var(--line-strong);
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px}
+.cardio-haupt{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent)}
+.cardio-neben{font-weight:700;color:var(--text)}
+@media (max-width:430px){
+  .cardio-feld .in-unit .input{font-size:17px;min-height:46px;padding-right:30px}
+  .cardio-feld label{font-size:10px}
+}
+
 </style>
 </head>
 <body>
@@ -1279,6 +1312,8 @@ const I = {
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0" stroke-linecap="round"/></svg>',
   logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h11" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   timer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 5V2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2.5 12h4l2.4-6.5L13 18.5l2.3-6.5H21.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  stopwatch:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.6 1.6M9.5 2.5h5M12 2.5v3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7.6 4.2h8.8v4.4a4.4 4.4 0 0 1-8.8 0z" stroke-linejoin="round"/><path d="M12 13v3.4M8.4 19.4h7.2" stroke-linecap="round"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 8.5h13M13.5 5l3.5 3.5-3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 15.5H7M10.5 12 7 15.5l3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   restart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 2.6-6.3M3 4v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -1286,7 +1321,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.32.0';
+const APP_VERSION='1.33.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -1649,7 +1684,7 @@ function applyCloudData(row){
   DB.measurements = Array.isArray(d.measurements)? d.measurements : [];
   DB.settings = (d.settings && typeof d.settings==='object') ? d.settings : DB.settings;
   DB.logs.sort((a,b)=>a.date-b.date);
-  rebuildExDB(); migrateToEnglish(); migrateMuscleNames(); migrateExerciseIds(); migrateEquipToEnglish();
+  rebuildExDB(); migrateToEnglish(); migrateMuscleNames(); migrateExerciseIds(); migrateEquipToEnglish(); migrateKind();
   saveNow();
   SYNC.rev = row.rev||0;
   SYNC.dirty=false;
@@ -2509,13 +2544,60 @@ function calcStreak(){
 }
 function _plan(id){ return DB.plans.find(x=>x.id===id); }
 
+const ARTEN = {
+  strength:  {name:'Strength',  sub:'Weight \u00d7 reps',        icon:'dumb'},
+  hiit:      {name:'HIIT',      sub:'Rounds on the clock',  icon:'stopwatch'},
+  endurance: {name:'Endurance', sub:'Time and distance',    icon:'pulse'}
+};
+function planArt(p){ return (p && ARTEN[p.kind]) ? p.kind : 'strength'; }
+function logArt(l){ return (l && ARTEN[l.kind]) ? l.kind : 'strength'; }
+function artName(k){ return (ARTEN[k]||ARTEN.strength).name; }
+function artIcon(k){ return I[(ARTEN[k]||ARTEN.strength).icon]; }
+
+function migrateKind(){
+  let changed=false;
+  (DB.plans||[]).forEach(p=>{ if(!ARTEN[p.kind]){ p.kind='strength'; changed=true; } });
+  (DB.logs||[]).forEach(l=>{ if(!ARTEN[l.kind]){ l.kind='strength'; changed=true; } });
+  if(changed){ save(); console.log('[Migration] training kind set on plans and logs'); }
+}
+
+function fmtDauer(min){
+  const m=Math.max(0, Math.round(+min||0));
+  if(m<60) return m+' min';
+  return Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'');
+}
+function pace(min, km){
+  const m=+min||0, k=+km||0;
+  if(m<=0 || k<=0) return null;
+  const proKm=m/k;
+  const ganz=Math.floor(proKm), sek=Math.round((proKm-ganz)*60);
+  return ganz+':'+String(sek).padStart(2,'0')+' /km';
+}
+function cardioVon(l){ return (l && l.cardio) ? l.cardio : null; }
+function logKm(l){ const c=cardioVon(l); return c ? (+c.km||0) : 0; }
+function logMin(l){
+  const c=cardioVon(l);
+  if(c) return +c.minutes||0;
+  return l.duration ? Math.round(l.duration/60000) : 0;
+}
+
 function neuerSatz(vorher){
   const w = (vorher && +vorher.weight>0) ? String(vorher.weight) : '';
   return {weight:w, reps:'', rir:'0', done:false, prev: vorher||null};
 }
 
 function startSession(plan, day){
+  if(planArt(plan)==='endurance'){
+    SESSION={
+      kind:'endurance',
+      planId:plan?plan.id:null, planName:plan?plan.name:'Free workout',
+      dayName:day.name, date:Date.now(), exercises:[],
+      cardio:{minutes:'', km:'', hr:'', note:''}
+    };
+    saveSession(); go('today'); return;
+  }
   SESSION={
+    kind:'strength',
     planId:plan?plan.id:null, planName:plan?plan.name:'Free workout',
     dayName:day.name, date:Date.now(),
     exercises: day.exercises.map(ex=>{
@@ -2568,6 +2650,7 @@ function tickSessClock(){
 setInterval(tickSessClock, 1000);
 
 function sessionScreen(){
+  if(SESSION.kind==='endurance') return cardioScreen();
   const s=SESSION;
   const n=s.exercises.length;
   if(SESSION.page==null) SESSION.page=0;
@@ -3353,7 +3436,163 @@ function deltaProzent(jetzt, vorher){
   return {cls: d>0?'up':(d<0?'down':'same'), txt:(d>0?'+':'')+d+'%'};
 }
 
+function setCardio(feld, val){
+  if(!SESSION || !SESSION.cardio) return;
+  SESSION.cardio[feld]=val;
+  saveSession();
+  const el=document.getElementById('cardioSum');
+  if(el) el.innerHTML=cardioSumHtml();
+}
+
+function cardioSumHtml(){
+  const c=(SESSION&&SESSION.cardio)||{};
+  const min=parseNum(c.minutes), km=parseNum(c.km);
+  const teile=[];
+  if(isFinite(min)&&min>0) teile.push(fmtDauer(min));
+  if(isFinite(km)&&km>0) teile.push(fmtKg(km)+' km');
+  const pc=pace(min, km);
+  if(pc) teile.push(pc);
+  if(!teile.length) return `<span class="faint">Enter time or distance</span>`;
+  return teile.map((t,i)=>`<span class="${i===0?'cardio-haupt':'cardio-neben'}">${esc(t)}</span>`).join('<span class="sv-sep">\u00b7</span>');
+}
+
+function cardioScreen(){
+  const s=SESSION;
+  const c=s.cardio||{};
+  const vor=lastSessionLog(s.dayName);
+  const vc=cardioVon(vor);
+  const feld=(id,label,wert,einheit,modus)=>`
+    <div class="cardio-feld">
+      <label for="${id}">${label}</label>
+      <div class="in-unit">
+        <input class="input" id="${id}" inputmode="${modus||'decimal'}" placeholder="\u2013"
+          value="${escAttr(wert==null?'':wert)}" oninput="setCardio('${id.replace('cd_','')}',this.value)">
+        <span class="unit">${einheit}</span>
+      </div>
+    </div>`;
+  return `<div class="sess">
+    <div class="sess-head">
+      <div style="min-width:0">
+        <div class="display" style="font-size:19px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.dayName)}</div>
+        <div class="faint" style="font-size:11px">${s.planName==='Free workout'?'Free workout':esc(s.planName)}</div>
+      </div>
+      <div class="row sess-ctls" style="gap:6px;flex-shrink:0">
+        <div class="sess-clock" title="Time of day \u00b7 workout duration">
+          <span id="sessClock">${clockNow()}</span><span class="sess-sep">\u00b7</span><span class="sess-dur" id="sessDur" aria-label="Workout duration">${durClock(sessMillis())}</span>
+        </div>
+        <button class="sess-btn danger" onclick="cancelSession()">${I.x}<span>Cancel</span></button>
+        <button class="sess-btn solid" onclick="finishSession()">${I.check}<span>Done</span></button>
+      </div>
+    </div>
+
+    <div class="sess-body">
+      <div class="card ex-card" style="display:block">
+        <div class="row" style="gap:9px;align-items:center;margin-bottom:14px">
+          <span class="art-ico" style="width:30px;height:30px">${I.pulse}</span>
+          <div><div style="font-weight:700;font-size:15px">Endurance session</div>
+          <div class="faint" style="font-size:11.5px">Enter what you covered \u2014 the clock above runs meanwhile.</div></div>
+        </div>
+
+        <div class="cardio-grid">
+          ${feld('cd_minutes','Time', c.minutes, 'min', 'numeric')}
+          ${feld('cd_km','Distance', c.km, 'km')}
+          ${feld('cd_hr','\u00d8 heart rate', c.hr, 'bpm', 'numeric')}
+        </div>
+
+        <div class="cardio-sum" id="cardioSum">${cardioSumHtml()}</div>
+
+        <div class="field" style="margin-top:14px"><label for="cd_note">Note</label>
+          <input class="input" id="cd_note" placeholder="Route, feeling, weather\u2026"
+            value="${escAttr(c.note||'')}" oninput="setCardio('note',this.value)"></div>
+
+        ${vc?`<div class="vc">
+          <div class="vc-title"><span>Last time</span><span class="faint" style="font-weight:600">${fmtDate(vor.date)}</span></div>
+          <div class="row" style="gap:14px;flex-wrap:wrap;font-size:12.5px">
+            <span class="muted"><b class="num">${fmtDauer(vc.minutes)}</b></span>
+            ${+vc.km>0?`<span class="muted"><b class="num">${fmtKg(vc.km)} km</b></span>`:''}
+            ${pace(vc.minutes,vc.km)?`<span class="faint">${pace(vc.minutes,vc.km)}</span>`:''}
+            ${+vc.hr>0?`<span class="faint">${vc.hr} bpm</span>`:''}
+          </div>
+        </div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function finishCardio(){
+  const s=SESSION;
+  const c=s.cardio||{};
+  const min=parseNum(c.minutes), km=parseNum(c.km);
+  const gMin=isFinite(min)&&min>0 ? min : 0;
+  const gKm =isFinite(km)&&km>0  ? km  : 0;
+  if(!gMin && !gKm){ toast('Enter time or distance'); return; }
+
+  const dauerMs = Math.max(0, Date.now() - (+s.date || Date.now()));
+  const vorLog = lastSessionLog(s.dayName);
+  const vc = cardioVon(vorLog);
+
+  const neu={id:uid(), date:s.date, duration:dauerMs, kind:'endurance',
+    planId:s.planId||null, planName:s.planName, dayName:s.dayName, exercises:[],
+    cardio:{minutes:gMin, km:gKm, hr:parseNum(c.hr)||0, note:(c.note||'').trim()}};
+
+  DB.logs.push(neu);
+  DB.logs.sort((a,b)=>a.date-b.date);
+  save(); SESSION=null; clearStoredSession(); closeRest();
+
+  go('today');
+  zeigeCardioBilanz({
+    tag: s.dayName || 'Workout',
+    jetzt: neu.cardio,
+    vorher: vc,
+    vorherDatum: vorLog ? vorLog.date : null,
+    dauer: dauerText(dauerMs),
+    serie: calcStreak()
+  });
+}
+
+function zeigeCardioBilanz(b){
+  const j=b.jetzt, v=b.vorher;
+  const chip=(nun, alt, hoeherBesser)=>{
+    if(!alt || !(+alt>0) || !(+nun>0)) return '';
+    const d=Math.round((nun/alt-1)*100);
+    if(d===0) return `<span class="vc-delta same">0%</span>`;
+    const gut = hoeherBesser ? d>0 : d<0;
+    return `<span class="vc-delta ${gut?'up':'down'}">${d>0?'+':''}${d}%</span>`;
+  };
+  const zeile=(label, wert, chipHtml)=>`<div class="bil-ex">
+      <span class="bil-ex-name">${label}</span>
+      <span class="bil-ex-val num">${wert}</span>${chipHtml||'<span></span>'}
+    </div>`;
+  const pj=pace(j.minutes, j.km), pv=v?pace(v.minutes, v.km):null;
+  const paceMin=(c)=>(c && +c.minutes>0 && +c.km>0) ? (+c.minutes)/(+c.km) : 0;
+
+  openModal(`<div class="grab"></div>
+    <div class="row" style="gap:10px;align-items:center;margin-bottom:2px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.check}</span>
+      <h2 style="margin:0">${esc(b.tag)} done</h2>
+    </div>
+    <p class="faint" style="font-size:12.5px;margin:6px 0 0">${b.dauer} on the clock</p>
+
+    <div class="bil-sec">
+      <div class="eyebrow" style="margin-bottom:8px">This session</div>
+      ${zeile('Time', fmtDauer(j.minutes), chip(+j.minutes, v&&v.minutes, true))}
+      ${+j.km>0?zeile('Distance', fmtKg(j.km)+' km', chip(+j.km, v&&v.km, true)):''}
+      ${pj?zeile('Pace', pj, chip(paceMin(j), paceMin(v), false)):''}
+      ${+j.hr>0?zeile('\u00d8 heart rate', j.hr+' bpm', ''):''}
+    </div>
+
+    ${v?`<p class="faint" style="font-size:11px;margin:10px 0 0">Compared with ${fmtDate(b.vorherDatum)}${pv?` \u00b7 ${pv}`:''}</p>`
+       :`<p class="faint" style="font-size:11px;margin:10px 0 0">First time doing this session \u2014 nothing to compare yet.</p>`}
+
+    ${b.serie>1?`<p class="faint" style="font-size:12.5px;margin:14px 0 0;text-align:center">
+      ${b.serie}${b.serie===2?'nd':(b.serie===3?'rd':'th')} workout in a row</p>`:''}
+
+    <button class="btn-slim solid" style="margin-top:18px" onclick="closeModal()"><span>Done</span></button>
+  `);
+}
+
 function finishSession(){
+  if(SESSION.kind==='endurance') return finishCardio();
   const s=SESSION;
   const exercises=s.exercises.map(ex=>({exId:ex.exId||exIdForName(ex.name),name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
     sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:(x.rir===''||x.rir==null)?null:+x.rir,done:true}))}))
@@ -3369,7 +3608,7 @@ function finishSession(){
   });
 
   const vorLog=lastSessionLog(s.dayName);
-  const neu={id:uid(),date:s.date,duration:dauerMs,planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises};
+  const neu={id:uid(),date:s.date,duration:dauerMs,kind:'strength',planId:s.planId||null,planName:s.planName,dayName:s.dayName,exercises};
 
   const bilanz={
     tag: s.dayName || 'Workout',
@@ -3484,7 +3723,7 @@ function planCard(p){
       <button class="plan-head" style="flex:1;min-width:0" onclick="togglePlan('plans','${p.id}')">
         <div style="min-width:0;text-align:left">
           <div class="display" style="font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
-          <div class="faint" style="font-size:12px;margin-top:2px">${mz(dc,'session','sessions')} · ${mz(ec,'exercise','exercises')}</div>
+          <div class="faint" style="font-size:12px;margin-top:2px">${mz(dc,'session','sessions')}${planArt(p)==='strength'?' · '+mz(ec,'exercise','exercises'):''} · ${artName(planArt(p))}</div>
         </div>
         <span class="plan-caret ${open?'up':''}">${I.chevron}</span>
       </button>
@@ -3629,7 +3868,7 @@ let BUILDER=null;
 let BUILDER_OPEN=false;
 
 function openPlanBuilder(id, dayIndex){
-  const p=id?JSON.parse(JSON.stringify(DB.plans.find(x=>x.id===id))):{id:uid(),name:'',days:[{name:'Day A',exercises:[]}]};
+  const p=id?JSON.parse(JSON.stringify(DB.plans.find(x=>x.id===id))):{id:uid(),name:'',kind:'strength',days:[{name:'Day A',exercises:[]}]};
   if(!p.perWeek) p.perWeek = id ? (p.days.length||3) : 3;
   BUILDER=p;
   BUILDER._neu = !id;
@@ -3648,6 +3887,7 @@ function syncBuilderName(){ syncBuilderFields(); }
 
 function bldGo(screen){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.screen=screen; renderBuilder(); }
 function bldOpenDay(i){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.page=i; BUILDER.screen='session'; renderBuilder(); }
+function setBldKind(k){ syncBuilderFields(); BUILDER.kind=k; renderBuilder(); }
 function setBldPerWeek(n){ syncBuilderFields(); BUILDER.perWeek=+n; BUILDER._pwFest=true; renderBuilder(); }
 
 function setBldDayCount(n){
@@ -3689,8 +3929,17 @@ function bldSetup(){
       <p class="faint" style="font-size:12.5px;margin:0 0 14px">Two answers and you are set. Both can be changed later.</p>
     </div>
     <div class="bld-page bld-form">
+      <div class="field"><label>Training type</label>
+        <div class="art-wahl">
+          ${Object.keys(ARTEN).map(k=>`<button class="art-opt${planArt(p)===k?' on':''}" onclick="setBldKind('${k}')"
+            aria-pressed="${planArt(p)===k?'true':'false'}">
+            <span class="art-ico">${artIcon(k)}</span>
+            <span class="art-name">${ARTEN[k].name}</span>
+            <span class="art-sub">${ARTEN[k].sub}</span>
+          </button>`).join('')}
+        </div></div>
       <div class="field"><label>Plan name</label>
-        <input class="input" id="planName" placeholder="e.g. Push / Pull / Legs" value="${escAttr(p.name)}"></div>
+        <input class="input" id="planName" placeholder="${planArt(p)==='endurance'?'e.g. Base building':(planArt(p)==='hiit'?'e.g. Metcon':'e.g. Push / Pull / Legs')}" value="${escAttr(p.name)}"></div>
       <div class="field"><label>Sessions per week</label>
         ${bldChips(p.perWeek,'setBldPerWeek')}
         <p class="faint" style="font-size:11px;margin:7px 0 0">Sets your weekly target and how long a gap your streak survives.</p></div>
@@ -3713,7 +3962,7 @@ function bldOverview(){
   return `<div class="bld-head">
       <div class="row between" style="margin-bottom:10px">
         <h2 style="margin:0">${p._neu?'New plan':'Edit plan'}</h2>
-        <span class="faint" style="font-size:11.5px">${mz(p.days.length,'session','sessions')} · ${mz(ec,'exercise','exercises')}</span>
+        <span class="art-tag">${artIcon(planArt(p))}${artName(planArt(p))}</span>
       </div>
       <div class="field" style="margin-bottom:10px"><label>Plan name</label>
         <input class="input" id="planName" placeholder="e.g. Push / Pull / Legs" value="${escAttr(p.name)}"></div>
@@ -4083,7 +4332,7 @@ function calendarHtml(){
   const hasOlder=DB.logs.some(l=>l.date<monthStart);
   const hasNewer=DB.logs.some(l=>l.date>=monthEnd);
 
-  const wd=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const wd=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let cells='';
 
   for(let day=1;day<=daysInMonth;day++){
@@ -4263,8 +4512,33 @@ function vergleichsBlock(log){
   </div>`;
 }
 
+function cardioDetail(l){
+  const c=l.cardio||{};
+  const pc=pace(c.minutes, c.km);
+  return `<div class="grab"></div>
+    <div class="row" style="gap:9px;align-items:center;margin-bottom:2px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.pulse}</span>
+      <h2 style="margin:0">${esc(l.dayName)}</h2>
+    </div>
+    <div class="faint" style="font-size:12.5px;margin:6px 0 14px">${fmtDate(l.date)} · ${fmtDay(l.date)} · ${esc(l.planName||'')}</div>
+    <div class="row wrap" style="gap:8px;margin-bottom:16px">
+      <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${fmtDauer(c.minutes)}</span>
+      ${+c.km>0?`<span class="chip">${fmtKg(c.km)} km</span>`:''}
+      ${pc?`<span class="chip">${pc}</span>`:''}
+      ${+c.hr>0?`<span class="chip">${c.hr} bpm</span>`:''}
+      ${l.duration?`<span class="chip">${dauerText(l.duration)} on the clock</span>`:''}
+    </div>
+    ${c.note?`<p class="muted" style="font-size:13px;margin:0 0 16px">${esc(c.note)}</p>`:''}
+    <div class="row" style="gap:8px">
+      <button class="log-btn" onclick="closeModal();editLog('${l.id}')">${I.plus}<span>Edit</span></button>
+      <button class="log-btn danger" onclick="closeModal();deleteLog('${l.id}')">${I.trash}<span>Delete</span></button>
+    </div>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Close</button>`;
+}
+
 function showLogDetail(id){
   const l=DB.logs.find(x=>x.id===id); if(!l) return;
+  if(logArt(l)==='endurance'){ openModal(cardioDetail(l)); return; }
   const vol=logVolume(l);
   openModal(`<div class="grab"></div>
     <h2>${esc(l.dayName)}</h2>
@@ -4665,8 +4939,47 @@ function _dtLocal(ts){
   const d=new Date(ts); const p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+function setLogCardio(feld, val){
+  if(!LOGEDIT) return;
+  if(!LOGEDIT.cardio) LOGEDIT.cardio={};
+  LOGEDIT.cardio[feld]= feld==='note' ? val : (parseNum(val)||0);
+}
+function renderCardioEdit(){
+  const l=LOGEDIT, c=l.cardio||{};
+  const feld=(k,label,einheit,modus)=>`
+    <div class="cardio-feld">
+      <label for="le_${k}">${label}</label>
+      <div class="in-unit">
+        <input class="input" id="le_${k}" inputmode="${modus||'decimal'}" placeholder="–"
+          value="${escAttr(c[k]==null||c[k]===0?'':c[k])}" oninput="setLogCardio('${k}',this.value)">
+        <span class="unit">${einheit}</span>
+      </div>
+    </div>`;
+  openModal(`<div class="grab"></div>
+    <div class="pick-head">
+      <h2>Edit session</h2>
+      <div class="field" style="margin:14px 0 10px"><label>Session name</label>
+        <input class="input" value="${esc(l.dayName)}" onchange="LOGEDIT.dayName=this.value"></div>
+      <div class="field" style="margin-bottom:10px"><label>Date & time</label>
+        <input class="input" type="datetime-local" value="${_dtLocal(l.date)}" onchange="if(this.value)LOGEDIT.date=new Date(this.value).getTime()"></div>
+    </div>
+    <div class="ex-list">
+      <div class="cardio-grid">
+        ${feld('minutes','Time','min','numeric')}
+        ${feld('km','Distance','km')}
+        ${feld('hr','Ø heart rate','bpm','numeric')}
+      </div>
+      <div class="field" style="margin-top:14px"><label for="le_note">Note</label>
+        <input class="input" id="le_note" value="${escAttr((c.note)||'')}" oninput="setLogCardio('note',this.value)"></div>
+    </div>
+    <div style="flex-shrink:0;padding-top:12px">
+      <button class="btn" onclick="saveLogEdit()">Save changes</button>
+      <button class="btn ghost" style="margin-top:8px" onclick="closeModal()">Cancel</button>
+    </div>`, true);
+}
 function renderLogEdit(){
   const l=LOGEDIT;
+  if(logArt(l)==='endurance') return renderCardioEdit();
   openModal(`<div class="grab"></div>
     <div class="pick-head">
       <h2>Edit workout</h2>
@@ -4745,7 +5058,12 @@ function logEditAddExercise(){
 }
 function saveLogEdit(){
 
-  LOGEDIT.exercises=LOGEDIT.exercises.map(e=>({...e,sets:e.sets.filter(s=>(+s.weight||0)>0||(+s.reps||0)>0)})).filter(e=>e.sets.length);
+  if(logArt(LOGEDIT)==='endurance'){
+    const c=LOGEDIT.cardio||{};
+    if(!(+c.minutes>0) && !(+c.km>0)){ toast('Enter time or distance'); return; }
+  } else {
+    LOGEDIT.exercises=LOGEDIT.exercises.map(e=>({...e,sets:e.sets.filter(s=>(+s.weight||0)>0||(+s.reps||0)>0)})).filter(e=>e.sets.length);
+  }
   const idx=DB.logs.findIndex(x=>x.id===LOGEDIT.id);
   if(idx>=0) DB.logs[idx]=LOGEDIT;
 
@@ -4832,6 +5150,7 @@ function importData(ev){
         migrateMuscleNames();
         migrateExerciseIds();
         migrateEquipToEnglish();
+        migrateKind();
         save(); go('stats'); toast('Backup restored ✓');
       });
   };
@@ -4905,6 +5224,42 @@ function deltaChip(cur, prev, unit, neutral){
   const txt = (d>0?'+':'')+(unit==='t'? (d/1000).toFixed(1)+'t' : (Math.round(d*10)/10)+(unit||''));
   return `<span class="wk-delta ${cls}">${txt}</span>`;
 }
+function cardioKennz(logs){
+  const c=(logs||[]).filter(l=>logArt(l)==='endurance');
+  return {
+    n:c.length,
+    min:c.reduce((a,l)=>a+(+((l.cardio||{}).minutes)||0),0),
+    km: c.reduce((a,l)=>a+(+((l.cardio||{}).km)||0),0)
+  };
+}
+
+function cardioKarte(rangeLogs, vorLogs){
+  const t=cardioKennz(rangeLogs);
+  if(!t.n) return '';
+  const v=vorLogs?cardioKennz(vorLogs):null;
+  const chip=(nun,alt,hoeherBesser)=>{
+    if(!v || !(alt>0) || !(nun>0)) return '<span></span>';
+    const d=Math.round((nun/alt-1)*100);
+    if(d===0) return '<span class="vc-delta same">0%</span>';
+    const gut=hoeherBesser?d>0:d<0;
+    return `<span class="vc-delta ${gut?'up':'down'}">${d>0?'+':''}${d}%</span>`;
+  };
+  const pj=t.km>0?t.min/t.km:0, pv=(v&&v.km>0)?v.min/v.km:0;
+  const paceTxt=pace(t.min,t.km);
+  return `<div class="card" style="margin-top:14px">
+    <div class="row between" style="margin-bottom:10px">
+      <span class="eyebrow" style="margin:0">Endurance</span>
+      <span class="art-tag">${I.pulse}${mz(t.n,'session','sessions')}</span>
+    </div>
+    <div class="bil-ex"><span class="bil-ex-name">Time</span>
+      <span class="bil-ex-val num">${fmtDauer(t.min)}</span>${chip(t.min, v&&v.min, true)}</div>
+    ${t.km>0?`<div class="bil-ex"><span class="bil-ex-name">Distance</span>
+      <span class="bil-ex-val num">${fmtKg(Math.round(t.km*10)/10)} km</span>${chip(t.km, v&&v.km, true)}</div>`:''}
+    ${paceTxt?`<div class="bil-ex"><span class="bil-ex-name">Ø pace</span>
+      <span class="bil-ex-val num">${paceTxt}</span>${chip(pj, pv, false)}</div>`:''}
+  </div>`;
+}
+
 function volumeTrend(range){
   const per=statsPeriod(range);
   const proWoche = (range==='week' || range==='month');
@@ -4970,7 +5325,7 @@ function trendKarte(range){
       <span class="eyebrow" style="margin:0">Volume trend</span>${delta}
     </div>
     <div class="trend-legend">
-      <span>${t.proWoche?'Per week':'Per month'}</span>
+      <span>${t.proWoche?'Per week':'Per month'}${(DB.logs||[]).some(l=>logArt(l)==='endurance')?' · strength only':''}</span>
       <span><i class="trend-key now"></i>${nName}</span>
       ${t.hatVor?`<span><i class="trend-key prev"></i>${vName}</span>`:''}
     </div>
@@ -5059,6 +5414,8 @@ function viewStats(){
         <div class="wk-item"><span class="wk-val">${tw.r!=null?tw.r.toFixed(1):'–'}</span>${(tw.r!=null&&lw.r!=null)?deltaChip(tw.r,lw.r,'',true):''}<span class="wk-lbl">Ø RIR</span></div>
       </div>
     </div>`:''}
+
+    ${cardioKarte(rangeLogs, per.prevFrom!=null?DB.logs.filter(l=>l.date>=per.prevFrom && l.date<vorBis):null)}
 
     ${trendKarte(STATS_RANGE)}
 
@@ -6034,6 +6391,7 @@ migrateToEnglish();
 migrateMuscleNames();
 migrateExerciseIds();
 migrateEquipToEnglish();
+migrateKind();
 renderNav();
 renderView();
 offerSessionResume();
