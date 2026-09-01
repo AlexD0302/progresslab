@@ -187,7 +187,7 @@ body.in-session.timer-on{--timer-space:78px}
 
   background:var(--img-bg)}
 
-.ex-card .ex-preview img{width:100%;height:100%;object-fit:contain;display:block}
+.ex-card .ex-preview img,.ex-card .ex-preview video{width:100%;height:100%;object-fit:contain;display:block}
 
 .ex-preview.bad{background:var(--surface-2)}
 
@@ -226,7 +226,7 @@ body.in-session.timer-on{--timer-space:78px}
     max-height:none !important;height:auto;align-self:stretch;min-height:0;
   }
 
-  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+  .ex-card .ex-preview img,.ex-card .ex-preview video{max-height:100% !important;max-width:100%;
     height:100%;width:100%;object-fit:contain}
   .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
 
@@ -261,7 +261,7 @@ body.in-session.timer-on{--timer-space:78px}
     display:flex;align-items:center;justify-content:center;
     padding:4px 4px 8px;overflow:hidden}
 
-  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+  .ex-card .ex-preview img,.ex-card .ex-preview video{max-height:100% !important;max-width:100%;
     width:100%;height:100%;object-fit:contain;display:block}
 
   .ex-sets{flex:1 1 0;min-height:0;overflow-y:auto}
@@ -678,9 +678,9 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 
 .ex-preview{width:100%;max-height:260px;margin:12px 0 16px;border-radius:12px;overflow:hidden;
   background:var(--surface-2);border:1px solid var(--line-soft);cursor:pointer;display:grid;place-items:center;position:relative}
-.ex-preview img{max-width:100%;max-height:260px;width:auto;height:auto;object-fit:contain;display:block}
+.ex-preview img,.ex-preview video{max-width:100%;max-height:260px;width:auto;height:auto;object-fit:contain;display:block}
 .ex-preview.bad{min-height:120px}
-.ex-preview.bad img{display:none}
+.ex-preview.bad img,.ex-preview.bad video{display:none}
 
 .prev-grid{margin-bottom:3px}
 .prev-cell{font-size:11px;color:var(--text-dim);text-align:center}
@@ -911,7 +911,7 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .ex-row:active{transform:scale(.99)}
 .ex-thumb{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;background:var(--img-bg);display:grid;place-items:center}
 .ex-row .ex-thumb{width:104px;height:104px;border-radius:12px}
-.ex-thumb img{width:100%;height:100%;object-fit:cover}
+.ex-thumb img,.ex-thumb video{width:100%;height:100%;object-fit:cover}
 .ex-thumb.noimg{background:var(--surface-3)}
 .ex-thumb.noimg img{display:none}
 .ex-meta{flex:1;min-width:0}
@@ -1000,10 +1000,10 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .ex-list::-webkit-scrollbar-track{background:transparent}
 
 .ex-hero{position:relative;width:100%;aspect-ratio:4/3;max-height:340px;border-radius:14px;overflow:hidden;background:var(--img-bg)}
-.ex-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease}
-.ex-hero img.on{opacity:1}
+.ex-hero img,.ex-hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease}
+.ex-hero img.on,.ex-hero video.on{opacity:1}
 .ex-hero.single{background:var(--surface-2)}
-.ex-hero.single img{object-fit:contain}
+.ex-hero.single img,.ex-hero.single video{object-fit:contain}
 .ex-hero-badge{position:absolute;bottom:10px;left:10px;background:rgba(10,12,16,.82);color:var(--accent);font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.04em;backdrop-filter:blur(4px)}
 .ex-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
 .ex-steps li{font-size:13.5px;line-height:1.5;color:var(--text-dim);padding-left:4px}
@@ -1039,9 +1039,9 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 .cx-seg.on{background:var(--accent);color:var(--bg)}
 
 .cx-preview{margin-top:12px;width:100%;aspect-ratio:4/3;max-height:260px;border-radius:12px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line-soft);display:grid;place-items:center}
-.cx-preview img{width:100%;height:100%;object-fit:contain}
+.cx-preview img,.cx-preview video{width:100%;height:100%;object-fit:contain}
 .cx-preview-bad{display:none;color:var(--text-faint);font-size:12px;padding:20px;text-align:center}
-.cx-preview.bad img{display:none}
+.cx-preview.bad img,.cx-preview.bad video{display:none}
 .cx-preview.bad .cx-preview-bad{display:block}
 
 #toast{
@@ -1146,7 +1146,7 @@ h2{color:var(--accent)}
   .ex-main{flex-direction:row;align-items:stretch;gap:22px;min-height:0}
   .ex-card .ex-preview{flex:0 0 42%;max-width:46%;margin:8px 0 0;align-self:stretch;
     max-height:none !important;height:auto;min-height:0}
-  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+  .ex-card .ex-preview img,.ex-card .ex-preview video{max-height:100% !important;max-width:100%;
     height:100%;width:100%;object-fit:contain}
   .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
   .ex-col .vc{margin-top:auto}
@@ -1316,7 +1316,7 @@ h2{color:var(--accent)}
 .hiit-bild{flex:1 1 auto;min-height:0;width:100%;max-width:340px;margin-top:4px;
   border-radius:12px;overflow:hidden;background:var(--img-bg);
   display:grid;place-items:center;cursor:pointer}
-.hiit-bild img{width:100%;height:100%;object-fit:contain;display:block}
+.hiit-bild img,.hiit-bild video{width:100%;height:100%;object-fit:contain;display:block}
 .hiit-bild.bad{background:var(--surface-2)}
 .hiit-bild.bad img{display:none}
 .hiit-card.no-image .hiit-bild{display:none}
@@ -1394,7 +1394,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.37.1';
+const APP_VERSION='1.38.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -3115,7 +3115,7 @@ function exerciseCard(ex,ei){
     </div>
     <div class="ex-main${(thumb&&!hidden)?'':' no-image'}">
       ${thumb&&!hidden?`<div class="ex-preview" onclick='showExercise("${escAttr(ex.name)}")'>
-        <img loading="lazy" src="${thumb}" alt="" onerror="this.parentNode.classList.add('bad')">
+        ${medium(thumb,{gross:true,fehler:"onerror=\"this.parentNode.classList.add('bad')\""})}
       </div>`:''}
       <div class="ex-col">
         <div class="set-grid set-head">
@@ -3686,7 +3686,7 @@ function hiitScreen(){
         ${h.phase!=='done'&&h.phase!=='rest'&&st.muscle?`<div class="faint" style="font-size:12px;margin-top:2px">${esc(st.muscle)}</div>`:''}
 
         ${bild?`<div class="hiit-bild" onclick='showExercise("${escAttr(zeigeSt.name)}")'>
-          <img loading="lazy" src="${bild}" alt="" onerror="this.parentNode.classList.add('bad')">
+          ${medium(bild,{gross:true,fehler:"onerror=\"this.parentNode.classList.add('bad')\""})}
         </div>`:''}
 
         <div class="hiit-ctls">
@@ -4441,7 +4441,7 @@ function bldSession(){
               ondragover="dragOver(event,${di},${eei})" ondrop="dragDrop(event,${di},${eei})"
               ondragleave="dragLeave(event)">
             <div class="bld-grip" title="Drag to reorder">${I.grip}</div>
-            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'>${medium(th,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}</div>`:''}
             <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
             ${(prim||sec.length)?`<div class="bld-musc">
               ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
@@ -4685,7 +4685,7 @@ function exListHTML(list){
     const sec=(e._.sm||[]).slice(0,3);
     const prim=(e._.pm||[]).filter(m=>m!==e.m);
     return `<div class="ex-row" onclick='showExercise("${escAttr(e.n)}")'>
-      <div class="ex-thumb${img?'':' noimg'}">${img?`<img loading="lazy" src="${img}" alt="" onerror="this.parentNode.classList.add('noimg')">`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
+      <div class="ex-thumb${img?'':' noimg'}">${img?`${medium(img,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
@@ -5001,7 +5001,7 @@ function showLogDetail(id){
       return `<div class="det-ex">
         <div class="row between" style="margin-bottom:10px">
           <div class="row" style="gap:10px;min-width:0">
-            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'>${medium(th,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}</div>`:''}
             <div style="min-width:0"><div style="font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
             <div class="faint" style="font-size:11px">${esc(e.muscle)} · ${evol.toLocaleString('en-GB')} kg${f===2?' · 2 dumbbells':''}</div></div>
           </div>
@@ -5448,7 +5448,7 @@ function logEditBody(){
     return `<div class="det-ex">
       <div class="row between" style="margin-bottom:10px">
         <div class="row" style="gap:10px;min-width:0">
-          ${th?`<div class="ex-thumb" style="width:38px;height:38px"><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+          ${th?`<div class="ex-thumb" style="width:38px;height:38px">${medium(th,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}</div>`:''}
           <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
         </div>
         <span class="row" style="gap:5px;flex-shrink:0">
@@ -6084,7 +6084,7 @@ function pickerListHTML(list){
     const isCustom=!!e._.custom;
     const prim=(e._.pm||[]).filter(m=>m!==e.m);
     return `<div class="ex-row" onclick='choosePick("${escAttr(e.n)}")'>
-      <div class="ex-thumb${img?'':' noimg'}">${img?`<img loading="lazy" src="${img}" alt="" onerror="this.parentNode.classList.add('noimg')">`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
+      <div class="ex-thumb${img?'':' noimg'}">${img?`${medium(img,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}`:`<span style="color:var(--text-faint)">${I.dumb}</span>`}</div>
       <div class="ex-meta">
         <div class="ex-name">${esc(e.n)}</div>
         <div class="ex-tags">
@@ -6137,7 +6137,7 @@ function showExercise(name, fromPicker){
   const isCustom=!!m.custom;
   const hero = imgs.length
     ? `<div class="ex-hero ${imgs.length===1?'single':''}" id="exHero">
-        ${imgs.map((u,i)=>`<img src="${u}" alt="" class="${i===0?'on':''}" onerror="this.style.background='var(--surface-3)'">`).join('')}
+        ${imgs.map((u,i)=>medium(u,{gross:true, klasse:(i===0?'on':''), fehler:"onerror=\"this.style.background='var(--surface-3)'\""})).join('')}
         ${imgs.length>1?'<div class="ex-hero-badge">▶ Bewegung</div>':''}
       </div>`
     : `<div class="ex-hero noimg-hero"><span>${I.dumb}</span></div>`;
@@ -6193,6 +6193,27 @@ function closeExercise(){
   if(_pickCb){ closeOverlay(); renderPicker(); return; }
   closeModal();
 }
+function istVideo(u){
+  if(!u) return false;
+  const t=String(u);
+  if(/^data:video\//i.test(t)) return true;
+  const pfad=t.split('#')[0].split('?')[0];
+  return /\.(mp4|webm|mov|m4v|ogv)$/i.test(pfad);
+}
+
+function medium(u, opts){
+  const o=opts||{};
+  const fehler=o.fehler||'';
+  const klasse=o.klasse?` class="${o.klasse}"`:'';
+  if(istVideo(u)){
+    const quelle = o.gross ? u : (u.indexOf('#')<0 ? u+'#t=0.1' : u);
+    const attr = o.gross ? 'autoplay loop muted playsinline'
+                         : 'muted playsinline preload="metadata"';
+    return `<video ${attr}${klasse} src="${escAttr(quelle)}" ${fehler}></video>`;
+  }
+  return `<img ${o.gross?'':'loading="lazy" '}src="${escAttr(u)}" alt=""${klasse} ${fehler}>`;
+}
+
 function escAttr(s){ return String(s).replace(/"/g,'&quot;').replace(/'/g,"\\'"); }
 
 let CUSTOM=null;
@@ -6543,17 +6564,17 @@ function renderCustomForm(isEdit){
     <div class="field"><label>Bench <span class="faint" style="font-weight:400">(optional)</span></label>
       <input class="input" id="cxBench" placeholder="e.g. 30° incline or none" value="${esc(c.bench||'')}" oninput="CUSTOM.bench=this.value"></div>
 
-    <div class="field"><label>Image / GIF</label>
+    <div class="field"><label>Image, GIF or video</label>
       <div class="cx-imgmode">
         <button class="cx-seg ${c.imgMode==='file'?'on':''}" onclick="CUSTOM.imgMode='file';renderCustomForm(${isEdit})">Upload file</button>
         <button class="cx-seg ${c.imgMode==='url'?'on':''}" onclick="CUSTOM.imgMode='url';renderCustomForm(${isEdit})">Web link</button>
       </div>
       ${c.imgMode==='file'
-        ? `<input type="file" id="cxFile" accept="image/*,image/gif" style="display:none" onchange="onCustomImgFile(event)">
-           <button class="btn-slim" style="margin-top:10px" onclick="document.getElementById('cxFile').click()">${I.upload}<span>${img?'Replace image':'Choose image/GIF'}</span></button>
+        ? `<input type="file" id="cxFile" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="onCustomImgFile(event)">
+           <button class="btn-slim" style="margin-top:10px" onclick="document.getElementById('cxFile').click()">${I.upload}<span>${img?(istVideo(img)?'Replace video':'Replace image'):'Choose image, GIF or video'}</span></button>
            <p class="faint" style="font-size:11px;margin-top:8px">Under 1.5 MB recommended (local storage is limited).</p>`
         : `<input class="input" id="cxUrl" placeholder="https://…/uebung.gif" value="${img&&/^https?:/i.test(img)?esc(img):''}" oninput="setCustomImgUrl(this.value)">
-           <p class="faint" style="font-size:11px;margin-top:8px">Address of a GIF or image (e.g. from Giphy/Tenor). Showing it needs internet.</p>`}
+           <p class="faint" style="font-size:11px;margin-top:8px">Address of an image, GIF or short video (mp4, webm). Showing it needs internet.</p>`}
       <div id="cxPreview">${customPreview(img)}</div>
     </div>
 
@@ -6578,7 +6599,7 @@ function cancelCustomExercise(){
 }
 function customPreview(img){
   if(!img) return '';
-  return `<div class="cx-preview"><img src="${img}" alt="Preview" onerror="this.parentNode.classList.add('bad')"><span class="cx-preview-bad">The image could not be loaded</span></div>`;
+  return `<div class="cx-preview">${medium(img,{gross:true,fehler:"onerror=\"this.parentNode.classList.add('bad')\""})}<span class="cx-preview-bad">The image could not be loaded</span></div>`;
 }
 function refreshCustomPreview(){
   const el=document.getElementById('cxPreview'); if(el) el.innerHTML=customPreview(CUSTOM.img[0]||'');
@@ -6592,16 +6613,17 @@ function onCustomImgFile(ev){
   const file=ev.target.files&&ev.target.files[0];
   ev.target.value='';
   if(!file) return;
-  if(!/^image\//.test(file.type)){ toast('Please choose an image file'); return; }
+  if(!/^(image|video)\//.test(file.type)){ toast('Please choose an image or a video'); return; }
   const reader=new FileReader();
   reader.onload=()=>{
     const dataUrl=reader.result;
 
     const bytes=Math.round((dataUrl.length-(dataUrl.indexOf(',')+1))*0.75);
-    const proceed=()=>{ CUSTOM.img=[dataUrl]; refreshCustomPreview(); toast('Image applied'); };
+    const video=/^video\//.test(file.type);
+    const proceed=()=>{ CUSTOM.img=[dataUrl]; refreshCustomPreview(); toast(video?'Video applied':'Image applied'); };
     if(bytes>MAX_IMG_BYTES){
-      confirmModal('Large image',
-        `The file is about ${(bytes/1_000_000).toFixed(1)} MB. Local storage is limited (usually ~5 MB in total) – large images can make saving fail. Use it anyway?`,
+      confirmModal(video?'Large video':'Large image',
+        `The file is about ${(bytes/1_000_000).toFixed(1)} MB. Local storage is limited (usually ~5 MB in total) – large files can make saving fail.${video?' A few seconds at a small size is usually well under 1 MB.':''} Use it anyway?`,
         'Use it anyway', proceed);
     } else proceed();
   };
