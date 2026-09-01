@@ -106,7 +106,7 @@ body.in-session.timer-on{--timer-space:78px}
   white-space:nowrap;flex-shrink:0}
 
 .sess-clock{gap:7px}
-.sess-sep{color:var(--line);font-weight:400}
+.sess-sep{color:var(--line-strong);font-weight:400}
 .sess-dur{color:var(--accent)}
 
 @media (max-width:430px){
@@ -1386,7 +1386,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.39.0';
+const APP_VERSION='1.40.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -5632,20 +5632,66 @@ function setsPerMuscle(logs){
   return m;
 }
 
-function exProgressPct(key){
+const PROG_MASSE = {
+  vol:  {name:'Volume',   kurz:'Volume'},
+  top:  {name:'Top set',  kurz:'Top set'},
+  e1rm: {name:'Est. 1RM', kurz:'1RM'}
+};
+let PROG_MASS='vol';
+function setProgMass(m){
+  if(!PROG_MASSE[m]) return;
+  PROG_MASS=m;
+  const sel=document.getElementById('strEx');
+  if(sel) [...sel.options].forEach(o=>{
+    const pct=exProgressPct(o.value);
+    o.textContent = o.textContent.split('·')[0].trimEnd()
+      + (pct!=null ? `  ·  ${pct>0?'+':''}${pct}%` : '');
+  });
+  renderExerciseProgress(sel?sel.value:'');
+}
+
+function progZeilen(key){
   const byName = key && key.indexOf('name:')===0;
   const exId = byName ? null : key;
   const name = byName ? key.slice(5) : (exMetaById(key) ? exMetaById(key).n : key);
   const f=exFactor(name, exId);
-  const vols=[];
+  const rows=[];
   DB.logs.forEach(l=>{
     const e=l.exercises.find(x=> (exId && x.exId===exId) || x.name===name);
     if(!e) return;
-    const v=e.sets.filter(s=>s.done!==false).reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
-    if(v>0) vols.push(v);
+    const done=e.sets.filter(s=>s.done!==false);
+    if(!done.length) return;
+    const volKg   = done.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
+    const repsGes = done.reduce((a,s)=>a+(+s.reps||0),0);
+    const topKg   = done.reduce((m,s)=>Math.max(m,(+s.weight||0)*f),0);
+    const topReps = done.reduce((m,s)=>Math.max(m,+s.reps||0),0);
+    const e1rm    = done.reduce((m,s)=>{
+      const w=(+s.weight||0)*f, r=+s.reps||0;
+      return (w>0 && r>0) ? Math.max(m, w*(1+r/30)) : m;
+    },0);
+    if(volKg>0 || repsGes>0){
+      const rirV=done.filter(x=>x.rir!=null&&x.rir!=='').map(x=>+x.rir);
+      rows.push({date:l.date, volKg, repsGes, topKg, topReps, e1rm,
+        sets:done.length,
+        setStr: done.map(x=>`${(+x.weight||0)*f}\u00d7${+x.reps||0}`).join(', '),
+        rir: rirV.length ? rirV.reduce((a,b)=>a+b,0)/rirV.length : null});
+    }
   });
-  if(vols.length<2) return null;
-  const first=vols[0], last=vols[vols.length-1];
+  return rows;
+}
+
+function progWert(r, mass, gewichtet){
+  if(mass==='top')  return gewichtet ? r.topKg : r.topReps;
+  if(mass==='e1rm') return r.e1rm;
+  return gewichtet ? r.volKg : r.repsGes;
+}
+
+function exProgressPct(key){
+  const rows=progZeilen(key);
+  if(rows.length<2) return null;
+  const gewichtet=rows.some(r=>r.topKg>0);
+  const mass=(PROG_MASS==='e1rm' && !gewichtet) ? 'vol' : PROG_MASS;
+  const first=progWert(rows[0],mass,gewichtet), last=progWert(rows[rows.length-1],mass,gewichtet);
   return first? Math.round((last-first)/first*100) : null;
 }
 
@@ -5915,7 +5961,6 @@ function viewStats(){
 
     <div class="card" style="margin-top:14px">
       <div class="eyebrow" style="margin-bottom:6px">Progress per exercise</div>
-      <p class="faint" style="font-size:11.5px;margin-bottom:10px">Volume (kg × reps) over time</p>
       <div class="field" style="margin:4px 0 4px">
         <select class="input" id="strEx" aria-label="Exercise for the progress chart" onchange="renderExerciseProgress(this.value)">
           ${exList.map(x=>`<option value="${escAttr(x.key)}">${esc(x.label)}${x.pct!=null?`  ·  ${x.pct>0?'+':''}${x.pct}%`:''}</option>`).join('')}
@@ -5928,61 +5973,68 @@ function viewStats(){
 
 function renderExerciseProgress(key){
   const el=document.getElementById('strChart'); if(!el) return;
+  const rows=progZeilen(key);
+  if(rows.length<1){
+    el.innerHTML=`<div class="faint" style="font-size:12.5px;padding:14px 0">There is no training data for this exercise yet.</div>`;
+    return;
+  }
 
-  const byName = key && key.indexOf('name:')===0;
-  const exId = byName ? null : key;
-  const name = byName ? key.slice(5) : (exMetaById(key) ? exMetaById(key).n : key);
-  const rows=[];
-  const f=exFactor(name, exId);
-  DB.logs.forEach(l=>{
+  const gewichtet=rows.some(r=>r.topKg>0);
+  const mass=(PROG_MASS==='e1rm' && !gewichtet) ? 'vol' : PROG_MASS;
+  const einheit = gewichtet ? 'kg' : 'reps';
+  const wert = r=>progWert(r,mass,gewichtet);
 
-    const e=l.exercises.find(x=> (exId && x.exId===exId) || x.name===name);
-    if(e){
-      const done=e.sets.filter(s=>s.done!==false);
-      const vol=done.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
-      const topW=done.reduce((m,s)=>Math.max(m,(+s.weight||0)*f),0);
-      const setStr=done.map(s=>`${(+s.weight||0)*f}×${+s.reps||0}`).join(', ');
-      const rirVals=done.filter(s=>s.rir!=null&&s.rir!=='').map(s=>+s.rir);
-      const rir=rirVals.length? rirVals.reduce((a,b)=>a+b,0)/rirVals.length : null;
-      if(vol>0) rows.push({date:l.date, vol, topW, sets:done.length, setStr, rir});
-    }
-  });
-  if(rows.length<1){ el.innerHTML=`<div class="faint" style="font-size:12.5px;padding:14px 0">There is no training data for this exercise yet.</div>`; return; }
+  const seg=`<div class="seg" id="progSeg" style="margin:10px 0 4px">
+    ${Object.keys(PROG_MASSE).filter(m=>m!=='e1rm'||gewichtet).map(m=>
+      `<button class="seg-btn${m===mass?' on':''}" onclick="setProgMass('${m}')">${PROG_MASSE[m].kurz}</button>`).join('')}
+  </div>
+  <p class="faint" style="font-size:11px;margin:0 0 2px">${
+    mass==='vol'  ? (gewichtet?'Weight \u00d7 reps, added up over the session':'Reps, added up over the session')
+  : mass==='top'  ? (gewichtet?'Heaviest single set of the session':'Best single set of the session')
+  :                 'Estimated one-rep max \u2014 Epley: kg \u00d7 (1 + reps/30)'}</p>`;
 
   let chart='';
   if(rows.length>=2){
-    const vols=rows.map(r=>r.vol);
-    const max=Math.max(...vols), min=Math.min(...vols), range=max-min||1;
+    const werte=rows.map(wert);
+    const max=Math.max(...werte), min=Math.min(...werte), range=max-min||1;
     const W=100, H=90;
-    const path=rows.map((r,i)=>{const x=i/(rows.length-1)*W;const y=H-((r.vol-min)/range)*H;return `${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ');
-    const area=`M0,${H} `+rows.map((r,i)=>{const x=i/(rows.length-1)*W;const y=H-((r.vol-min)/range)*H;return `L${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ')+` L${W},${H} Z`;
-    const first=rows[0].vol, last=rows[rows.length-1].vol, diff=last-first;
+    const px=(i)=>i/(rows.length-1)*W;
+    const py=(r)=>H-((wert(r)-min)/range)*H;
+    const path=rows.map((r,i)=>`${i?'L':'M'}${px(i).toFixed(1)},${py(r).toFixed(1)}`).join(' ');
+    const area=`M0,${H} `+rows.map((r,i)=>`L${px(i).toFixed(1)},${py(r).toFixed(1)}`).join(' ')+` L${W},${H} Z`;
+    const first=werte[0], last=werte[werte.length-1], diff=last-first;
     const pct=first? Math.round(diff/first*100):0;
+    const zahl = (mass==='vol' && gewichtet && Math.abs(diff)>=1000)
+      ? `${diff>0?'+':''}${(diff/1000).toFixed(1)}t`
+      : `${diff>0?'+':''}${Math.round(diff*10)/10} ${einheit}`;
     chart=`<div class="row between" style="margin:8px 0 10px">
         <span class="faint" style="font-size:12px">${mz(rows.length,'workout','workouts')}</span>
-        <span class="pill ${diff>0?'up':diff<0?'down':'same'}">${diff>0?'+':''}${(diff/1000).toFixed(1)}t · ${pct>0?'+':''}${pct}%</span></div>
+        <span class="pill ${diff>0?'up':diff<0?'down':'same'}">${zahl} \u00b7 ${pct>0?'+':''}${pct}%</span></div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:120px;overflow:visible">
         <defs><linearGradient id="volgrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
           <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
         <path d="${area}" fill="url(#volgrad)" stroke="none"/>
         <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
-        ${rows.map((r,i)=>{const x=i/(rows.length-1)*W;const y=H-((r.vol-min)/range)*H;return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="var(--accent)" vector-effect="non-scaling-stroke"/>`;}).join('')}
+        ${rows.map((r,i)=>`<circle cx="${px(i).toFixed(1)}" cy="${py(r).toFixed(1)}" r="2.5" fill="var(--accent)" vector-effect="non-scaling-stroke"/>`).join('')}
       </svg>`;
   }
 
+  const letzteSpalte = mass==='e1rm' ? 'Est. 1RM' : (gewichtet?'Volume':'Reps');
   const table=`<div class="prog-table">
-    <div class="prog-row prog-head"><span>Date</span><span>Sets</span><span>Top kg</span><span>Ø RIR</span><span>Volume</span></div>
+    <div class="prog-row prog-head"><span>Date</span><span>Sets</span><span>Top ${gewichtet?'kg':'reps'}</span><span>\u00d8 RIR</span><span>${letzteSpalte}</span></div>
     ${[...rows].reverse().map(r=>`<div class="prog-row" title="${esc(r.setStr)}">
       <span>${fmtDate(r.date)}</span>
       <span class="num">${r.sets}</span>
-      <span class="num">${r.topW} kg</span>
-      <span class="num faint">${r.rir!=null? (Math.round(r.rir*10)/10) : '–'}</span>
-      <span class="num" style="font-weight:700;color:var(--accent-dim)">${r.vol.toLocaleString('en-GB')} kg</span>
+      <span class="num">${gewichtet? r.topKg+' kg' : r.topReps}</span>
+      <span class="num faint">${r.rir!=null? (Math.round(r.rir*10)/10) : '\u2013'}</span>
+      <span class="num" style="font-weight:700;color:var(--accent-dim)">${
+        mass==='e1rm' ? (Math.round(r.e1rm*10)/10)+' kg'
+                      : (gewichtet ? r.volKg.toLocaleString('en-GB')+' kg' : r.repsGes)}</span>
     </div>`).join('')}
   </div>`;
 
-  el.innerHTML=chart+table;
+  el.innerHTML=seg+chart+table;
 }
 
 let _pickCb=null, _pickSearch='', _pickMuscle='', _pickEquip='', _pickOwn=false, _filtersOpen=false;
