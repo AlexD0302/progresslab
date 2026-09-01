@@ -1260,6 +1260,37 @@ h2{color:var(--accent)}
   .cardio-feld label{font-size:10px}
 }
 
+.hiit-vorgabe{flex-shrink:0;background:var(--surface-2);border:1px solid var(--line-strong);
+  border-radius:12px;padding:11px 13px}
+.hiit-sum{margin-top:9px;font-size:11.5px;color:var(--accent-dim);font-weight:700;
+  font-variant-numeric:tabular-nums}
+
+.hiit-card{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:8px;padding:22px 18px}
+.hiit-phase{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-faint)}
+.hiit-card.work .hiit-phase{color:var(--accent)}
+.hiit-card.rest .hiit-phase{color:var(--blue)}
+.hiit-card.done .hiit-phase{color:var(--accent)}
+.hiit-count{font-family:var(--font-display);font-size:76px;line-height:.95;font-weight:800;
+  color:var(--text);font-variant-numeric:tabular-nums}
+.hiit-card.work .hiit-count{color:var(--accent)}
+.hiit-card.rest .hiit-count{color:var(--blue)}
+.hiit-track{width:100%;max-width:320px;height:6px;border-radius:4px;background:var(--surface-3);
+  overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}
+.hiit-bar{height:100%;border-radius:4px;background:var(--accent);transition:width .2s linear}
+.hiit-card.rest .hiit-bar{background:var(--blue)}
+.hiit-station{font-family:var(--font-display);font-size:22px;font-weight:800;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hiit-ctls{display:flex;gap:10px;margin-top:12px;width:100%;max-width:320px}
+.hiit-ctls .btn-slim{flex:1}
+.hiit-liste{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.hiit-dot{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;
+  border:1px solid var(--line-strong);color:var(--text-faint)}
+.hiit-dot.fertig{color:var(--accent-dim);border-color:var(--accent-dim)}
+.hiit-dot.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+@media (max-height:720px){ .hiit-count{font-size:58px} .hiit-card{padding:14px} }
+
 </style>
 </head>
 <body>
@@ -1321,7 +1352,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.33.0';
+const APP_VERSION='1.34.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -2493,17 +2524,15 @@ function viewToday(){
   </div>`;
 }
 
-function maxGapDays(){
-
-  const goals=DB.plans.map(p=>+p.perWeek||p.days.length||3).filter(x=>x>0);
-  const perWeek = goals.length? Math.max(...goals) : 3;
-  const typical = 7/perWeek;
-  return Math.max(3, Math.ceil(typical*2));
+function weekGoal(){
+  const ziele=(DB.plans||[]).map(p=>+p.perWeek||p.days.length||0).filter(x=>x>0);
+  if(!ziele.length) return 0;
+  return Math.min(14, ziele.reduce((a,b)=>a+b,0));
 }
 
-function weekGoal(){
-  const goals=DB.plans.map(p=>+p.perWeek||p.days.length||0).filter(x=>x>0);
-  return goals.length? Math.max(...goals) : 0;
+function maxGapDays(){
+  const ziel = weekGoal() || 3;
+  return Math.max(3, Math.ceil(7/ziel*2));
 }
 function weekBar(){
   const goal=weekGoal();
@@ -2520,7 +2549,7 @@ function weekBar(){
   const reached=done>=goal;
   return `<div class="hr"></div>
     <div class="row between" style="margin-bottom:7px">
-      <span class="faint" style="font-size:12px">This week</span>
+      <span class="faint" style="font-size:12px" title="${escAttr((DB.plans||[]).filter(p=>+p.perWeek>0).map(p=>p.name+' '+p.perWeek+'×').join(' + ')||'')}">This week${(DB.plans||[]).filter(p=>+p.perWeek>0).length>1?' · all plans':''}</span>
       <span style="font-size:12px;font-weight:700;color:${reached?'var(--accent)':'var(--text-dim)'}">${done} / ${goal}${reached?' ✓':''}</span>
     </div>
     <div class="sess-bar"><div class="sess-fill" style="width:${pct}%"></div></div>`;
@@ -2549,6 +2578,28 @@ const ARTEN = {
   hiit:      {name:'HIIT',      sub:'Rounds on the clock',  icon:'stopwatch'},
   endurance: {name:'Endurance', sub:'Time and distance',    icon:'pulse'}
 };
+function hiitVorgabe(d){
+  return {rounds: +(d&&d.rounds)||4, work: +(d&&d.work)||40, rest: +(d&&d.rest)||20};
+}
+function hiitDauer(d, anzahlUebungen){
+  const v=hiitVorgabe(d);
+  const n=Math.max(1, anzahlUebungen||1);
+  return v.rounds * n * (v.work + v.rest);
+}
+function setHiit(di, feld, val){
+  const d=BUILDER.days[di]; if(!d) return;
+  const n=Math.max(1, Math.round(parseNum(val)||0));
+  d[feld]=n;
+  const el=document.getElementById('hiitSum');
+  if(el) el.textContent=hiitSummeText(d);
+}
+function hiitSummeText(d){
+  const v=hiitVorgabe(d);
+  const n=Math.max(1, (d.exercises||[]).length);
+  const gesamt=hiitDauer(d, n);
+  return `${v.rounds} \u00d7 ${n} \u00d7 (${v.work}s + ${v.rest}s) = ${fmtDauer(Math.round(gesamt/60))}`;
+}
+
 function planArt(p){ return (p && ARTEN[p.kind]) ? p.kind : 'strength'; }
 function logArt(l){ return (l && ARTEN[l.kind]) ? l.kind : 'strength'; }
 function artName(k){ return (ARTEN[k]||ARTEN.strength).name; }
@@ -2587,6 +2638,24 @@ function neuerSatz(vorher){
 }
 
 function startSession(plan, day){
+  if(planArt(plan)==='hiit'){
+    const v=hiitVorgabe(day);
+    const stationen=(day.exercises||[]).map(ex=>{
+      const exId=ex.exId||exIdForName(ex.name);
+      const meta=exMetaById(exId);
+      return {exId, name: meta?meta.n:ex.name, muscle: meta?meta.g:ex.muscle};
+    });
+    if(!stationen.length){ toast('Add at least one station first'); return; }
+    SESSION={
+      kind:'hiit',
+      planId:plan?plan.id:null, planName:plan?plan.name:'Free workout',
+      dayName:day.name, date:Date.now(), exercises:[],
+      stationen, rounds:v.rounds, work:v.work, rest:v.rest,
+      round:1, station:0, arbeitSek:0
+    };
+    HIIT={phase:'ready', endsAt:0, uebrig:0};
+    saveSession(); go('today'); return;
+  }
   if(planArt(plan)==='endurance'){
     SESSION={
       kind:'endurance',
@@ -2651,6 +2720,7 @@ setInterval(tickSessClock, 1000);
 
 function sessionScreen(){
   if(SESSION.kind==='endurance') return cardioScreen();
+  if(SESSION.kind==='hiit') return hiitScreen();
   const s=SESSION;
   const n=s.exercises.length;
   if(SESSION.page==null) SESSION.page=0;
@@ -3436,6 +3506,137 @@ function deltaProzent(jetzt, vorher){
   return {cls: d>0?'up':(d<0?'down':'same'), txt:(d>0?'+':'')+d+'%'};
 }
 
+let HIIT=null;
+let _hiitAudio=null, _wakeLock=null;
+
+function hiitBeep(hoch){
+  try{
+    _hiitAudio = _hiitAudio || new (window.AudioContext||window.webkitAudioContext)();
+    if(_hiitAudio.state==='suspended') _hiitAudio.resume();
+    const t=_hiitAudio.currentTime;
+    const o=_hiitAudio.createOscillator(), g=_hiitAudio.createGain();
+    o.type='sine'; o.frequency.value = hoch?900:520;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+0.19);
+    o.connect(g); g.connect(_hiitAudio.destination);
+    o.start(t); o.stop(t+0.2);
+  }catch(e){}
+}
+async function wakeAn(){
+  try{ if('wakeLock' in navigator && !_wakeLock) _wakeLock=await navigator.wakeLock.request('screen'); }catch(e){}
+}
+function wakeAus(){ try{ if(_wakeLock){ _wakeLock.release(); _wakeLock=null; } }catch(e){} }
+
+function hiitPhaseSek(){ return HIIT && HIIT.phase==='rest' ? SESSION.rest : SESSION.work; }
+
+function hiitStart(){
+  if(!SESSION || SESSION.kind!=='hiit') return;
+  HIIT={phase:'work', endsAt: Date.now()+SESSION.work*1000, uebrig:0};
+  hiitBeep(true); wakeAn(); saveSession(); renderView();
+}
+function hiitPause(){
+  if(!HIIT || HIIT.phase==='ready' || HIIT.phase==='done') return;
+  if(HIIT.uebrig){ HIIT.endsAt=Date.now()+HIIT.uebrig; HIIT.uebrig=0; wakeAn(); }
+  else { HIIT.uebrig=Math.max(0, HIIT.endsAt-Date.now()); HIIT.endsAt=0; wakeAus(); }
+  renderView();
+}
+function hiitWeiter(){
+  if(!SESSION || !HIIT) return;
+  if(HIIT.phase==='work'){
+    SESSION.arbeitSek += SESSION.work;
+    HIIT.phase='rest'; HIIT.endsAt=Date.now()+SESSION.rest*1000; HIIT.uebrig=0;
+    hiitBeep(false);
+  } else {
+    SESSION.station++;
+    if(SESSION.station >= SESSION.stationen.length){
+      SESSION.station=0; SESSION.round++;
+    }
+    if(SESSION.round > SESSION.rounds){
+      SESSION.round=SESSION.rounds;
+      HIIT.phase='done'; HIIT.endsAt=0; HIIT.uebrig=0;
+      hiitBeep(true); setTimeout(()=>hiitBeep(true), 260);
+      wakeAus();
+    } else {
+      HIIT.phase='work'; HIIT.endsAt=Date.now()+SESSION.work*1000; HIIT.uebrig=0;
+      hiitBeep(true);
+    }
+  }
+  saveSession(); renderView();
+}
+function hiitSkip(){ if(HIIT && HIIT.phase!=='done'){ if(HIIT.phase==='ready') return hiitStart(); hiitWeiter(); } }
+
+function hiitTick(){
+  if(!SESSION || SESSION.kind!=='hiit' || !HIIT) return;
+  if(HIIT.phase==='ready' || HIIT.phase==='done' || HIIT.uebrig) return;
+  const rest=HIIT.endsAt-Date.now();
+  if(rest<=0){ hiitWeiter(); return; }
+  const el=document.getElementById('hiitCount');
+  if(el){ const t=String(Math.ceil(rest/1000)); if(el.textContent!==t) el.textContent=t; }
+  const bar=document.getElementById('hiitBar');
+  if(bar) bar.style.width=Math.max(0,Math.min(100, rest/(hiitPhaseSek()*1000)*100))+'%';
+}
+setInterval(hiitTick, 200);
+
+function hiitScreen(){
+  const s=SESSION, h=HIIT||{phase:'ready'};
+  const st=s.stationen[s.station]||{name:''};
+  const naechste=s.stationen[(s.station+1)%s.stationen.length];
+  const gesamt=s.rounds*s.stationen.length;
+  const fertig=(s.round-1)*s.stationen.length + s.station;
+  const pct=Math.round(fertig/gesamt*100);
+  const pausiert=!!h.uebrig;
+  const sek = h.phase==='ready' ? s.work
+            : (pausiert ? Math.ceil(h.uebrig/1000) : Math.ceil(Math.max(0,h.endsAt-Date.now())/1000));
+
+  return `<div class="sess">
+    <div class="sess-head">
+      <div style="min-width:0">
+        <div class="display" style="font-size:19px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.dayName)}</div>
+        <div class="faint" style="font-size:11px">${s.planName==='Free workout'?'Free workout':esc(s.planName)}</div>
+      </div>
+      <div class="row sess-ctls" style="gap:6px;flex-shrink:0">
+        <div class="sess-clock" title="Time of day \u00b7 workout duration">
+          <span id="sessClock">${clockNow()}</span><span class="sess-sep">\u00b7</span><span class="sess-dur" id="sessDur" aria-label="Workout duration">${durClock(sessMillis())}</span>
+        </div>
+        <button class="sess-btn danger" onclick="cancelSession()">${I.x}<span>Cancel</span></button>
+        <button class="sess-btn solid" onclick="finishSession()">${I.check}<span>Done</span></button>
+      </div>
+    </div>
+
+    <div class="sess-vol">
+      <div class="row between" style="margin-bottom:7px">
+        <span class="faint" style="font-size:12px">Round ${s.round} of ${s.rounds} \u00b7 station ${s.station+1}/${s.stationen.length}</span>
+        <span class="display" style="font-size:15px;color:var(--accent)">${pct}%</span>
+      </div>
+      <div class="sess-bar"><div class="sess-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    <div class="sess-body">
+      <div class="card ex-card hiit-card ${h.phase}">
+        <div class="hiit-phase">${h.phase==='done'?'Finished':(h.phase==='ready'?'Ready':(h.phase==='rest'?'Rest':'Work'))}</div>
+        <div class="hiit-count" id="hiitCount">${h.phase==='done'?'\u2713':sek}</div>
+        <div class="hiit-track"><div class="hiit-bar" id="hiitBar" style="width:${h.phase==='ready'?'100':'0'}%"></div></div>
+        <div class="hiit-station">${h.phase==='rest'?`Next: ${esc(naechste.name)}`:esc(st.name)}</div>
+        ${h.phase!=='done'&&h.phase!=='rest'&&st.muscle?`<div class="faint" style="font-size:12px;margin-top:2px">${esc(st.muscle)}</div>`:''}
+
+        <div class="hiit-ctls">
+          ${h.phase==='ready'
+            ? `<button class="btn-slim solid" onclick="hiitStart()"><span>Start</span></button>`
+            : h.phase==='done'
+              ? `<button class="btn-slim solid" onclick="finishSession()"><span>Save session</span></button>`
+              : `<button class="btn-slim" onclick="hiitPause()">${pausiert?I.play:I.x}<span>${pausiert?'Resume':'Pause'}</span></button>
+                 <button class="btn-slim" onclick="hiitSkip()">${I.chevron}<span>Skip</span></button>`}
+        </div>
+      </div>
+
+      <div class="hiit-liste">
+        ${s.stationen.map((x,i)=>`<span class="hiit-dot${i===s.station?' on':''}${i<s.station?' fertig':''}">${esc(x.name)}</span>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function setCardio(feld, val){
   if(!SESSION || !SESSION.cardio) return;
   SESSION.cardio[feld]=val;
@@ -3591,8 +3792,67 @@ function zeigeCardioBilanz(b){
   `);
 }
 
+function finishHiit(){
+  const s=SESSION;
+  const runden = Math.max(0, s.round-1) + (s.station>0 || (HIIT&&HIIT.phase==='done') ? 1 : 0);
+  const volle = (HIIT&&HIIT.phase==='done') ? s.rounds : Math.max(0, s.round-1);
+  if(!s.arbeitSek){ toast('No work done yet'); return; }
+
+  const dauerMs = Math.max(0, Date.now() - (+s.date || Date.now()));
+  const vorLog = lastSessionLog(s.dayName);
+  const vh = vorLog && vorLog.hiit ? vorLog.hiit : null;
+
+  const neu={id:uid(), date:s.date, duration:dauerMs, kind:'hiit',
+    planId:s.planId||null, planName:s.planName, dayName:s.dayName, exercises:[],
+    hiit:{rounds:s.rounds, done:volle, work:s.work, rest:s.rest,
+          arbeitSek:s.arbeitSek, stationen:s.stationen.map(x=>x.name)}};
+
+  DB.logs.push(neu);
+  DB.logs.sort((a,b)=>a.date-b.date);
+  save(); SESSION=null; HIIT=null; clearStoredSession(); closeRest(); wakeAus();
+
+  go('today');
+  zeigeHiitBilanz({tag:s.dayName||'Workout', jetzt:neu.hiit, vorher:vh,
+    vorherDatum: vorLog?vorLog.date:null, dauer:dauerText(dauerMs), serie:calcStreak()});
+}
+
+function zeigeHiitBilanz(b){
+  const j=b.jetzt, v=b.vorher;
+  const chip=(nun,alt)=>{
+    if(!v || !(+alt>0) || !(+nun>0)) return '<span></span>';
+    const d=Math.round((nun/alt-1)*100);
+    return `<span class="vc-delta ${d>0?'up':(d<0?'down':'same')}">${d>0?'+':''}${d}%</span>`;
+  };
+  const zeile=(label,wert,c)=>`<div class="bil-ex">
+      <span class="bil-ex-name">${label}</span>
+      <span class="bil-ex-val num">${wert}</span>${c||'<span></span>'}</div>`;
+  openModal(`<div class="grab"></div>
+    <div class="row" style="gap:10px;align-items:center;margin-bottom:2px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.check}</span>
+      <h2 style="margin:0">${esc(b.tag)} done</h2>
+    </div>
+    <p class="faint" style="font-size:12.5px;margin:6px 0 0">${b.dauer} on the clock \u00b7 ${j.work}s / ${j.rest}s</p>
+
+    <div class="bil-sec">
+      <div class="eyebrow" style="margin-bottom:8px">This session</div>
+      ${zeile('Rounds', j.done+' of '+j.rounds, chip(j.done, v&&v.done))}
+      ${zeile('Work time', fmtDauer(Math.round(j.arbeitSek/60)), chip(j.arbeitSek, v&&v.arbeitSek))}
+      ${zeile('Stations', j.stationen.length, '')}
+    </div>
+
+    ${v?`<p class="faint" style="font-size:11px;margin:10px 0 0">Compared with ${fmtDate(b.vorherDatum)}</p>`
+       :`<p class="faint" style="font-size:11px;margin:10px 0 0">First time doing this session \u2014 nothing to compare yet.</p>`}
+
+    ${b.serie>1?`<p class="faint" style="font-size:12.5px;margin:14px 0 0;text-align:center">
+      ${b.serie}${b.serie===2?'nd':(b.serie===3?'rd':'th')} workout in a row</p>`:''}
+
+    <button class="btn-slim solid" style="margin-top:18px" onclick="closeModal()"><span>Done</span></button>
+  `);
+}
+
 function finishSession(){
   if(SESSION.kind==='endurance') return finishCardio();
+  if(SESSION.kind==='hiit') return finishHiit();
   const s=SESSION;
   const exercises=s.exercises.map(ex=>({exId:ex.exId||exIdForName(ex.name),name:ex.name,muscle:ex.muscle,targetReps:ex.targetReps,
     sets:ex.sets.filter(x=>x.done).map(x=>({weight:+x.weight||0,reps:+x.reps||0,rir:(x.rir===''||x.rir==null)?null:+x.rir,done:true}))}))
@@ -4006,6 +4266,18 @@ function bldSession(){
       </div>
     </div>
 
+    ${planArt(p)==='hiit'?`<div class="hiit-vorgabe">
+      <div class="bld-fields">
+        <div><span class="bld-lbl">Rounds</span>
+          <input class="input bld-num" inputmode="numeric" aria-label="Rounds" value="${hiitVorgabe(d).rounds}" onchange="setHiit(${di},'rounds',this.value)"></div>
+        <div><span class="bld-lbl">Work</span>
+          <input class="input bld-num" inputmode="numeric" aria-label="Work in seconds" value="${hiitVorgabe(d).work}" onchange="setHiit(${di},'work',this.value)"></div>
+        <div><span class="bld-lbl">Rest</span>
+          <input class="input bld-num" inputmode="numeric" aria-label="Rest in seconds" value="${hiitVorgabe(d).rest}" onchange="setHiit(${di},'rest',this.value)"></div>
+      </div>
+      <div class="hiit-sum" id="hiitSum">${hiitSummeText(d)}</div>
+    </div>`:''}
+
     <div class="bld-page">
       <div class="card bld-card">
         ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Drag to reorder</div>`:''}
@@ -4026,6 +4298,7 @@ function bldSession(){
               ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
               ${sec.map(m=>`<span class="bld-musc-s">${esc(m)}</span>`).join('')}
             </div>`:''}
+            ${planArt(p)==='hiit'?`<div class="faint" style="font-size:11px;margin-top:5px">Station ${eei+1}</div>`:`
             <div class="bld-fields">
               <div><span class="bld-lbl">Sets</span>
                 <input class="input bld-num" inputmode="numeric" aria-label="Sets for ${escAttr(e.name)}" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=feldZahl(this.value)||1"></div>
@@ -4033,7 +4306,7 @@ function bldSession(){
                 <input class="input bld-num" inputmode="numeric" aria-label="Reps for ${escAttr(e.name)}" value="${e.reps}" onchange="BUILDER.days[${di}].exercises[${eei}].reps=feldZahl(this.value)||1"></div>
               <div><span class="bld-lbl">Rest</span>
                 <input class="input bld-num" inputmode="numeric" placeholder="–" aria-label="Rest in seconds for ${escAttr(e.name)}" value="${e.rest||''}" onchange="BUILDER.days[${di}].exercises[${eei}].rest=feldZahl(this.value)||0"></div>
-            </div></div>
+            </div>`}</div>
             <button class="chip" onclick="delBuilderEx(${di},${eei})" style="padding:5px 8px;align-self:flex-start">${I.trash}</button>
           </div>`;}).join(''):`<div class="faint" style="text-align:center;padding:22px 0;font-size:13px">No exercises in this session yet.</div>`}
           </div>
@@ -4536,9 +4809,32 @@ function cardioDetail(l){
     <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Close</button>`;
 }
 
+function hiitDetail(l){
+  const h=l.hiit||{};
+  return `<div class="grab"></div>
+    <div class="row" style="gap:9px;align-items:center;margin-bottom:2px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.stopwatch}</span>
+      <h2 style="margin:0">${esc(l.dayName)}</h2>
+    </div>
+    <div class="faint" style="font-size:12.5px;margin:6px 0 14px">${fmtDate(l.date)} · ${fmtDay(l.date)} · ${esc(l.planName||'')}</div>
+    <div class="row wrap" style="gap:8px;margin-bottom:16px">
+      <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${h.done} of ${h.rounds} rounds</span>
+      <span class="chip">${fmtDauer(Math.round((h.arbeitSek||0)/60))} work</span>
+      <span class="chip">${h.work}s / ${h.rest}s</span>
+      ${l.duration?`<span class="chip">${dauerText(l.duration)} on the clock</span>`:''}
+    </div>
+    ${(h.stationen||[]).length?`<div class="hiit-liste" style="justify-content:flex-start;margin:0 0 16px">
+      ${h.stationen.map(n=>`<span class="hiit-dot">${esc(n)}</span>`).join('')}</div>`:''}
+    <div class="row" style="gap:8px">
+      <button class="log-btn danger" onclick="closeModal();deleteLog('${l.id}')">${I.trash}<span>Delete</span></button>
+    </div>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Close</button>`;
+}
+
 function showLogDetail(id){
   const l=DB.logs.find(x=>x.id===id); if(!l) return;
   if(logArt(l)==='endurance'){ openModal(cardioDetail(l)); return; }
+  if(logArt(l)==='hiit'){ openModal(hiitDetail(l)); return; }
   const vol=logVolume(l);
   openModal(`<div class="grab"></div>
     <h2>${esc(l.dayName)}</h2>
@@ -5233,6 +5529,33 @@ function cardioKennz(logs){
   };
 }
 
+function hiitKennz(logs){
+  const h=(logs||[]).filter(l=>logArt(l)==='hiit');
+  return {n:h.length,
+    runden:h.reduce((a,l)=>a+(+((l.hiit||{}).done)||0),0),
+    arbeit:h.reduce((a,l)=>a+(+((l.hiit||{}).arbeitSek)||0),0)};
+}
+function hiitKarte(rangeLogs, vorLogs){
+  const t=hiitKennz(rangeLogs);
+  if(!t.n) return '';
+  const v=vorLogs?hiitKennz(vorLogs):null;
+  const chip=(nun,alt)=>{
+    if(!v || !(alt>0) || !(nun>0)) return '<span></span>';
+    const d=Math.round((nun/alt-1)*100);
+    return `<span class="vc-delta ${d>0?'up':(d<0?'down':'same')}">${d>0?'+':''}${d}%</span>`;
+  };
+  return `<div class="card" style="margin-top:14px">
+    <div class="row between" style="margin-bottom:10px">
+      <span class="eyebrow" style="margin:0">HIIT</span>
+      <span class="art-tag">${I.stopwatch}${mz(t.n,'session','sessions')}</span>
+    </div>
+    <div class="bil-ex"><span class="bil-ex-name">Rounds</span>
+      <span class="bil-ex-val num">${t.runden}</span>${chip(t.runden, v&&v.runden)}</div>
+    <div class="bil-ex"><span class="bil-ex-name">Work time</span>
+      <span class="bil-ex-val num">${fmtDauer(Math.round(t.arbeit/60))}</span>${chip(t.arbeit, v&&v.arbeit)}</div>
+  </div>`;
+}
+
 function cardioKarte(rangeLogs, vorLogs){
   const t=cardioKennz(rangeLogs);
   if(!t.n) return '';
@@ -5325,7 +5648,7 @@ function trendKarte(range){
       <span class="eyebrow" style="margin:0">Volume trend</span>${delta}
     </div>
     <div class="trend-legend">
-      <span>${t.proWoche?'Per week':'Per month'}${(DB.logs||[]).some(l=>logArt(l)==='endurance')?' · strength only':''}</span>
+      <span>${t.proWoche?'Per week':'Per month'}${(DB.logs||[]).some(l=>logArt(l)!=='strength')?' · strength only':''}</span>
       <span><i class="trend-key now"></i>${nName}</span>
       ${t.hatVor?`<span><i class="trend-key prev"></i>${vName}</span>`:''}
     </div>
@@ -5416,6 +5739,7 @@ function viewStats(){
     </div>`:''}
 
     ${cardioKarte(rangeLogs, per.prevFrom!=null?DB.logs.filter(l=>l.date>=per.prevFrom && l.date<vorBis):null)}
+    ${hiitKarte(rangeLogs, per.prevFrom!=null?DB.logs.filter(l=>l.date>=per.prevFrom && l.date<vorBis):null)}
 
     ${trendKarte(STATS_RANGE)}
 
