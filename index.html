@@ -1291,6 +1291,21 @@ h2{color:var(--accent)}
 .hiit-dot.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 @media (max-height:720px){ .hiit-count{font-size:58px} .hiit-card{padding:14px} }
 
+.art-zeile{display:flex;gap:6px;margin-bottom:10px}
+.art-mini{flex:1 1 0;min-width:0;min-height:40px;display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;padding:0 6px;border-radius:10px;
+  border:1px solid var(--line-strong);background:transparent;color:var(--text-dim);
+  font-size:11.5px;font-weight:700;transition:all .15s}
+.art-mini svg{width:15px;height:15px;flex-shrink:0}
+.art-mini span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.art-mini:hover{border-color:var(--accent-dim)}
+.art-mini.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.tag-art{display:grid;place-items:center;width:28px;height:28px;flex-shrink:0;
+  border-radius:8px;background:var(--surface-3);color:var(--text-dim)}
+.tag-art svg{width:15px;height:15px;stroke-width:2}
+.day-row .tag-art{margin-right:2px}
+@media (max-width:430px){ .art-mini span{display:none} .art-mini{gap:0} }
+
 </style>
 </head>
 <body>
@@ -1352,7 +1367,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.34.0';
+const APP_VERSION='1.35.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -2480,6 +2495,7 @@ function viewToday(){
       </button>
       ${open?`<div style="margin-top:12px">
         ${p.days.map((d,i)=>`<button class="day-row" onclick="startSession(_plan('${p.id}'),_plan('${p.id}').days[${i}])">
+          <span class="tag-art" title="${escAttr(artName(tagArt(p,d)))}">${artIcon(tagArt(p,d))}</span>
           <div style="min-width:0">
             <div class="day-name">${esc(d.name)}</div>
             <div class="faint" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.exercises.map(e=>esc(e.name)).join(' · ')||'No exercises yet'}</div>
@@ -2601,6 +2617,7 @@ function hiitSummeText(d){
 }
 
 function planArt(p){ return (p && ARTEN[p.kind]) ? p.kind : 'strength'; }
+function tagArt(plan, tag){ return (tag && ARTEN[tag.kind]) ? tag.kind : planArt(plan); }
 function logArt(l){ return (l && ARTEN[l.kind]) ? l.kind : 'strength'; }
 function artName(k){ return (ARTEN[k]||ARTEN.strength).name; }
 function artIcon(k){ return I[(ARTEN[k]||ARTEN.strength).icon]; }
@@ -2638,7 +2655,7 @@ function neuerSatz(vorher){
 }
 
 function startSession(plan, day){
-  if(planArt(plan)==='hiit'){
+  if(tagArt(plan, day)==='hiit'){
     const v=hiitVorgabe(day);
     const stationen=(day.exercises||[]).map(ex=>{
       const exId=ex.exId||exIdForName(ex.name);
@@ -2656,7 +2673,7 @@ function startSession(plan, day){
     HIIT={phase:'ready', endsAt:0, uebrig:0};
     saveSession(); go('today'); return;
   }
-  if(planArt(plan)==='endurance'){
+  if(tagArt(plan, day)==='endurance'){
     SESSION={
       kind:'endurance',
       planId:plan?plan.id:null, planName:plan?plan.name:'Free workout',
@@ -3720,6 +3737,56 @@ function cardioScreen(){
   </div>`;
 }
 
+function cardioRekorde(neu){
+  const vorher=(DB.logs||[]).filter(l=>logArt(l)==='endurance' && l.id!==neu.id && l.cardio);
+  if(!vorher.length) return [];
+  const c=neu.cardio||{};
+  const km=+c.km||0, min=+c.minutes||0;
+  const pj=(km>0&&min>0)?min/km:0;
+  const out=[];
+  const maxKm=Math.max(0,...vorher.map(l=>+((l.cardio||{}).km)||0));
+  if(km>0 && km>maxKm) out.push({label:'Longest distance', wert:fmtKg(km)+' km'});
+  const maxMin=Math.max(0,...vorher.map(l=>+((l.cardio||{}).minutes)||0));
+  if(min>0 && min>maxMin) out.push({label:'Longest session', wert:fmtDauer(min)});
+  if(pj>0){
+    const geschlagen = !vorher.some(l=>{
+      const v=l.cardio||{}, vk=+v.km||0, vm=+v.minutes||0;
+      const pv=(vk>0&&vm>0)?vm/vk:0;
+      return pv>0 && vk>=km && pv<=pj;
+    });
+    if(geschlagen) out.push({label:'Best pace over '+fmtKg(km)+' km or more', wert:pace(min,km)});
+  }
+  return out;
+}
+
+function hiitRekorde(neu){
+  const vorher=(DB.logs||[]).filter(l=>logArt(l)==='hiit' && l.id!==neu.id && l.hiit);
+  if(!vorher.length) return [];
+  const h=neu.hiit||{}; const out=[];
+  const gleiche=vorher.filter(l=>l.hiit.work===h.work && l.hiit.rest===h.rest);
+  if(gleiche.length){
+    const maxR=Math.max(0,...gleiche.map(l=>+l.hiit.done||0));
+    if((+h.done||0)>maxR) out.push({label:`Most rounds at ${h.work}s / ${h.rest}s`, wert:h.done});
+  }
+  const maxW=Math.max(0,...vorher.map(l=>+l.hiit.arbeitSek||0));
+  if((+h.arbeitSek||0)>maxW) out.push({label:'Most work time', wert:fmtDauer(Math.round(h.arbeitSek/60))});
+  return out;
+}
+
+function rekordBlock(rekorde){
+  if(!rekorde || !rekorde.length) return '';
+  return `<div class="summary-rec">
+    <div class="row" style="gap:7px;align-items:center;margin-bottom:8px">
+      <span class="dlg-ico" style="color:var(--accent)">${I.fire}</span>
+      <span class="eyebrow" style="margin:0;color:var(--accent)">${rekorde.length===1?'New record':rekorde.length+' new records'}</span>
+    </div>
+    ${rekorde.map(r=>`<div class="bil-rec-row">
+      <span class="bil-rec-reps">${esc(r.label)}</span>
+      <b class="num">${esc(String(r.wert))}</b>
+    </div>`).join('')}
+  </div>`;
+}
+
 function finishCardio(){
   const s=SESSION;
   const c=s.cardio||{};
@@ -3736,6 +3803,8 @@ function finishCardio(){
     planId:s.planId||null, planName:s.planName, dayName:s.dayName, exercises:[],
     cardio:{minutes:gMin, km:gKm, hr:parseNum(c.hr)||0, note:(c.note||'').trim()}};
 
+  const rekorde=cardioRekorde(neu);
+
   DB.logs.push(neu);
   DB.logs.sort((a,b)=>a.date-b.date);
   save(); SESSION=null; clearStoredSession(); closeRest();
@@ -3747,6 +3816,7 @@ function finishCardio(){
     vorher: vc,
     vorherDatum: vorLog ? vorLog.date : null,
     dauer: dauerText(dauerMs),
+    rekorde,
     serie: calcStreak()
   });
 }
@@ -3785,6 +3855,8 @@ function zeigeCardioBilanz(b){
     ${v?`<p class="faint" style="font-size:11px;margin:10px 0 0">Compared with ${fmtDate(b.vorherDatum)}${pv?` \u00b7 ${pv}`:''}</p>`
        :`<p class="faint" style="font-size:11px;margin:10px 0 0">First time doing this session \u2014 nothing to compare yet.</p>`}
 
+    ${rekordBlock(b.rekorde)}
+
     ${b.serie>1?`<p class="faint" style="font-size:12.5px;margin:14px 0 0;text-align:center">
       ${b.serie}${b.serie===2?'nd':(b.serie===3?'rd':'th')} workout in a row</p>`:''}
 
@@ -3807,13 +3879,15 @@ function finishHiit(){
     hiit:{rounds:s.rounds, done:volle, work:s.work, rest:s.rest,
           arbeitSek:s.arbeitSek, stationen:s.stationen.map(x=>x.name)}};
 
+  const rekorde=hiitRekorde(neu);
+
   DB.logs.push(neu);
   DB.logs.sort((a,b)=>a.date-b.date);
   save(); SESSION=null; HIIT=null; clearStoredSession(); closeRest(); wakeAus();
 
   go('today');
   zeigeHiitBilanz({tag:s.dayName||'Workout', jetzt:neu.hiit, vorher:vh,
-    vorherDatum: vorLog?vorLog.date:null, dauer:dauerText(dauerMs), serie:calcStreak()});
+    vorherDatum: vorLog?vorLog.date:null, dauer:dauerText(dauerMs), rekorde, serie:calcStreak()});
 }
 
 function zeigeHiitBilanz(b){
@@ -3842,6 +3916,8 @@ function zeigeHiitBilanz(b){
 
     ${v?`<p class="faint" style="font-size:11px;margin:10px 0 0">Compared with ${fmtDate(b.vorherDatum)}</p>`
        :`<p class="faint" style="font-size:11px;margin:10px 0 0">First time doing this session \u2014 nothing to compare yet.</p>`}
+
+    ${rekordBlock(b.rekorde)}
 
     ${b.serie>1?`<p class="faint" style="font-size:12.5px;margin:14px 0 0;text-align:center">
       ${b.serie}${b.serie===2?'nd':(b.serie===3?'rd':'th')} workout in a row</p>`:''}
@@ -4147,7 +4223,8 @@ function syncBuilderName(){ syncBuilderFields(); }
 
 function bldGo(screen){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.screen=screen; renderBuilder(); }
 function bldOpenDay(i){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.page=i; BUILDER.screen='session'; renderBuilder(); }
-function setBldKind(k){ syncBuilderFields(); BUILDER.kind=k; renderBuilder(); }
+function setBldKind(k){ syncBuilderFields(); BUILDER.kind=k; (BUILDER.days||[]).forEach(d=>{ delete d.kind; }); renderBuilder(); }
+function setTagArt(di, k){ syncBuilderFields(); const d=BUILDER.days[di]; if(!d) return; if(k===planArt(BUILDER)) delete d.kind; else d.kind=k; renderBuilder(); }
 function setBldPerWeek(n){ syncBuilderFields(); BUILDER.perWeek=+n; BUILDER._pwFest=true; renderBuilder(); }
 
 function setBldDayCount(n){
@@ -4236,12 +4313,14 @@ function bldOverview(){
     <div class="bld-page bld-form">
       <div class="bld-scroll">
         ${p.days.map((d,i)=>`<div class="day-row bld-dayrow" onclick="bldOpenDay(${i})" role="button" tabindex="0">
+          <span class="tag-art" title="${escAttr(artName(tagArt(p,d)))}">${artIcon(tagArt(p,d))}</span>
           <div style="min-width:0;flex:1">
             <div class="day-name">${esc(d.name)}</div>
             <div class="faint" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${d.exercises.map(e=>esc(e.name)).join(' · ')||'No exercises yet'}</div>
+              ${tagArt(p,d)==='endurance' ? 'Time and distance'
+                : (d.exercises.map(e=>esc(e.name)).join(' · ') || (tagArt(p,d)==='hiit'?'No stations yet':'No exercises yet'))}</div>
           </div>
-          <span class="faint num" style="font-size:11.5px;flex-shrink:0">${d.exercises.length}</span>
+          ${tagArt(p,d)==='endurance'?'' :`<span class="faint num" style="font-size:11.5px;flex-shrink:0">${d.exercises.length}</span>`}
           ${p.days.length>1?`<button class="chip" style="padding:5px 8px;flex-shrink:0"
             onclick="event.stopPropagation();delDay(${i})" title="Delete session" aria-label="Delete ${escAttr(d.name)}">${I.trash}</button>`:''}
           <span class="day-go" style="width:28px;height:28px;flex-shrink:0">${I.chevron}</span>
@@ -4262,11 +4341,15 @@ function bldSession(){
       <div class="row" style="gap:8px;align-items:center;margin-bottom:8px">
         <button class="sess-arrow" onclick="bldGo('plan')" aria-label="Back to the plan">${I.chevronL}</button>
         <input class="input bld-dayname" id="bldDayName" value="${escAttr(d.name)}" placeholder="Session name" style="flex:1;min-width:0">
-        <span class="faint" style="font-size:11px;white-space:nowrap;flex-shrink:0">${mz(d.exercises.length,'exercise','exercises')}</span>
+        ${tagArt(p,d)!=='endurance'?`<span class="faint" style="font-size:11px;white-space:nowrap;flex-shrink:0">${tagArt(p,d)==='hiit'?mz(d.exercises.length,'station','stations'):mz(d.exercises.length,'exercise','exercises')}</span>`:''}
+      </div>
+      <div class="art-zeile">
+        ${Object.keys(ARTEN).map(k=>`<button class="art-mini${tagArt(p,d)===k?' on':''}" onclick="setTagArt(${di},'${k}')"
+          aria-pressed="${tagArt(p,d)===k?'true':'false'}" title="${ARTEN[k].sub}">${artIcon(k)}<span>${ARTEN[k].name}</span></button>`).join('')}
       </div>
     </div>
 
-    ${planArt(p)==='hiit'?`<div class="hiit-vorgabe">
+    ${tagArt(p,d)==='hiit'?`<div class="hiit-vorgabe">
       <div class="bld-fields">
         <div><span class="bld-lbl">Rounds</span>
           <input class="input bld-num" inputmode="numeric" aria-label="Rounds" value="${hiitVorgabe(d).rounds}" onchange="setHiit(${di},'rounds',this.value)"></div>
@@ -4278,6 +4361,15 @@ function bldSession(){
       <div class="hiit-sum" id="hiitSum">${hiitSummeText(d)}</div>
     </div>`:''}
 
+    ${tagArt(p,d)==='endurance'?`<div class="bld-page bld-form">
+      <div class="card" style="margin:0">
+        <div class="row" style="gap:9px;align-items:center">
+          <span class="art-ico" style="width:30px;height:30px">${I.pulse}</span>
+          <div><div style="font-weight:700;font-size:14px">No exercises needed</div>
+          <div class="faint" style="font-size:12px">You log time, distance and heart rate when you train this session.</div></div>
+        </div>
+      </div>
+    </div>` : `
     <div class="bld-page">
       <div class="card bld-card">
         ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Drag to reorder</div>`:''}
@@ -4298,7 +4390,7 @@ function bldSession(){
               ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
               ${sec.map(m=>`<span class="bld-musc-s">${esc(m)}</span>`).join('')}
             </div>`:''}
-            ${planArt(p)==='hiit'?`<div class="faint" style="font-size:11px;margin-top:5px">Station ${eei+1}</div>`:`
+            ${tagArt(p,d)==='hiit'?`<div class="faint" style="font-size:11px;margin-top:5px">Station ${eei+1}</div>`:`
             <div class="bld-fields">
               <div><span class="bld-lbl">Sets</span>
                 <input class="input bld-num" inputmode="numeric" aria-label="Sets for ${escAttr(e.name)}" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=feldZahl(this.value)||1"></div>
@@ -4312,10 +4404,10 @@ function bldSession(){
           </div>
         </div>
       </div>
-    </div>
+    </div>`}
 
     <div class="bld-nav">
-      <button class="bld-addbtn" onclick="addBuilderEx(${di})" title="Add exercise">${I.plus}<span>Exercise</span></button>
+      ${tagArt(p,d)==='endurance'?'<span></span>':`<button class="bld-addbtn" onclick="addBuilderEx(${di})" title="Add exercise">${I.plus}<span>${tagArt(p,d)==='hiit'?'Station':'Exercise'}</span></button>`}
       <div class="bld-navmid">
         <button class="sess-arrow" ${di===0?'disabled':''} onclick="goDay(${di-1})" aria-label="Previous session">${I.chevronL}</button>
         <div class="sess-dots">
