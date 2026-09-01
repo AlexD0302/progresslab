@@ -1209,6 +1209,24 @@ h2{color:var(--accent)}
   .day-row,.ex-row,.next-card{transition:none}
 }
 
+
+.bld-form{display:block;overflow-y:auto;overscroll-behavior:contain}
+.bld-chips{display:flex;gap:6px}
+.bld-chip{flex:1 1 0;min-width:34px;min-height:44px;padding:0 2px;border-radius:10px;
+  border:1px solid var(--line-strong);background:transparent;color:var(--text-dim);
+  font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;transition:all .15s}
+.bld-chip:hover{border-color:var(--accent-dim);color:var(--text)}
+.bld-chip.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.bld-dayrow{display:flex;align-items:center;gap:10px;cursor:pointer}
+.bld-dayrow .day-go{display:grid;place-items:center;border-radius:50%;
+  background:var(--surface-3);color:var(--text-dim)}
+.bld-dayrow .day-go svg{width:15px;height:15px}
+
+.bld-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:7px;align-items:end}
+.bld-fields > div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bld-fields .bld-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.bld-fields .bld-num{width:100%;min-height:38px;font-size:14px}
+
 </style>
 </head>
 <body>
@@ -1268,7 +1286,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.31.0';
+const APP_VERSION='1.32.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -3486,7 +3504,7 @@ function planCard(p){
       </button>`).join('')}
       <div class="row" style="gap:8px;margin-top:6px">
         <button class="btn ghost sm acc" style="flex:1" onclick="showPlanOverview('${p.id}')">${I.stats}<span>Overview</span></button>
-        <button class="btn ghost sm acc" style="flex:1" onclick="addPlanDay('${p.id}')">${I.plus}<span>Session</span></button>
+        <button class="btn ghost sm acc" style="flex:1" onclick="openPlanBuilder('${p.id}')">${I.plans}<span>Edit</span></button>
       </div>
     </div>`:''}
   </div>`;
@@ -3612,92 +3630,183 @@ let BUILDER_OPEN=false;
 
 function openPlanBuilder(id, dayIndex){
   const p=id?JSON.parse(JSON.stringify(DB.plans.find(x=>x.id===id))):{id:uid(),name:'',days:[{name:'Day A',exercises:[]}]};
-  if(!p.perWeek) p.perWeek = p.days.length || 3;
-  const i=+dayIndex||0;
-  BUILDER=p; BUILDER.page=Math.min(Math.max(i,0), p.days.length-1);
-
+  if(!p.perWeek) p.perWeek = id ? (p.days.length||3) : 3;
+  BUILDER=p;
   BUILDER._neu = !id;
+  BUILDER.page = Math.min(Math.max(+dayIndex||0,0), p.days.length-1);
+  BUILDER.screen = !id ? 'setup' : (dayIndex==null ? 'plan' : 'session');
   BUILDER_OPEN=true; renderBuilder();
+}
+
+function syncBuilderFields(){
+  const n=document.getElementById('planName'); if(n) BUILDER.name=n.value;
+  const d=document.getElementById('bldDayName');
+  if(d && BUILDER.days[BUILDER.page]) BUILDER.days[BUILDER.page].name=d.value;
+  const sc=document.querySelector('.bld-scroll'); if(sc) BUILDER._scroll=sc.scrollTop;
+}
+function syncBuilderName(){ syncBuilderFields(); }
+
+function bldGo(screen){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.screen=screen; renderBuilder(); }
+function bldOpenDay(i){ syncBuilderFields(); BUILDER._scroll=0; BUILDER.page=i; BUILDER.screen='session'; renderBuilder(); }
+function setBldPerWeek(n){ syncBuilderFields(); BUILDER.perWeek=+n; BUILDER._pwFest=true; renderBuilder(); }
+
+function setBldDayCount(n){
+  syncBuilderFields();
+  const d=BUILDER.days;
+  while(d.length<n) d.push({name:nextDayName(d),exercises:[]});
+  while(d.length>n && !d[d.length-1].exercises.length) d.pop();
+  if(!BUILDER._pwFest) BUILDER.perWeek=d.length;
+  BUILDER.page=Math.min(BUILDER.page, d.length-1);
+  renderBuilder();
+}
+
+function bldChips(wert, aktion, bis){
+  return `<div class="bld-chips">${Array.from({length:bis||7},(_,i)=>i+1).map(n=>
+    `<button class="bld-chip${n===+wert?' on':''}" onclick="${aktion}(${n})"
+      aria-pressed="${n===+wert?'true':'false'}">${n}</button>`).join('')}</div>`;
 }
 
 function renderBuilder(){
   const p=BUILDER;
-  const n=p.days.length;
   if(p.page==null) p.page=0;
-  if(p.page>n-1) p.page=Math.max(0,n-1);
-  const di=p.page;
-  const d=p.days[di];
-  openModal(`<div class="grab"></div>
-    <div class="bld">
-      <div class="bld-head">
-        <h2 style="margin-bottom:12px">${p.name?'Edit plan':'New plan'}</h2>
-        <div class="field" style="margin:0"><label>Plan name</label>
-          <input class="input" id="planName" placeholder="e.g. Push/Pull/Legs" value="${esc(p.name)}" onchange="BUILDER.name=this.value"></div>
-      </div>
-
-      <div class="bld-page" id="bldPage">
-        ${d?`<div class="card bld-card">
-          <div class="row between" style="margin-bottom:8px;flex-shrink:0">
-            <input class="input bld-dayname" value="${esc(d.name)}" onchange="BUILDER.days[${di}].name=this.value" placeholder="Session name">
-            <div class="row" style="gap:5px;flex-shrink:0">
-              <span class="faint" style="font-size:11px;white-space:nowrap">${d.exercises.length} exercise${d.exercises.length===1?'':'s'}</span>
-              ${n>1?`<button class="chip" onclick="delDay(${di})" style="padding:6px 9px" title="Delete session">${I.trash}</button>`:''}
-            </div>
-          </div>
-          ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Drag to reorder</div>`:''}
-          <div class="bld-scroll">
-            <div class="bld-exlist" data-di="${di}">
-            ${d.exercises.length?d.exercises.map((e,eei)=>{
-              const mt=exMeta(e.name);const th=mt?mt.img[0]:null;
-              const prim=(mt&&mt.g)||e.muscle||'';
-              const sec=(mt&&Array.isArray(mt.sm))?mt.sm:[];
-              return `<div class="bld-row" draggable="true" data-di="${di}" data-ei="${eei}"
-                ondragstart="dragStart(event,${di},${eei})" ondragend="dragEnd(event)"
-                ondragover="dragOver(event,${di},${eei})" ondrop="dragDrop(event,${di},${eei})"
-                ondragleave="dragLeave(event)">
-              <div class="bld-grip" title="Drag to reorder">${I.grip}</div>
-              ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
-              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
-              ${(prim||sec.length)?`<div class="bld-musc">
-                ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
-                ${sec.map(m=>`<span class="bld-musc-s">${esc(m)}</span>`).join('')}
-              </div>`:''}
-              <div class="row wrap" style="gap:8px 10px;margin-top:5px;align-items:center">
-                <span class="bld-lbl">Sets</span>
-                <input class="input bld-num" inputmode="numeric" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=feldZahl(this.value)||1">
-                <span class="bld-lbl">Reps</span>
-                <input class="input bld-num" inputmode="numeric" value="${e.reps}" onchange="BUILDER.days[${di}].exercises[${eei}].reps=feldZahl(this.value)||1">
-                <span class="bld-lbl">Rest</span>
-                <input class="input bld-num bld-num-w" inputmode="numeric" placeholder="–" value="${e.rest||''}" onchange="BUILDER.days[${di}].exercises[${eei}].rest=feldZahl(this.value)||0"><span class="bld-lbl">sec</span>
-              </div></div>
-              <button class="chip" onclick="delBuilderEx(${di},${eei})" style="padding:5px 8px;align-self:flex-start">${I.trash}</button>
-            </div>`;}).join(''):`<div class="faint" style="text-align:center;padding:22px 0;font-size:13px">No exercises in this session yet.</div>`}
-            </div>
-          </div>
-        </div>`:''}
-      </div>
-
-      <div class="bld-nav">
-        <button class="bld-addbtn" ${d?'':'disabled'} onclick="addBuilderEx(${di})" title="Add exercise">${I.plus}<span>Exercise</span></button>
-        <div class="bld-navmid">
-          <button class="sess-arrow" ${di===0?'disabled':''} onclick="goDay(${di-1})" aria-label="Previous session">${I.chevronL}</button>
-          <div class="sess-dots">
-            ${p.days.map((x,i)=>`<button class="sess-dot ${i===di?'on':''}" onclick="goDay(${i})" title="${escAttr(x.name)}" aria-label="To session ${i+1}: ${escAttr(x.name)}"${i===di?' aria-current="true"':''}></button>`).join('')}
-          </div>
-          <button class="sess-arrow" ${di===n-1?'disabled':''} onclick="goDay(${di+1})" aria-label="Next session">${I.chevron}</button>
-        </div>
-        ${p._neu?`<button class="bld-addbtn" onclick="addDay()" title="Add session">${I.plus}<span>Session</span></button>`
-                :`<span></span>`}
-      </div>
-
-      <button class="btn-slim solid" style="flex-shrink:0" onclick="savePlan()"><span>Save plan</span></button>
-    </div>
-  `, false, 'bld-modal');
-  initTouchDrag();
-  initBldSwipe();
-
-  guardModal('Edit plan', ()=>renderBuilder(), ()=>savePlan(), ()=>syncBuilderName());
+  if(p.page>p.days.length-1) p.page=Math.max(0,p.days.length-1);
+  const inhalt = p.screen==='setup' ? bldSetup()
+               : p.screen==='plan'  ? bldOverview()
+               :                      bldSession();
+  openModal(`<div class="grab"></div><div class="bld">${inhalt}</div>`, false, 'bld-modal');
+  if(p.screen==='session'){
+    initTouchDrag(); initBldSwipe();
+    const sc=document.querySelector('.bld-scroll');
+    if(sc && p._scroll) sc.scrollTop=p._scroll;
+  }
+  guardModal(p._neu?'New plan':'Edit plan', ()=>renderBuilder(), ()=>savePlan(), ()=>syncBuilderFields());
 }
+
+function bldSetup(){
+  const p=BUILDER;
+  return `<div class="bld-head">
+      <h2 style="margin-bottom:4px">New plan</h2>
+      <p class="faint" style="font-size:12.5px;margin:0 0 14px">Two answers and you are set. Both can be changed later.</p>
+    </div>
+    <div class="bld-page bld-form">
+      <div class="field"><label>Plan name</label>
+        <input class="input" id="planName" placeholder="e.g. Push / Pull / Legs" value="${escAttr(p.name)}"></div>
+      <div class="field"><label>Sessions per week</label>
+        ${bldChips(p.perWeek,'setBldPerWeek')}
+        <p class="faint" style="font-size:11px;margin:7px 0 0">Sets your weekly target and how long a gap your streak survives.</p></div>
+      <div class="field"><label>How many different sessions?</label>
+        ${bldChips(p.days.length,'setBldDayCount')}
+        <p class="faint" style="font-size:11px;margin:7px 0 0">${mz(p.days.length,'session','sessions')}: ${p.days.map(d=>esc(d.name)).join(' · ')}</p></div>
+    </div>
+    <button class="btn-slim solid" style="flex-shrink:0" onclick="bldSetupWeiter()"><span>Continue</span></button>`;
+}
+
+function bldSetupWeiter(){
+  syncBuilderFields();
+  if(!(BUILDER.name||'').trim()){ toast('Please enter a name'); return; }
+  bldGo('plan');
+}
+
+function bldOverview(){
+  const p=BUILDER;
+  const ec=p.days.reduce((a,d)=>a+d.exercises.length,0);
+  return `<div class="bld-head">
+      <div class="row between" style="margin-bottom:10px">
+        <h2 style="margin:0">${p._neu?'New plan':'Edit plan'}</h2>
+        <span class="faint" style="font-size:11.5px">${mz(p.days.length,'session','sessions')} · ${mz(ec,'exercise','exercises')}</span>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Plan name</label>
+        <input class="input" id="planName" placeholder="e.g. Push / Pull / Legs" value="${escAttr(p.name)}"></div>
+      <div class="row between" style="margin-bottom:6px">
+        <span class="bld-lbl">Sessions per week</span>
+        ${(+p.perWeek!==p.days.length)?`<span class="faint" style="font-size:10.5px">${p.days.length} in the plan</span>`:''}
+      </div>
+      ${bldChips(p.perWeek,'setBldPerWeek')}
+    </div>
+
+    <div class="bld-page bld-form">
+      <div class="bld-scroll">
+        ${p.days.map((d,i)=>`<div class="day-row bld-dayrow" onclick="bldOpenDay(${i})" role="button" tabindex="0">
+          <div style="min-width:0;flex:1">
+            <div class="day-name">${esc(d.name)}</div>
+            <div class="faint" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${d.exercises.map(e=>esc(e.name)).join(' · ')||'No exercises yet'}</div>
+          </div>
+          <span class="faint num" style="font-size:11.5px;flex-shrink:0">${d.exercises.length}</span>
+          ${p.days.length>1?`<button class="chip" style="padding:5px 8px;flex-shrink:0"
+            onclick="event.stopPropagation();delDay(${i})" title="Delete session" aria-label="Delete ${escAttr(d.name)}">${I.trash}</button>`:''}
+          <span class="day-go" style="width:28px;height:28px;flex-shrink:0">${I.chevron}</span>
+        </div>`).join('')}
+        <button class="bld-addbtn" style="width:100%;justify-content:center;margin-top:4px"
+          onclick="addDay()" title="Add session">${I.plus}<span>Session</span></button>
+      </div>
+    </div>
+
+    <button class="btn-slim solid" style="flex-shrink:0" onclick="savePlan()"><span>Save plan</span></button>`;
+}
+
+function bldSession(){
+  const p=BUILDER;
+  const di=p.page, d=p.days[di], n=p.days.length;
+  if(!d) return bldOverview();
+  return `<div class="bld-head">
+      <div class="row" style="gap:8px;align-items:center;margin-bottom:8px">
+        <button class="sess-arrow" onclick="bldGo('plan')" aria-label="Back to the plan">${I.chevronL}</button>
+        <input class="input bld-dayname" id="bldDayName" value="${escAttr(d.name)}" placeholder="Session name" style="flex:1;min-width:0">
+        <span class="faint" style="font-size:11px;white-space:nowrap;flex-shrink:0">${mz(d.exercises.length,'exercise','exercises')}</span>
+      </div>
+    </div>
+
+    <div class="bld-page">
+      <div class="card bld-card">
+        ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Drag to reorder</div>`:''}
+        <div class="bld-scroll">
+          <div class="bld-exlist" data-di="${di}">
+          ${d.exercises.length?d.exercises.map((e,eei)=>{
+            const mt=exMeta(e.name);const th=mt?mt.img[0]:null;
+            const prim=(mt&&mt.g)||e.muscle||'';
+            const sec=(mt&&Array.isArray(mt.sm))?mt.sm:[];
+            return `<div class="bld-row" draggable="true" data-di="${di}" data-ei="${eei}"
+              ondragstart="dragStart(event,${di},${eei})" ondragend="dragEnd(event)"
+              ondragover="dragOver(event,${di},${eei})" ondrop="dragDrop(event,${di},${eei})"
+              ondragleave="dragLeave(event)">
+            <div class="bld-grip" title="Drag to reorder">${I.grip}</div>
+            ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
+            <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
+            ${(prim||sec.length)?`<div class="bld-musc">
+              ${prim?`<span class="bld-musc-p">${esc(prim)}</span>`:''}
+              ${sec.map(m=>`<span class="bld-musc-s">${esc(m)}</span>`).join('')}
+            </div>`:''}
+            <div class="bld-fields">
+              <div><span class="bld-lbl">Sets</span>
+                <input class="input bld-num" inputmode="numeric" aria-label="Sets for ${escAttr(e.name)}" value="${e.sets}" onchange="BUILDER.days[${di}].exercises[${eei}].sets=feldZahl(this.value)||1"></div>
+              <div><span class="bld-lbl">Reps</span>
+                <input class="input bld-num" inputmode="numeric" aria-label="Reps for ${escAttr(e.name)}" value="${e.reps}" onchange="BUILDER.days[${di}].exercises[${eei}].reps=feldZahl(this.value)||1"></div>
+              <div><span class="bld-lbl">Rest</span>
+                <input class="input bld-num" inputmode="numeric" placeholder="–" aria-label="Rest in seconds for ${escAttr(e.name)}" value="${e.rest||''}" onchange="BUILDER.days[${di}].exercises[${eei}].rest=feldZahl(this.value)||0"></div>
+            </div></div>
+            <button class="chip" onclick="delBuilderEx(${di},${eei})" style="padding:5px 8px;align-self:flex-start">${I.trash}</button>
+          </div>`;}).join(''):`<div class="faint" style="text-align:center;padding:22px 0;font-size:13px">No exercises in this session yet.</div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bld-nav">
+      <button class="bld-addbtn" onclick="addBuilderEx(${di})" title="Add exercise">${I.plus}<span>Exercise</span></button>
+      <div class="bld-navmid">
+        <button class="sess-arrow" ${di===0?'disabled':''} onclick="goDay(${di-1})" aria-label="Previous session">${I.chevronL}</button>
+        <div class="sess-dots">
+          ${p.days.map((x,i)=>`<button class="sess-dot ${i===di?'on':''}" onclick="goDay(${i})" title="${escAttr(x.name)}" aria-label="To session ${i+1}: ${escAttr(x.name)}"${i===di?' aria-current="true"':''}></button>`).join('')}
+        </div>
+        <button class="sess-arrow" ${di===n-1?'disabled':''} onclick="goDay(${di+1})" aria-label="Next session">${I.chevron}</button>
+      </div>
+      <button class="bld-addbtn" onclick="bldGo('plan')" title="Back to the plan">${I.plans}<span>Plan</span></button>
+    </div>
+
+    <button class="btn-slim solid" style="flex-shrink:0" onclick="savePlan()"><span>Save plan</span></button>`;
+}
+
 function goDay(i){
   const n=BUILDER.days.length;
   if(i<0||i>n-1) return;
@@ -3731,9 +3840,11 @@ function initBldSwipe(){
 
 function nextDayName(days){ return 'Day '+String.fromCharCode(65+days.length); }
 function addDay(){
-  syncBuilderName();
+  syncBuilderFields();
   BUILDER.days.push({name:nextDayName(BUILDER.days),exercises:[]});
   BUILDER.page=BUILDER.days.length-1;
+  BUILDER._scroll=0;
+  BUILDER.screen='session';
   renderBuilder();
 }
 function delDay(i){
@@ -3745,7 +3856,8 @@ function delDay(i){
     n?`“${d.name}” contains ${n} ${n===1?'exercise':'exercises'}.`:`“${d.name}” is empty.`,
     'Delete', ()=>{
       BUILDER.days.splice(i,1);
-      if(BUILDER.page>BUILDER.days.length-1) BUILDER.page=BUILDER.days.length-1;
+      if(BUILDER.page>BUILDER.days.length-1) BUILDER.page=Math.max(0,BUILDER.days.length-1);
+      if(!BUILDER.days.length) BUILDER.screen='plan';
     }, ()=>renderBuilder());
 }
 function delBuilderEx(di,ei){
@@ -3812,9 +3924,10 @@ function onGripTouchStart(ev){
 }
 function syncBuilderName(){ const el=document.getElementById('planName'); if(el) BUILDER.name=el.value; }
 function addBuilderEx(di){
-  syncBuilderName();
+  syncBuilderFields();
   openExercisePicker(sel=>{
     BUILDER.days[di].exercises.push({exId:sel.id||exIdForName(sel.n),name:sel.n,muscle:sel.m,sets:3,reps:10,rest:90});
+    BUILDER._scroll=Number.MAX_SAFE_INTEGER;
     renderBuilder();
     toast(sel.n+' added');
   });
@@ -3823,7 +3936,7 @@ function savePlan(){
   syncBuilderName();
   if(!BUILDER.name.trim()){ toast('Please enter a name'); return false; }
   const plan=JSON.parse(JSON.stringify(BUILDER));
-  delete plan.page; delete plan._neu;
+  delete plan.page; delete plan._neu; delete plan.screen; delete plan._scroll; delete plan._pwFest;
   const exist=DB.plans.findIndex(p=>p.id===plan.id);
   if(exist>=0) DB.plans[exist]=plan; else DB.plans.push(plan);
   save(); BUILDER_OPEN=false; MODAL_GUARD=null; closeModal(); renderView(); toast('Plan saved');
