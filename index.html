@@ -1325,6 +1325,11 @@ h2{color:var(--accent)}
 .bl-ou{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 26px),transparent 100%);
        mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 26px),transparent 100%)}
 
+.trend.eng{gap:2px}
+.trend.eng .trend-lbl{font-size:8.5px;overflow:visible;max-width:none;text-overflow:clip}
+.trend.eng .trend-col{overflow:visible}
+.trend.eng .trend-bar{border-radius:2px 2px 1px 1px}
+
 </style>
 </head>
 <body>
@@ -1386,7 +1391,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.40.1';
+const APP_VERSION='1.41.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -5773,15 +5778,17 @@ function kmVerlauf(range){
   if(!t.eimer.some(b=>b.vol>0)) return '';
   const maxV=Math.max(...t.eimer.map(b=>b.vol), 1);
   const zeigen=t.eimer.length<=8;
+  const schritt = Math.max(1, Math.ceil(t.eimer.length/8));
+  const eng = t.eimer.length>14;
   return `<div style="margin-top:14px">
-    <div class="trend-legend"><span>Distance ${t.proWoche?'per week':'per month'}</span></div>
-    <div class="trend">
-      ${t.eimer.map(b=>{
+    <div class="trend-legend"><span>Distance ${t.takt==='woche'?'per week':(t.takt==='monat'?'per month':'per year')} · all time</span></div>
+    <div class="trend${eng?' eng':''}">
+      ${t.eimer.map((b,i)=>{
         const h=b.vol>0?Math.max(Math.round(b.vol/maxV*70),4):2;
         return `<div class="trend-col ${b.stufe}" title="${escAttr(b.label+' · '+(Math.round(b.vol*10)/10)+' km')}">
           ${zeigen?`<div class="trend-val num">${b.vol>0?(Math.round(b.vol*10)/10):'–'}</div>`:''}
           <div class="trend-plot" style="height:70px"><div class="trend-bar ${b.stufe}" style="height:${h}px"></div></div>
-          <div class="trend-lbl">${esc(b.label)}</div>
+          <div class="trend-lbl">${(i%schritt===0||i===t.eimer.length-1)?esc(b.label):''}</div>
         </div>`;}).join('')}
     </div>
   </div>`;
@@ -5790,41 +5797,54 @@ function kmVerlauf(range){
 function volumeTrend(range, wertFn){
   const wert = wertFn || logVolume;
   const per=statsPeriod(range);
-  const proWoche = (range==='week' || range==='month');
-  const anzahl = proWoche ? 8 : 12;
-  const jetzt=new Date();
+  const nun=Date.now();
+  const erstes = (DB.logs||[]).reduce((m,l)=>Math.min(m, +l.date||nun), nun);
+  const spanneTage = Math.max(0, (nun-erstes)/86400000);
+
+  const takt = spanneTage<=120 ? 'woche' : (spanneTage<=1100 ? 'monat' : 'jahr');
+  const jetztD=new Date();
   const eimer=[];
-  for(let i=anzahl-1;i>=0;i--){
-    let von, bis, label;
-    if(proWoche){
-      von = weekStartTs(Date.now()) - i*7*86400000;
-      bis = von + 7*86400000;
-      const d=new Date(von);
-      label = d.getDate()+'/'+(d.getMonth()+1);
-    } else {
-      von = new Date(jetzt.getFullYear(), jetzt.getMonth()-i, 1).getTime();
-      bis = new Date(jetzt.getFullYear(), jetzt.getMonth()-i+1, 1).getTime();
-      label = new Date(von).toLocaleDateString('en-GB',{month:'short'});
+
+  if(takt==='woche'){
+    const start=weekStartTs(erstes), ende=weekStartTs(nun);
+    for(let v=start; v<=ende; v+=7*86400000){
+      const d=new Date(v);
+      eimer.push({von:v, bis:v+7*86400000, label:d.getDate()+'/'+(d.getMonth()+1)});
     }
-    const mitte=(von+bis)/2;
-    const logs=DB.logs.filter(l=>l.date>=von && l.date<bis);
-    let stufe='old';
-    if(range==='all') stufe='now';
-    else if(mitte>=per.from) stufe='now';
-    else if(per.prevFrom!=null && mitte>=per.prevFrom && mitte<per.prevTo) stufe='prev';
-    eimer.push({von, bis, label, stufe,
-      vol: logs.reduce((a,l)=>a+wert(l),0),
-      einheiten: logs.length});
+  } else if(takt==='monat'){
+    const d0=new Date(erstes);
+    let j=d0.getFullYear(), m=d0.getMonth();
+    while(j<jetztD.getFullYear() || (j===jetztD.getFullYear() && m<=jetztD.getMonth())){
+      const von=new Date(j,m,1).getTime(), bis=new Date(j,m+1,1).getTime();
+      const kurz=new Date(von).toLocaleDateString('en-GB',{month:'short'});
+      eimer.push({von, bis, label: (m===0||!eimer.length) ? kurz+' '+String(j).slice(2) : kurz});
+      m++; if(m>11){ m=0; j++; }
+    }
+  } else {
+    for(let j=new Date(erstes).getFullYear(); j<=jetztD.getFullYear(); j++){
+      eimer.push({von:new Date(j,0,1).getTime(), bis:new Date(j+1,0,1).getTime(), label:String(j)});
+    }
   }
+
+  eimer.forEach(e=>{
+    const mitte=(e.von+e.bis)/2;
+    const logs=DB.logs.filter(l=>l.date>=e.von && l.date<e.bis);
+    e.stufe = range==='all' ? 'now'
+            : mitte>=per.from ? 'now'
+            : (per.prevFrom!=null && mitte>=per.prevFrom && mitte<per.prevTo) ? 'prev'
+            : 'old';
+    e.vol = logs.reduce((a,l)=>a+wert(l),0);
+    e.einheiten = logs.length;
+  });
+
   const summe=(von,bis)=>DB.logs.filter(l=>l.date>=von && l.date<bis)
     .reduce((a,l)=>a+wert(l),0);
-  const nun=Date.now();
   const jetztSum = summe(range==='all'?0:per.from, nun);
   const bisher = nun - per.from;
   const vorSum = per.prevFrom!=null
     ? summe(per.prevFrom, Math.min(per.prevFrom+bisher, per.prevTo)) : 0;
   const angebrochen = per.prevTo!=null && (per.prevFrom+bisher) < per.prevTo;
-  return {eimer, proWoche, jetztSum, vorSum, angebrochen, hatVor: per.prevFrom!=null};
+  return {eimer, takt, proWoche:takt==='woche', jetztSum, vorSum, angebrochen, hatVor: per.prevFrom!=null};
 }
 
 function trendKarte(range){
@@ -5839,6 +5859,8 @@ function trendKarte(range){
                year:['This year','Last year'], all:['All time','']};
   const [nName, vName]=namen[range]||namen.month;
   const werteZeigen = t.eimer.length<=8;
+  const schritt = Math.max(1, Math.ceil(t.eimer.length/8));
+  const eng = t.eimer.length>14;
   const tonne=v=>Math.round(v/100)/10;
 
   const vergleichbar = t.hatVor && t.vorSum>0 && t.jetztSum>0;
@@ -5853,20 +5875,20 @@ function trendKarte(range){
       <span class="eyebrow" style="margin:0">Volume trend</span>${delta}
     </div>
     <div class="trend-legend">
-      <span>${t.proWoche?'Per week':'Per month'}${(DB.logs||[]).some(l=>logArt(l)!=='strength')?' · strength only':''}</span>
+      <span>${t.takt==='woche'?'Per week':(t.takt==='monat'?'Per month':'Per year')} · all time${(DB.logs||[]).some(l=>logArt(l)!=='strength')?' · strength only':''}</span>
       <span><i class="trend-key now"></i>${nName}</span>
       ${t.hatVor?`<span><i class="trend-key prev"></i>${vName}</span>`:''}
     </div>
     ${vergleichbar?`<p class="faint" style="font-size:11px;margin:0 0 2px">
       ${nName}${bis} ${tonne(t.jetztSum)} t &middot; ${tonne(t.vorSum)} t at the same point ${vName.toLowerCase()}</p>`:''}
-    <div class="trend">
-      ${t.eimer.map(b=>{
+    <div class="trend${eng?' eng':''}">
+      ${t.eimer.map((b,i)=>{
         const h=b.vol>0 ? Math.max(Math.round(b.vol/maxV*104), 4) : 2;
         const titel=`${b.label} · ${tonne(b.vol)} t · ${mz(b.einheiten,'session','sessions')}`;
         return `<div class="trend-col ${b.stufe}" title="${escAttr(titel)}">
           ${werteZeigen?`<div class="trend-val num">${b.vol>0?tonne(b.vol)+'t':'–'}</div>`:''}
           <div class="trend-plot"><div class="trend-bar ${b.stufe}" style="height:${h}px"></div></div>
-          <div class="trend-lbl">${esc(b.label)}</div>
+          <div class="trend-lbl">${(i%schritt===0||i===t.eimer.length-1)?esc(b.label):''}</div>
         </div>`;}).join('')}
     </div>
   </div>`;
