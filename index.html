@@ -1118,10 +1118,6 @@ body.undo-on #toast{bottom:170px}
 h2{color:var(--accent)}
 .eyebrow{color:var(--accent-dim)}
 
-.pad > .card, .ex-card, .stat-tile, .cal-wrap, .seg, .sess-vol{
-  border-color:rgba(200,255,0,.22);
-  box-shadow:0 0 24px rgba(200,255,0,.12);
-}
 
 @media (min-width:900px) and (max-height:720px){
   .ex-card .set-head{margin-bottom:2px;padding-bottom:0}
@@ -1149,6 +1145,68 @@ h2{color:var(--accent)}
     height:100%;width:100%;object-fit:contain}
   .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
   .ex-col .vc{margin-top:auto}
+}
+
+
+:root{
+  --line-strong:#5a6478;
+  --line-card:#3d485c;
+  --edge-hero:rgba(200,255,0,.38);
+}
+
+.pad > .card,.stat-tile,.cal-wrap,.seg,.sess-vol,.ex-card{
+  border-color:var(--line-card);
+  background-image:linear-gradient(180deg,#171b24 0%,var(--surface) 62%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 26px rgba(0,0,0,.34);
+}
+
+.pad > .card.hero{
+  border-color:var(--edge-hero);
+  background-image:linear-gradient(180deg,#181d27 0%,var(--surface) 60%);
+  box-shadow:inset 0 1px 0 rgba(200,255,0,.14),0 0 26px rgba(200,255,0,.10),0 14px 30px rgba(0,0,0,.38);
+  position:relative;
+}
+.pad > .card.hero::before{
+  content:"";position:absolute;left:0;top:16px;bottom:16px;width:3px;
+  border-radius:0 3px 3px 0;pointer-events:none;
+  background:linear-gradient(180deg,var(--accent) 0%,var(--accent-dim) 100%);
+}
+
+.day-row,.ex-row,.bld-row,.cf-opt,.ms-row,.det-ex,.day-box,.log-btn{
+  border-color:var(--line-strong);
+}
+.day-row,.ex-row{
+  background:linear-gradient(90deg,rgba(200,255,0,.045) 0%,rgba(200,255,0,0) 42%);
+  border-left-width:2px;border-left-color:var(--accent-dim);
+}
+.day-row:hover,.ex-row:hover{border-left-color:var(--accent)}
+
+.eyebrow{display:inline-flex;align-items:center;gap:7px}
+.eyebrow::before{
+  content:"";width:14px;height:2px;border-radius:1px;flex-shrink:0;
+  background:linear-gradient(90deg,var(--accent),var(--accent-dim));
+}
+
+.hr{background:linear-gradient(90deg,var(--line-card),var(--line-soft) 70%,transparent);
+  height:1px;border:none}
+
+.vc-fill.now,.spm-fill,.sess-fill,.undo-fill{
+  background-image:linear-gradient(90deg,var(--accent-dim),var(--accent))}
+.vc-track,.spm-track,.sess-bar{box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}
+
+.next-card{background-image:linear-gradient(135deg,#dcff4d 0%,var(--accent) 46%,#a9d900 100%)}
+
+.nav button.on{position:relative;background:rgba(200,255,0,.09);border-radius:12px}
+.nav button.on::before{
+  content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:18px;height:2px;border-radius:0 0 2px 2px;background:var(--accent)}
+
+.empty{border:1px dashed var(--line-card);border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(255,255,255,.018),transparent)}
+.card > .empty,#exList > .empty{border:none;background:none}
+
+@media (prefers-reduced-motion: reduce){
+  .day-row,.ex-row,.next-card{transition:none}
 }
 
 </style>
@@ -1210,7 +1268,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.30.0';
+const APP_VERSION='1.31.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -2348,7 +2406,7 @@ function viewToday(){
     </div>`;
   }).join('');
   return topbar('Ready to train')+`<div class="pad">
-    <div class="card">
+    <div class="card hero">
       <div class="row between"><div>
         <div class="eyebrow" style="color:var(--accent-dim)">Current streak</div>
         <div class="display num" style="font-size:40px;line-height:1;margin-top:4px">${streak}<span style="font-size:18px;color:var(--text-dim);margin-left:6px">${streak===1?'workout':'workouts'}</span></div>
