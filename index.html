@@ -193,15 +193,12 @@ body.in-session.timer-on{--timer-space:78px}
 
 .ex-sets{scroll-snap-type:y mandatory}
 .ex-sets .set-block{scroll-snap-align:start}
-.ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+.ex-sets{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
 
-  scrollbar-gutter:stable;padding-right:2px}
+  padding-right:2px}
 
-.ex-sets::-webkit-scrollbar{width:6px}
-.ex-sets::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-.ex-sets::-webkit-scrollbar-track{background:transparent}
 
-.ex-card.scroll-all{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.ex-card.scroll-all{overflow-y:auto;overscroll-behavior:contain}
 .ex-card.scroll-all .ex-sets{overflow:visible;max-height:none;flex:0 0 auto}
 
 .ex-main{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
@@ -285,9 +282,6 @@ body.in-session.timer-on{--timer-space:78px}
   .rt-time{font-size:20px}
   .rt-ico svg{width:20px;height:20px}
 
-  .ex-card .prev-grid{display:none}
-  .set-vol .sv-prevset{display:inline}
-  .set-vol .sv-prevset + .sv-sep{display:inline}
 
   .ex-card .set-block{margin-bottom:5px}
 
@@ -340,7 +334,7 @@ body.in-session.timer-on{--timer-space:78px}
 .bld-dayname{padding:8px 10px;font-weight:700;background:transparent;border-color:transparent;min-width:0;flex:1}
 .bld-dayname:focus{background:var(--surface-2);border-color:var(--accent-dim)}
 
-.bld-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+.bld-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
   margin:0 -4px;padding:0 4px}
 
 .bld-nav{flex-shrink:0;display:grid;grid-template-columns:1fr auto 1fr;
@@ -362,9 +356,6 @@ body.in-session.timer-on{--timer-space:78px}
   .bld-navmid{gap:5px}
 }
 
-.ex-card.prev-kompakt .prev-grid{display:none}
-.ex-card.prev-kompakt .set-vol .sv-prevset{display:inline}
-.ex-card.prev-kompakt .set-vol .sv-prevset + .sv-sep{display:inline}
 
 .ex-card{padding:14px 16px}
 .ex-card .set-block{margin-bottom:8px}
@@ -682,12 +673,8 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .ex-preview.bad{min-height:120px}
 .ex-preview.bad img,.ex-preview.bad video{display:none}
 
-.prev-grid{margin-bottom:3px}
 .prev-cell{font-size:11px;color:var(--text-dim);text-align:center}
 
-.prev-line{grid-column:2 / 5;text-align:center;font-size:10px;color:var(--text-dim);
-  font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prev-empty .prev-line{color:var(--text-faint)}
 .prev-cell:not(:empty){color:var(--accent-dim);font-weight:600}
 .total-grid{margin-top:3px}
 .total-cell{font-size:11px;color:var(--text-faint);text-align:center;font-weight:600}
@@ -700,9 +687,8 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .sv-inner .sv-rec{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .set-vol:empty{margin-top:0;min-height:0}
 
-.sv-prevset{display:none;color:var(--text-dim);font-weight:600;font-size:10px}
+.sv-prevset{color:var(--text-dim);font-weight:600;font-size:10px}
 
-.sv-prevset + .sv-sep{display:none}
 .sv-now{color:var(--accent-dim);font-weight:700}
 .sv-sep{color:var(--text-faint);font-weight:400}
 
@@ -995,9 +981,6 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
   border-radius:8px;padding:10px 12px;margin-bottom:14px}
 .modal.tall .ex-list{flex:1;min-height:0;max-height:none;overflow-y:auto;margin:0 -6px;padding:2px 6px 4px;-webkit-overflow-scrolling:touch}
 .ex-list{max-height:420px;overflow-y:auto;margin:0 -6px;padding:2px 6px;-webkit-overflow-scrolling:touch}
-.ex-list::-webkit-scrollbar{width:6px}
-.ex-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-.ex-list::-webkit-scrollbar-track{background:transparent}
 
 .ex-hero{position:relative;width:100%;aspect-ratio:4/3;max-height:340px;border-radius:14px;overflow:hidden;background:var(--img-bg)}
 .ex-hero img,.ex-hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .45s ease}
@@ -1020,11 +1003,7 @@ select.input{line-height:1.4;appearance:none;background-image:url("data:image/sv
 
 .filt-msearch{margin:0 0 8px;padding:8px 10px;font-size:13px}
 
-#pickMuscleChips{max-height:132px;overflow-y:auto;scrollbar-width:thin;
-  scrollbar-gutter:stable;padding-right:2px}
-#pickMuscleChips::-webkit-scrollbar{width:6px}
-#pickMuscleChips::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-#pickMuscleChips::-webkit-scrollbar-track{background:transparent}
+#pickMuscleChips{max-height:132px;overflow-y:auto}
 
 .sec-chips .chip-prim.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 
@@ -1333,6 +1312,19 @@ h2{color:var(--accent)}
   .hiit-card.no-image .hiit-ctls{grid-column:1}
 }
 
+.ex-sets,.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.modal,.ex-card.scroll-all{
+  scrollbar-width:none;-ms-overflow-style:none}
+.ex-sets::-webkit-scrollbar,.ex-list::-webkit-scrollbar,.bld-scroll::-webkit-scrollbar,
+.bld-form::-webkit-scrollbar,#pickMuscleChips::-webkit-scrollbar,.modal::-webkit-scrollbar,
+.ex-card.scroll-all::-webkit-scrollbar{display:none;width:0;height:0}
+
+.bl-u{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);
+      mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}
+.bl-o{-webkit-mask-image:linear-gradient(to top,#000 calc(100% - 26px),transparent);
+      mask-image:linear-gradient(to top,#000 calc(100% - 26px),transparent)}
+.bl-ou{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 26px),transparent 100%);
+       mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 26px),transparent 100%)}
+
 </style>
 </head>
 <body>
@@ -1394,7 +1386,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.38.0';
+const APP_VERSION='1.39.0';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -2375,6 +2367,26 @@ function renderNav(){
   ).join('');
 }
 function go(tab){ current=tab; renderNav(); renderView(); window.scrollTo(0,0); }
+const BLENDE_ZIELE = '.ex-sets,.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.ex-card.scroll-all';
+
+function blende(el){
+  if(!el) return;
+  const rand = 4;
+  const oben  = el.scrollTop > rand;
+  const unten = el.scrollTop + el.clientHeight < el.scrollHeight - rand;
+  el.classList.toggle('bl-o',  oben && !unten);
+  el.classList.toggle('bl-u',  unten && !oben);
+  el.classList.toggle('bl-ou', oben && unten);
+}
+function blendenAktualisieren(wurzel){
+  (wurzel||document).querySelectorAll(BLENDE_ZIELE).forEach(blende);
+}
+document.addEventListener('scroll', e=>{
+  const el=e.target;
+  if(el && el.matches && el.matches(BLENDE_ZIELE)) blende(el);
+}, true);
+window.addEventListener('resize', ()=>blendenAktualisieren());
+
 function renderView(){
   const app=document.getElementById('app');
 
@@ -2400,6 +2412,7 @@ function renderView(){
   a11y(app);
   fokusZurueck(app, merk);
   rollZurueck(app, rollen);
+  blendenAktualisieren(app);
 }
 
 function rollPfade(app){
@@ -2986,7 +2999,6 @@ function fitSessImage(){
   sets.style.removeProperty('--sets-max');
   card.style.maxHeight='';
   card.classList.remove('scroll-all');
-  card.classList.remove('prev-kompakt');
 
   let setsVoll = sets.scrollHeight;
   const MIN_SETS = 120;
@@ -3002,18 +3014,6 @@ function fitSessImage(){
   };
   const verfuegbar = body.clientHeight;
   let grund = messeGrund();
-
-  if(verfuegbar - grund < dreiHoehe + MIN_IMG_PX && sets.querySelector('.prev-grid')){
-
-    const vorher=dreiHoehe;
-    card.classList.add('prev-kompakt');
-    const nachher=dreiSatzHoehe(sets) || sets.scrollHeight;
-    if(nachher < vorher-8){
-      dreiHoehe=nachher; setsVoll=sets.scrollHeight; grund=messeGrund();
-    } else {
-      card.classList.remove('prev-kompakt');
-    }
-  }
 
   if(vc && verfuegbar - grund < dreiHoehe + MIN_IMG_PX){ vc.style.display='none'; grund = messeGrund(); }
 
@@ -3032,7 +3032,7 @@ function fitSessImage(){
   const fuerSaetze = Math.floor(verfuegbar - grund - imgBlock);
 
   FIT_DIAG={zweig:'hoch', verfuegbar, grund, platz:verfuegbar-grund, dreiHoehe, setsVoll, imgBlock,
-            fuerSaetze, kompakt:card.classList.contains('prev-kompakt')?1:0, hatBild:prev?1:0};
+            fuerSaetze, hatBild:prev?1:0};
 
   let zielSaetze = Math.min(setsVoll, dreiHoehe);
   const masze = satzMasze(sets);
@@ -3194,18 +3194,6 @@ function volCompare(ex){
 function setRow(ex,ei,st,si){
   const f=exFactor(ex.name);
 
-  const einheitHatPrev = !!(SESSION && SESSION.exercises &&
-    SESSION.exercises.some(e=>(e.sets||[]).some(s=>s.prev)));
-
-  const prevTxt = st.prev
-    ? `last ${zahlFeld(st.prev.weight)} kg × ${st.prev.reps} reps` +
-      ((st.prev.rir!=null&&st.prev.rir!=='') ? ` · RIR ${st.prev.rir}` : '')
-    : 'last –';
-  const prevRow = (st.prev || einheitHatPrev)
-    ? `<div class="set-grid prev-grid${st.prev?'':' prev-empty'}">
-      <span class="prev-line">${prevTxt}</span>
-    </div>` : '';
-
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
   const rec = bestSet(ex.exId, ex.name, si);
@@ -3223,7 +3211,6 @@ function setRow(ex,ei,st,si){
 
   const rInput = `<input class="input" aria-label="Reps set ${si+1}, ${esc(ex.name)}" inputmode="numeric" placeholder="${ex.targetReps||'–'}" value="${zahlFeld(st.reps)}" oninput="updateSetVol(${ei},${si})" onchange="setVal(${ei},${si},'reps',this.value)">`;
   return `<div class="set-block" data-set="${ei}-${si}">
-    ${prevRow}
     <div class="set-grid">
       <span class="display" style="font-size:15px;color:var(--text-faint);text-align:center">${si+1}</span>
       <div class="in-unit">${wInput}<span class="unit">kg</span></div>
@@ -5873,7 +5860,7 @@ function viewStats(){
       exMap.set(key, {key, label: meta ? meta.n : e.name, pct});
     }
   }));
-  const exList=[...exMap.values()];
+  const exList=[...exMap.values()].sort((a,b)=>a.label.localeCompare(b.label,'en'));
 
   return topbar('Your statistics')+`<div class="pad">
     <div class="seg">
