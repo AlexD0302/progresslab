@@ -698,11 +698,12 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .sv-prevset{display:none;color:var(--text-dim);font-weight:600;font-size:10px}
 
 .sv-prevset + .sv-sep{display:none}
-.sv-total{color:var(--text-dim);font-weight:700}
 .sv-now{color:var(--accent-dim);font-weight:700}
 .sv-sep{color:var(--text-faint);font-weight:400}
 
 .sv-rec{color:var(--text-faint);font-weight:600;white-space:nowrap;font-size:10px}
+.sv-prevset svg,.sv-rec svg{width:11.5px;height:11.5px;stroke-width:2.1;
+  vertical-align:-1.5px;margin-right:3px}
 
 .sv-rec.beat{color:var(--accent);font-weight:800;
   background:var(--accent-glow);padding:0 6px;border-radius:5px}
@@ -735,6 +736,26 @@ select.input.rir-sel{padding:0 2px;align-self:stretch;
 .wk-delta.up{background:rgba(55,217,154,.14);color:var(--green)}
 .wk-delta.down{background:rgba(255,92,92,.14);color:var(--red)}
 .wk-delta.same{background:var(--surface-3);color:var(--text-dim)}
+
+.trend{display:flex;align-items:flex-end;gap:5px;margin-top:6px}
+.trend-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;gap:5px}
+.trend-val{font-size:9px;color:var(--text-faint);white-space:nowrap;line-height:1}
+.trend-plot{width:100%;height:104px;display:flex;align-items:flex-end}
+.trend-bar{width:100%;border-radius:4px 4px 2px 2px;
+  transition:height .35s cubic-bezier(.2,.8,.2,1)}
+.trend-bar.now{background:linear-gradient(180deg,var(--accent),var(--accent-dim))}
+.trend-bar.prev{background:var(--text-faint)}
+.trend-bar.old{background:rgba(125,140,166,.65)}
+.trend-lbl{font-size:8.5px;color:var(--text-faint);white-space:nowrap;line-height:1;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.trend-col.now .trend-lbl{color:var(--accent-dim);font-weight:700}
+.trend-key{display:inline-block;width:9px;height:9px;border-radius:3px;
+  vertical-align:-1px;margin-right:4px}
+.trend-key.now{background:var(--accent)}
+.trend-key.prev{background:var(--text-faint)}
+.trend-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-faint);
+  margin-bottom:2px}
 
 .spm-track{position:relative;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden}
 .spm-zone{position:absolute;top:0;bottom:0;background:rgba(200,255,0,.12);
@@ -1111,6 +1132,25 @@ h2{color:var(--accent)}
 @media (min-width:900px) and (max-height:820px){
   .ex-col .add-set{margin-top:auto}
 }
+
+@media (min-width:1000px) and (min-height:821px){
+  #app{max-width:960px}
+  body .nav{max-width:920px;width:calc(100% - 40px)}
+  body .rest-timer{max-width:920px;width:calc(100% - 40px)}
+
+  #exList{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  #exList > .ex-row{margin-bottom:0}
+  #exList > .ex-note{grid-column:1 / -1}
+
+  .ex-main{flex-direction:row;align-items:stretch;gap:22px;min-height:0}
+  .ex-card .ex-preview{flex:0 0 42%;max-width:46%;margin:8px 0 0;align-self:stretch;
+    max-height:none !important;height:auto;min-height:0}
+  .ex-card .ex-preview img{max-height:100% !important;max-width:100%;
+    height:100%;width:100%;object-fit:contain}
+  .ex-col{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
+  .ex-col .vc{margin-top:auto}
+}
+
 </style>
 </head>
 <body>
@@ -1163,13 +1203,15 @@ const I = {
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0" stroke-linecap="round"/></svg>',
   logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h11" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   timer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 5V2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7.6 4.2h8.8v4.4a4.4 4.4 0 0 1-8.8 0z" stroke-linejoin="round"/><path d="M12 13v3.4M8.4 19.4h7.2" stroke-linecap="round"/></svg>',
+  swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 8.5h13M13.5 5l3.5 3.5-3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 15.5H7M10.5 12 7 15.5l3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   restart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 2.6-6.3M3 4v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>',
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.29.0';
-const APP_BUILD='2026-08-31';
+const APP_VERSION='1.30.0';
+const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
 
@@ -2030,7 +2072,7 @@ function feldZahl(v){
 
 function zahlFeld(v){
   if(v==null || v==='') return '';
-  return String(v).replace('.', ',');
+  return String(v);
 }
 const EQUIP_MAX_STUFEN=500;
 
@@ -2391,6 +2433,11 @@ function calcStreak(){
 }
 function _plan(id){ return DB.plans.find(x=>x.id===id); }
 
+function neuerSatz(vorher){
+  const w = (vorher && +vorher.weight>0) ? String(vorher.weight) : '';
+  return {weight:w, reps:'', rir:'0', done:false, prev: vorher||null};
+}
+
 function startSession(plan, day){
   SESSION={
     planId:plan?plan.id:null, planName:plan?plan.name:'Free workout',
@@ -2406,10 +2453,7 @@ function startSession(plan, day){
 
       const n = prevSets.length ? prevSets.length : (ex.sets||3);
       return {exId, name, muscle, targetReps:ex.reps, targetSets:n, rest:+ex.rest||0,
-        sets:Array.from({length:n},(_,i)=>({
-          weight:'', reps:'', rir:'0', done:false,
-          prev: prevSets[i] || null
-        }))};
+        sets:Array.from({length:n},(_,i)=>neuerSatz(prevSets[i]))};
     })
   };
   saveSession();
@@ -2791,7 +2835,7 @@ function exerciseCard(ex,ei){
         ${(prim.length||sec.length)?`<div class="ex-sec">${prim.map(m=>`<span class="ex-sec-tag prim">${esc(m)}</span>`).join('')}${sec.map(m=>`<span class="ex-sec-tag">${esc(m)}</span>`).join('')}</div>`:''}
       </div>
       <div class="row" style="gap:5px;flex-shrink:0">
-        <button class="chip" onclick="swapSessionExercise(${ei})" style="padding:6px 9px" aria-label="Swap exercise" title="Swap exercise">${I.restart}</button>
+        <button class="chip" onclick="swapSessionExercise(${ei})" style="padding:6px 9px" aria-label="Swap exercise" title="Swap exercise">${I.swap}</button>
         ${thumb?`<button class="chip" onclick="toggleSessImg()" style="padding:6px 9px" title="${hidden?'Show image':'Hide image'}">${hidden?I.eye:I.eyeOff}</button>`:''}
         ${meta?`<button class="chip" onclick='showExercise("${escAttr(ex.name)}")' style="padding:6px 9px" aria-label="How-to for ${escAttr(ex.name)} anzeigen">${I.info}</button>`:''}
       </div>
@@ -2891,11 +2935,10 @@ function setRow(ex,ei,st,si){
 
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
-  const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const rec = bestSet(ex.exId, ex.name, si);
 
   const platzHalten = !rec && !!bestSet(ex.exId, ex.name);
-  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f, platzHalten)}</div>`;
+  const volRow = `<div class="set-vol" id="vol-${ei}-${si}">${setVolText(prevVol, nowVol, st.prev, rec, st, f, platzHalten)}</div>`;
 
   const rirSel = `<select class="input rir-sel" onchange="setVal(${ei},${si},'rir',this.value)" aria-label="RIR set ${si+1}, ${esc(ex.name)}">
       <option value=""${(st.rir===''||st.rir==null)?' selected':''}>–</option>
@@ -2926,14 +2969,14 @@ function schlaegtRekord(st, rec, f){
   return rec.vol>0 ? (w*f*r > rec.vol) : (w===0 && r > rec.reps);
 }
 
-function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f, platzHalten){
+function setVolText(prevVol, nowVol, prev, rec, st, f, platzHalten){
   const parts=[];
   const geschlagen = schlaegtRekord(st, rec, f||1);
 
   if(prev){
     const rirTxt=(prev.rir!=null&&prev.rir!=='')?` · RIR ${prev.rir}`:'';
 
-    parts.push(`<span class="sv-prevset">last ${zahlFeld(prev.weight)} kg × ${prev.reps} reps${rirTxt}</span>`);
+    parts.push(`<span class="sv-prevset" title="Last time" aria-label="Last time ${escAttr(zahlFeld(prev.weight))} kg by ${prev.reps} reps">${I.history}${zahlFeld(prev.weight)} kg × ${prev.reps} reps${rirTxt}</span>`);
   }
 
   if(nowVol>0){
@@ -2946,13 +2989,13 @@ function setVolText(prevVol, nowVol, totalKg, prev, rec, st, f, platzHalten){
     parts.push(`<span class="sv-now">today ${nowVol.toLocaleString('en-GB')} kg${d}</span>`);
   }
 
-  if(totalKg>0) parts.push(`<span class="sv-total">total ${totalKg} kg</span>`);
 
   if(rec){
-    const txt = geschlagen
-      ? `Record beaten · ${zahlFeld(+st.weight||0)} kg × ${+st.reps||0} reps`
-      : `Record ${zahlFeld(rec.weight)} kg × ${rec.reps} reps`;
-    parts.push(`<span class="sv-rec${geschlagen?' beat':''}">${txt}</span>`);
+    const zahl = geschlagen
+      ? `${zahlFeld(+st.weight||0)} kg × ${+st.reps||0} reps`
+      : `${zahlFeld(rec.weight)} kg × ${rec.reps} reps`;
+    const lbl = geschlagen ? 'Record beaten' : 'Record';
+    parts.push(`<span class="sv-rec${geschlagen?' beat':''}" title="${lbl}" aria-label="${lbl} ${escAttr(zahl)}">${I.trophy}${geschlagen?'beaten · ':''}${zahl}</span>`);
   }
 
   if(!parts.length) return platzHalten ? '<span class="sv-inner"></span>' : '';
@@ -2972,10 +3015,9 @@ function updateSetVol(ei,si){
   const f=exFactor(ex.name);
   const prevVol = st.prev ? (+st.prev.weight||0)*f*(+st.prev.reps||0) : 0;
   const nowVol  = (+st.weight||0)*f*(+st.reps||0);
-  const totalKg = f===2 ? (+st.weight||0)*2 : 0;
   const el=document.getElementById(`vol-${ei}-${si}`);
   const rec=bestSet(ex.exId, ex.name, si);
-  if(el) el.innerHTML=setVolText(prevVol, nowVol, totalKg, st.prev, rec, st, f, !rec && !!bestSet(ex.exId, ex.name));
+  if(el) el.innerHTML=setVolText(prevVol, nowVol, st.prev, rec, st, f, !rec && !!bestSet(ex.exId, ex.name));
 }
 function updateTotal(ei,si,val){
   SESSION.exercises[ei].sets[si].weight=feldZahl(val);
@@ -3119,8 +3161,11 @@ function restAlert(){
   }catch(e){}
 }
 function addSet(ei){
-  const ex=SESSION.exercises[ei]; const prev=ex.sets[ex.sets.length-1];
-  ex.sets.push({weight:'',reps:'',rir:'0',done:false,prev:null});
+  const ex=SESSION.exercises[ei];
+  const letzter=ex.sets[ex.sets.length-1];
+  const neu=neuerSatz(null);
+  if(letzter && +letzter.weight>0) neu.weight=String(letzter.weight);
+  ex.sets.push(neu);
   saveSession(); renderView();
 }
 
@@ -3134,7 +3179,7 @@ function swapSessionExercise(ei){
     const n = prevSets.length ? prevSets.length : (alt.sets.length||3);
     SESSION.exercises[ei]={exId, name:sel.n, muscle:sel.m,
       targetReps:alt.targetReps||10, targetSets:n, rest:alt.rest||90,
-      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,prev:prevSets[i]||null}))};
+      sets:Array.from({length:n},(_,i)=>neuerSatz(prevSets[i]))};
     saveSession(); closeModal(); renderView();
     toast(sel.n+' applied');
   });
@@ -3151,7 +3196,7 @@ function addExerciseToSession(){
     const prevSets=prevPerfSets(sel.n, SESSION.dayName, exId);
     const n = prevSets.length ? prevSets.length : 3;
     SESSION.exercises.push({exId,name:sel.n,muscle:sel.m,targetReps:10,targetSets:n,rest:90,
-      sets:Array.from({length:n},(_,i)=>({weight:'',reps:'',rir:'0',done:false,prev:prevSets[i]||null}))});
+      sets:Array.from({length:n},(_,i)=>neuerSatz(prevSets[i]))});
     SESSION.page=SESSION.exercises.length-1;
     saveSession();
     closeModal(); renderView();
@@ -3529,7 +3574,7 @@ function renderBuilder(){
       <div class="bld-head">
         <h2 style="margin-bottom:12px">${p.name?'Edit plan':'New plan'}</h2>
         <div class="field" style="margin:0"><label>Plan name</label>
-          <input class="input" id="planName" placeholder="z. B. Push/Pull/Legs" value="${esc(p.name)}" onchange="BUILDER.name=this.value"></div>
+          <input class="input" id="planName" placeholder="e.g. Push/Pull/Legs" value="${esc(p.name)}" onchange="BUILDER.name=this.value"></div>
       </div>
 
       <div class="bld-page" id="bldPage">
@@ -3541,7 +3586,7 @@ function renderBuilder(){
               ${n>1?`<button class="chip" onclick="delDay(${di})" style="padding:6px 9px" title="Delete session">${I.trash}</button>`:''}
             </div>
           </div>
-          ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Zum Umsortieren ziehen</div>`:''}
+          ${d.exercises.length>1?`<div class="drag-hint">${I.grip} Drag to reorder</div>`:''}
           <div class="bld-scroll">
             <div class="bld-exlist" data-di="${di}">
             ${d.exercises.length?d.exercises.map((e,eei)=>{
@@ -3552,7 +3597,7 @@ function renderBuilder(){
                 ondragstart="dragStart(event,${di},${eei})" ondragend="dragEnd(event)"
                 ondragover="dragOver(event,${di},${eei})" ondrop="dragDrop(event,${di},${eei})"
                 ondragleave="dragLeave(event)">
-              <div class="bld-grip" title="Ziehen zum Umsortieren">${I.grip}</div>
+              <div class="bld-grip" title="Drag to reorder">${I.grip}</div>
               ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'><img loading="lazy" src="${th}" alt="" onerror="this.parentNode.classList.add('noimg')"></div>`:''}
               <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
               ${(prim||sec.length)?`<div class="bld-musc">
@@ -3789,7 +3834,7 @@ function exListHTML(list){
     if(!customList().length) return `<div class="empty" style="padding:32px 20px">${I.dumb}
       <h3>No exercises yet</h3>
       <p style="font-size:13.5px">Create your first custom exercise – with name, body region, muscles worked, image and how-to.</p></div>`;
-    return `<div class="faint" style="text-align:center;padding:28px;font-size:13px">No exercise found.<br>Adjust the search or filters.</div>`;
+    return `<div class="faint ex-note" style="text-align:center;padding:28px;font-size:13px">No exercise found.<br>Adjust the search or filters.</div>`;
   }
   const CAP=150;
   return list.slice(0,CAP).map(e=>{
@@ -3810,7 +3855,7 @@ function exListHTML(list){
       </div>
       <span class="ex-info${isCustom?' acc':''}" style="pointer-events:none">${isCustom?I.edit:I.chevron}</span>
     </div>`;
-  }).join('') + (list.length>CAP?`<div class="faint" style="text-align:center;padding:14px;font-size:12px">${list.length-CAP} more – please use search.</div>`:'');
+  }).join('') + (list.length>CAP?`<div class="faint ex-note" style="text-align:center;padding:14px;font-size:12px">${list.length-CAP} more – please use search.</div>`:'');
 }
 
 function refreshExList(){
@@ -4478,7 +4523,7 @@ function logEditBody(){
           <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(e.name)}</div>
         </div>
         <span class="row" style="gap:5px;flex-shrink:0">
-          <button class="chip" onclick="logEditSwapEx(${ei})" style="padding:6px 9px" aria-label="Swap exercise" title="Swap exercise">${I.restart}</button>
+          <button class="chip" onclick="logEditSwapEx(${ei})" style="padding:6px 9px" aria-label="Swap exercise" title="Swap exercise">${I.swap}</button>
           <button class="chip" onclick="logEditDelEx(${ei})" style="padding:6px 9px" aria-label="Remove exercise">${I.trash}</button>
         </span>
       </div>
@@ -4689,6 +4734,90 @@ function deltaChip(cur, prev, unit, neutral){
   const txt = (d>0?'+':'')+(unit==='t'? (d/1000).toFixed(1)+'t' : (Math.round(d*10)/10)+(unit||''));
   return `<span class="wk-delta ${cls}">${txt}</span>`;
 }
+function volumeTrend(range){
+  const per=statsPeriod(range);
+  const proWoche = (range==='week' || range==='month');
+  const anzahl = proWoche ? 8 : 12;
+  const jetzt=new Date();
+  const eimer=[];
+  for(let i=anzahl-1;i>=0;i--){
+    let von, bis, label;
+    if(proWoche){
+      von = weekStartTs(Date.now()) - i*7*86400000;
+      bis = von + 7*86400000;
+      const d=new Date(von);
+      label = d.getDate()+'/'+(d.getMonth()+1);
+    } else {
+      von = new Date(jetzt.getFullYear(), jetzt.getMonth()-i, 1).getTime();
+      bis = new Date(jetzt.getFullYear(), jetzt.getMonth()-i+1, 1).getTime();
+      label = new Date(von).toLocaleDateString('en-GB',{month:'short'});
+    }
+    const mitte=(von+bis)/2;
+    const logs=DB.logs.filter(l=>l.date>=von && l.date<bis);
+    let stufe='old';
+    if(range==='all') stufe='now';
+    else if(mitte>=per.from) stufe='now';
+    else if(per.prevFrom!=null && mitte>=per.prevFrom && mitte<per.prevTo) stufe='prev';
+    eimer.push({von, bis, label, stufe,
+      vol: logs.reduce((a,l)=>a+logVolume(l),0),
+      einheiten: logs.length});
+  }
+  const summe=(von,bis)=>DB.logs.filter(l=>l.date>=von && l.date<bis)
+    .reduce((a,l)=>a+logVolume(l),0);
+  const nun=Date.now();
+  const jetztSum = summe(range==='all'?0:per.from, nun);
+  const bisher = nun - per.from;
+  const vorSum = per.prevFrom!=null
+    ? summe(per.prevFrom, Math.min(per.prevFrom+bisher, per.prevTo)) : 0;
+  const angebrochen = per.prevTo!=null && (per.prevFrom+bisher) < per.prevTo;
+  return {eimer, proWoche, jetztSum, vorSum, angebrochen, hatVor: per.prevFrom!=null};
+}
+
+function trendKarte(range){
+  const t=volumeTrend(range);
+  const maxV=Math.max(...t.eimer.map(b=>b.vol), 1);
+  if(!t.eimer.some(b=>b.vol>0))
+    return `<div class="card" style="margin-top:14px">
+      <div class="eyebrow" style="margin-bottom:4px">Volume trend</div>
+      <p class="faint" style="font-size:12.5px;margin:0">Not enough workouts yet.</p></div>`;
+
+  const namen={week:['This week','Last week'], month:['This month','Last month'],
+               year:['This year','Last year'], all:['All time','']};
+  const [nName, vName]=namen[range]||namen.month;
+  const werteZeigen = t.eimer.length<=8;
+  const tonne=v=>Math.round(v/100)/10;
+
+  const vergleichbar = t.hatVor && t.vorSum>0 && t.jetztSum>0;
+  const d = vergleichbar ? Math.round((t.jetztSum/t.vorSum-1)*100) : null;
+  const bis = t.angebrochen ? ' so far' : '';
+  const delta = vergleichbar
+    ? `<span class="vc-delta ${d>0?'up':(d<0?'down':'same')}" title="${escAttr(nName+bis+' against the same stretch of '+vName.toLowerCase())}">${d>0?'+':''}${d}%</span>`
+    : '';
+
+  return `<div class="card" style="margin-top:14px">
+    <div class="row between" style="margin-bottom:6px">
+      <span class="eyebrow" style="margin:0">Volume trend</span>${delta}
+    </div>
+    <div class="trend-legend">
+      <span>${t.proWoche?'Per week':'Per month'}</span>
+      <span><i class="trend-key now"></i>${nName}</span>
+      ${t.hatVor?`<span><i class="trend-key prev"></i>${vName}</span>`:''}
+    </div>
+    ${vergleichbar?`<p class="faint" style="font-size:11px;margin:0 0 2px">
+      ${nName}${bis} ${tonne(t.jetztSum)} t &middot; ${tonne(t.vorSum)} t at the same point ${vName.toLowerCase()}</p>`:''}
+    <div class="trend">
+      ${t.eimer.map(b=>{
+        const h=b.vol>0 ? Math.max(Math.round(b.vol/maxV*104), 4) : 2;
+        const titel=`${b.label} · ${tonne(b.vol)} t · ${mz(b.einheiten,'session','sessions')}`;
+        return `<div class="trend-col ${b.stufe}" title="${escAttr(titel)}">
+          ${werteZeigen?`<div class="trend-val num">${b.vol>0?tonne(b.vol)+'t':'–'}</div>`:''}
+          <div class="trend-plot"><div class="trend-bar ${b.stufe}" style="height:${h}px"></div></div>
+          <div class="trend-lbl">${esc(b.label)}</div>
+        </div>`;}).join('')}
+    </div>
+  </div>`;
+}
+
 function viewStats(){
   if(!DB.logs.length) return topbar('Your statistics')+`<div class="pad"><div class="empty">${I.stats}
     <h3>No data</h3><p style="font-size:13.5px">Do a few workouts — then we’ll show your progress.</p></div>
@@ -4704,12 +4833,12 @@ function viewStats(){
   const kennz=(logs)=>({e:logs.length, s:logs.reduce((a,l)=>a+logDoneSets(l),0),
                         v:logs.reduce((a,l)=>a+logVolume(l),0), r:avgRir(logs)});
   const tw=kennz(rangeLogs);
+  const bisher=Date.now()-per.from;
+  const vorBis=per.prevFrom!=null ? Math.min(per.prevFrom+bisher, per.prevTo) : null;
+  const teilweise=per.prevTo!=null && vorBis<per.prevTo;
   const lw=per.prevFrom!=null
-    ? kennz(DB.logs.filter(l=>l.date>=per.prevFrom && l.date<per.prevTo))
+    ? kennz(DB.logs.filter(l=>l.date>=per.prevFrom && l.date<vorBis))
     : null;
-
-  const recent=DB.logs.slice(-7);
-  const maxV=Math.max(...recent.map(logVolume),1);
 
   const spm=setsPerMuscle(rangeLogs);
   const mArr=Object.entries(spm).sort((a,b)=>b[1]-a[1]);
@@ -4750,7 +4879,8 @@ function viewStats(){
     ${lw?'':`<p class="faint" style="font-size:10.5px;text-align:center;margin:6px 0 0;letter-spacing:.04em;text-transform:uppercase">${rangeLabel}</p>`}
 
     ${lw?`<div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:12px">${per.titel}</div>
+      <div class="eyebrow" style="margin-bottom:${teilweise?'2':'12'}px">${per.titel}</div>
+      ${teilweise?`<p class="faint" style="font-size:11px;margin:0 0 12px">Against the same stretch, not the full period</p>`:''}
       <div class="wk-grid">
         <div class="wk-item"><span class="wk-val">${tw.e}</span>${deltaChip(tw.e,lw.e,'')}<span class="wk-lbl">Sessions</span></div>
         <div class="wk-item"><span class="wk-val">${tw.s}</span>${deltaChip(tw.s,lw.s,'')}<span class="wk-lbl">Sets</span></div>
@@ -4759,18 +4889,7 @@ function viewStats(){
       </div>
     </div>`:''}
 
-    <div class="card" style="margin-top:14px">
-      <div class="eyebrow" style="margin-bottom:4px">Volume per session</div>
-      <p class="faint" style="font-size:11px;margin-bottom:14px">${recent.length===1?'Last workout':`The last ${recent.length} workouts`}</p>
-      <div style="display:flex;align-items:flex-end;gap:6px;height:130px">
-        ${recent.map(l=>{const v=logVolume(l);const h=Math.max(v/maxV*100,4);
-          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%">
-            <div style="font-size:9px;color:var(--text-faint)" class="num">${Math.round(v/1000*10)/10}t</div>
-            <div style="width:100%;height:${h}%;background:linear-gradient(180deg,var(--accent),var(--accent-dim));border-radius:5px 5px 2px 2px;min-height:4px"></div>
-            <div style="font-size:9px;color:var(--text-faint)">${new Date(l.date).getDate()}.${new Date(l.date).getMonth()+1}.</div>
-          </div>`;}).join('')}
-      </div>
-    </div>
+    ${trendKarte(STATS_RANGE)}
 
     <div class="card" style="margin-top:14px">
       <div class="eyebrow" style="margin-bottom:4px">Sets per muscle group</div>
