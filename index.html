@@ -1312,11 +1312,11 @@ h2{color:var(--accent)}
   .hiit-card.no-image .hiit-ctls{grid-column:1}
 }
 
-.ex-sets,.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.modal,.ex-card.scroll-all{
+.ex-sets,.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.modal,.ex-card.scroll-all,.log-scroll{
   scrollbar-width:none;-ms-overflow-style:none}
 .ex-sets::-webkit-scrollbar,.ex-list::-webkit-scrollbar,.bld-scroll::-webkit-scrollbar,
 .bld-form::-webkit-scrollbar,#pickMuscleChips::-webkit-scrollbar,.modal::-webkit-scrollbar,
-.ex-card.scroll-all::-webkit-scrollbar{display:none;width:0;height:0}
+.ex-card.scroll-all::-webkit-scrollbar,.log-scroll::-webkit-scrollbar{display:none;width:0;height:0}
 
 .bl-u{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent);
       mask-image:linear-gradient(to bottom,#000 calc(100% - 26px),transparent)}
@@ -1356,6 +1356,60 @@ a.btn-slim{display:flex;align-items:center;justify-content:center;gap:8px}
   border:1px solid var(--line);background:transparent}
 .leer-hilfe svg{width:15px;height:15px;flex:0 0 auto}
 .leer-hilfe:active{background:var(--accent-glow)}
+
+.log-modal{display:flex;flex-direction:column;
+  height:88vh;max-height:88vh;height:88dvh;max-height:88dvh;
+  overflow:hidden;flex-shrink:0;padding:22px 20px 16px}
+.log-head{flex-shrink:0;padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.log-head h2{margin:0}
+.log-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  margin:0 -6px;padding:14px 6px 4px;-webkit-overflow-scrolling:touch}
+.log-foot{flex-shrink:0;padding-top:12px;border-top:1px solid var(--line-soft);
+  background:var(--surface)}
+.log-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.log-actions{grid-template-columns:1fr 1fr 1fr}
+
+.det-grid-edit{grid-template-columns:24px 1fr 1fr 54px 34px;gap:7px}
+.det-grid-edit .set-nr{color:var(--text-faint);text-align:center;font-size:12.5px}
+.det-grid-edit .in-unit .input{padding:10px 26px 10px 6px;text-align:center;
+  height:44px;min-height:44px;font-size:15px}
+.det-grid-edit .in-unit .unit{right:6px;font-size:10px}
+.det-grid-edit .rir-cell{padding:10px 2px;text-align:center;height:44px;
+  min-height:44px;font-size:15px}
+.det-grid-edit .del-set{width:34px;height:34px;padding:0;justify-content:center;
+  justify-self:end;align-self:center}
+.det-grid-edit.det-head{padding-bottom:7px}
+.det-grid .num{white-space:nowrap}
+
+@media (max-width:400px){
+  .log-meta{grid-template-columns:1fr}
+}
+@media (min-width:600px) and (min-height:620px){
+  .log-modal{height:86vh;max-height:86vh}
+}
+@media (min-width:900px){
+  .modal.log-modal{max-width:860px}
+  .log-scroll{padding-left:2px;padding-right:2px}
+  .det-grid-edit{grid-template-columns:30px 1fr 1fr 70px 40px;gap:12px}
+}
+
+.log-meta-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:42px;padding:9px 12px;margin-bottom:12px;
+  background:transparent;border:1px solid var(--line);border-radius:11px;
+  color:var(--text-dim);font-family:inherit;font-size:12.5px;font-weight:600;
+  cursor:pointer;text-align:left}
+.log-meta-btn .lm-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-meta-btn .lm-caret{flex:0 0 auto;display:flex;transition:transform .18s ease}
+.log-meta-btn .lm-caret svg{width:15px;height:15px}
+.log-meta-btn.on{color:var(--accent);border-color:var(--accent-dim)}
+.log-meta-btn.on .lm-caret{transform:rotate(90deg)}
+.log-meta{display:none}
+.log-meta.open{display:grid}
+
+@media (min-width:900px){
+  .log-exlist{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .log-exlist .det-ex{margin-bottom:0}
+}
 
 </style>
 </head>
@@ -1420,7 +1474,7 @@ const I = {
 };
 
 const TUTORIAL_URL='https://github.com/AlexD0302/progresslab/blob/main/TUTORIAL.md';
-const APP_VERSION='1.42.0';
+const APP_VERSION='1.43.0';
 const APP_BUILD='2026-09-06';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -2401,7 +2455,7 @@ function renderNav(){
   ).join('');
 }
 function go(tab){ current=tab; renderNav(); renderView(); window.scrollTo(0,0); }
-const BLENDE_ZIELE = '.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.ex-card.scroll-all';
+const BLENDE_ZIELE = '.ex-list,.bld-scroll,.bld-form,#pickMuscleChips,.ex-card.scroll-all,.log-scroll';
 
 function blende(el){
   if(!el) return;
@@ -5017,19 +5071,23 @@ function showLogDetail(id){
   if(logArt(l)==='hiit'){ openModal(hiitDetail(l)); return; }
   const vol=logVolume(l);
   openModal(`<div class="grab"></div>
-    <h2>${esc(l.dayName)}</h2>
-    <div class="faint" style="font-size:12.5px;margin-bottom:14px">${fmtDate(l.date)} · ${fmtDay(l.date)} · ${esc(l.planName||'')}</div>
-    <div class="row wrap" style="gap:8px;margin-bottom:18px">
-      <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${vol.toLocaleString('en-GB')} kg volume</span>
-      <span class="chip">${l.exercises.reduce((a,e)=>a+e.sets.length,0)} sets in total</span>
-      ${l.duration?`<span class="chip">${dauerText(l.duration)}</span>`:''}
+    <div class="log-head">
+      <h2>${esc(l.dayName)}</h2>
+      <div class="faint" style="font-size:12.5px;margin-top:2px">${fmtDate(l.date)} · ${fmtDay(l.date)} · ${esc(l.planName||'')}</div>
+      <div class="row wrap" style="gap:8px;margin-top:12px">
+        <span class="chip" style="color:var(--accent);border-color:var(--accent-dim)">${vol.toLocaleString('en-GB')} kg volume</span>
+        <span class="chip">${l.exercises.reduce((a,e)=>a+e.sets.length,0)} sets in total</span>
+        ${l.duration?`<span class="chip">${dauerText(l.duration)}</span>`:''}
+      </div>
     </div>
+    <div class="log-scroll" id="logDetailScroll">
     ${vergleichsBlock(l)}
-    ${l.exercises.map(e=>{
+    <div class="log-exlist">
+    ${l.exercises.map((e,exi)=>{
       const f=exFactor(e.name);
       const evol=e.sets.reduce((a,s)=>a+(+s.weight||0)*f*(+s.reps||0),0);
-      const meta=exMeta(e.name); const th=meta?meta.img[0]:null;
-      return `<div class="det-ex">
+      const meta=exMeta(e.name); const th=(meta&&meta.img)?meta.img[0]:null;
+      return `<div class="det-ex" data-ex="${exi}">
         <div class="row between" style="margin-bottom:10px">
           <div class="row" style="gap:10px;min-width:0">
             ${th?`<div class="ex-thumb" style="width:40px;height:40px;cursor:pointer" onclick='showExercise("${escAttr(e.name)}")'>${medium(th,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}</div>`:''}
@@ -5046,11 +5104,36 @@ function showLogDetail(id){
         </div>`).join('')}
       </div>`;
     }).join('')}
-    <div class="log-actions" style="margin-top:16px">
-      <button class="log-btn" onclick="closeModal();editLog('${l.id}')">${I.edit}<span>Edit</span></button>
-      <button class="log-btn danger" onclick="closeModal();deleteLog('${l.id}')">${I.trash}<span>Delete</span></button>
     </div>
-    <button class="btn ghost" style="margin-top:10px" onclick="closeModal()">Close</button>`);
+    </div>
+    <div class="log-foot">
+      <div class="log-actions">
+        <button class="log-btn" onclick="editLogAbDetail('${l.id}')">${I.edit}<span>Edit</span></button>
+        <button class="log-btn danger" onclick="closeModal();deleteLog('${l.id}')">${I.trash}<span>Delete</span></button>
+        <button class="log-btn" onclick="closeModal()">Close</button>
+      </div>
+    </div>`, true, 'log-modal');
+}
+
+function editLogAbDetail(id){
+  const ziel=sichtbarsteUebung(document.getElementById('logDetailScroll'));
+  closeModal();
+  editLog(id, ziel);
+}
+
+function sichtbarsteUebung(sc){
+  if(!sc) return 0;
+  const k=sc.getBoundingClientRect();
+  const bloecke=[...sc.querySelectorAll('.det-ex')];
+  if(!bloecke.length) return 0;
+  let letzte=0;
+  for(const b of bloecke){
+    const r=b.getBoundingClientRect();
+    const sichtbar=Math.min(r.bottom,k.bottom)-Math.max(r.top,k.top);
+    if(sichtbar >= Math.min(60, r.height*0.5)) return +b.dataset.ex||0;
+    if(r.top < k.bottom) letzte=+b.dataset.ex||0;
+  }
+  return letzte;
 }
 
 const BODY_METRICS=[
@@ -5406,10 +5489,19 @@ function deleteMeasureDay(id){
 }
 
 let LOGEDIT=null;
-function editLog(id){
+function editLog(id, ziel){
   const l=DB.logs.find(x=>x.id===id); if(!l) return;
   LOGEDIT=JSON.parse(JSON.stringify(l));
   renderLogEdit();
+  if(ziel) zeigeUebung(ziel);
+}
+
+function zeigeUebung(i){
+  const sc=document.getElementById('logEditScroll');
+  const el=sc && sc.querySelector('.det-ex[data-ex="'+i+'"]');
+  if(!sc || !el) return;
+  sc.scrollTop += el.getBoundingClientRect().top - sc.getBoundingClientRect().top;
+  blende(sc);
 }
 function _dtLocal(ts){
   const d=new Date(ts); const p=n=>String(n).padStart(2,'0');
@@ -5457,26 +5549,33 @@ function renderLogEdit(){
   const l=LOGEDIT;
   if(logArt(l)==='endurance') return renderCardioEdit();
   openModal(`<div class="grab"></div>
-    <div class="pick-head">
-      <h2>Edit workout</h2>
-      <div class="field" style="margin:14px 0 10px"><label>Session name</label>
-        <input class="input" value="${esc(l.dayName)}" onchange="LOGEDIT.dayName=this.value"></div>
-      <div class="field" style="margin-bottom:10px"><label>Date & time</label>
-        <input class="input" type="datetime-local" value="${_dtLocal(l.date)}" onchange="if(this.value)LOGEDIT.date=new Date(this.value).getTime()"></div>
+    <div class="log-head"><h2>Edit workout</h2></div>
+    <div class="log-scroll" id="logEditScroll">
+      <button class="log-meta-btn" onclick="this.nextElementSibling.classList.toggle('open');this.classList.toggle('on')"
+              aria-label="Edit session name and date">
+        <span class="lm-txt">${esc(l.dayName)} · ${fmtDate(l.date)}</span>
+        <span class="lm-caret">${I.chevron}</span>
+      </button>
+      <div class="log-meta">
+        <div class="field"><label>Session name</label>
+          <input class="input" value="${esc(l.dayName)}" onchange="LOGEDIT.dayName=this.value"></div>
+        <div class="field"><label>Date &amp; time</label>
+          <input class="input" type="datetime-local" value="${_dtLocal(l.date)}" onchange="if(this.value)LOGEDIT.date=new Date(this.value).getTime()"></div>
+      </div>
+      <div class="log-exlist" id="logEditList">${logEditBody()}</div>
+      <button class="btn-slim" style="margin-top:2px" onclick="logEditAddExercise()">${I.plus}<span>Add exercise</span></button>
     </div>
-    <div class="ex-list" id="logEditList">${logEditBody()}</div>
-    <div style="flex-shrink:0;padding-top:12px">
-      <button class="btn-slim" style="margin-bottom:10px" onclick="logEditAddExercise()">${I.plus}<span>Add exercise</span></button>
+    <div class="log-foot">
       <button class="btn" onclick="saveLogEdit()">Save changes</button>
       <button class="btn ghost" style="margin-top:8px" onclick="closeModal()">Cancel</button>
-    </div>`, true);
+    </div>`, true, 'log-modal');
 }
 function logEditBody(){
   const l=LOGEDIT;
   if(!l.exercises.length) return `<div class="faint" style="text-align:center;padding:24px;font-size:13px">No exercises. Add one below.</div>`;
   return l.exercises.map((e,ei)=>{
-    const meta=exMeta(e.name); const th=meta?meta.img[0]:null;
-    return `<div class="det-ex">
+    const meta=exMeta(e.name); const th=(meta&&meta.img)?meta.img[0]:null;
+    return `<div class="det-ex" data-ex="${ei}">
       <div class="row between" style="margin-bottom:10px">
         <div class="row" style="gap:10px;min-width:0">
           ${th?`<div class="ex-thumb" style="width:38px;height:38px">${medium(th,{fehler:"onerror=\"this.parentNode.classList.add('noimg')\""})}</div>`:''}
@@ -5487,13 +5586,13 @@ function logEditBody(){
           <button class="chip" onclick="logEditDelEx(${ei})" style="padding:6px 9px" aria-label="Remove exercise">${I.trash}</button>
         </span>
       </div>
-      <div class="det-grid det-head"><span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span><span></span></div>
+      <div class="det-grid det-grid-edit det-head"><span>Set</span><span>Weight</span><span>Reps</span><span>RIR</span><span></span></div>
       ${e.sets.map((s,si)=>`<div class="det-grid det-grid-edit">
-        <span class="num" style="color:var(--text-faint);text-align:center">${si+1}</span>
-        <input class="input" style="padding:8px;text-align:center" inputmode="decimal" value="${zahlFeld(s.weight)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].weight=feldZahl(this.value)||0">
-        <input class="input" style="padding:8px;text-align:center" inputmode="numeric" value="${zahlFeld(s.reps)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].reps=feldZahl(this.value)||0">
-        <input class="input" style="padding:8px 4px;text-align:center" inputmode="numeric" placeholder="–" value="${(s.rir!=null&&s.rir!=='')?s.rir:''}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].rir=(feldZahl(this.value)===''?null:feldZahl(this.value))">
-        <button class="chip" onclick="logEditDelSet(${ei},${si})" style="padding:6px 8px;justify-self:end">${I.trash}</button>
+        <span class="num set-nr">${si+1}</span>
+        <div class="in-unit"><input class="input" aria-label="Weight set ${si+1}, ${escAttr(e.name)}" inputmode="decimal" value="${zahlFeld(s.weight)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].weight=feldZahl(this.value)||0"><span class="unit">kg</span></div>
+        <div class="in-unit"><input class="input" aria-label="Reps set ${si+1}, ${escAttr(e.name)}" inputmode="numeric" value="${zahlFeld(s.reps)}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].reps=feldZahl(this.value)||0"><span class="unit">reps</span></div>
+        <input class="input rir-cell" aria-label="RIR set ${si+1}, ${escAttr(e.name)}" inputmode="numeric" placeholder="–" value="${(s.rir!=null&&s.rir!=='')?s.rir:''}" onchange="LOGEDIT.exercises[${ei}].sets[${si}].rir=(feldZahl(this.value)===''?null:feldZahl(this.value))">
+        <button class="chip del-set" onclick="logEditDelSet(${ei},${si})" aria-label="Delete set ${si+1}">${I.trash}</button>
       </div>`).join('')}
       <button class="add-set" onclick="logEditAddSet(${ei})">${I.plus}<span>Add set</span></button>
     </div>`;
@@ -6967,6 +7066,7 @@ function openModal(html, tall, extraClass){
 
   document.getElementById('app').inert=true;
   document.getElementById('nav').inert=true;
+  blendenAktualisieren(box);
 }
 let MODAL_OPENER=null;
 
