@@ -1326,7 +1326,9 @@ h2{color:var(--accent)}
        mask-image:linear-gradient(to bottom,transparent 0,#000 26px,#000 calc(100% - 26px),transparent 100%)}
 
 .trend.eng{gap:2px}
-.trend.eng .trend-lbl{font-size:8.5px;overflow:visible;max-width:none;text-overflow:clip}
+.trend.eng .trend-lbl{font-size:8.5px}
+.trend.eng .trend-lbl,.trend.duenn .trend-lbl{overflow:visible;max-width:none;text-overflow:clip}
+.trend.duenn .trend-col{overflow:visible}
 .trend.eng .trend-col{overflow:visible}
 .trend.eng .trend-bar{border-radius:2px 2px 1px 1px}
 
@@ -1391,7 +1393,7 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.41.1';
+const APP_VERSION='1.41.2';
 const APP_BUILD='2026-09-01';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
@@ -5782,9 +5784,10 @@ function kmVerlauf(range){
   const zeigen=t.eimer.length<=8;
   const schritt = Math.max(1, Math.ceil(t.eimer.length/8));
   const eng = t.eimer.length>14;
+  const duenn = schritt>1;
   return `<div style="margin-top:14px">
     <div class="trend-legend"><span>Distance ${t.takt==='woche'?'per week':(t.takt==='monat'?'per month':'per year')} · all time</span></div>
-    <div class="trend${eng?' eng':''}">
+    <div class="trend${eng?' eng':''}${duenn?' duenn':''}">
       ${t.eimer.map((b,i)=>{
         const h=b.vol>0?Math.max(Math.round(b.vol/maxV*70),4):2;
         return `<div class="trend-col ${b.stufe}" title="${escAttr(b.label+' · '+(Math.round(b.vol*10)/10)+' km')}">
@@ -5863,6 +5866,7 @@ function trendKarte(range){
   const werteZeigen = t.eimer.length<=8;
   const schritt = Math.max(1, Math.ceil(t.eimer.length/8));
   const eng = t.eimer.length>14;
+  const duenn = schritt>1;
   const tonne=v=>Math.round(v/100)/10;
 
   const vergleichbar = t.hatVor && t.vorSum>0 && t.jetztSum>0;
@@ -5883,7 +5887,7 @@ function trendKarte(range){
     </div>
     ${vergleichbar?`<p class="faint" style="font-size:11px;margin:0 0 2px">
       ${nName}${bis} ${tonne(t.jetztSum)} t &middot; ${tonne(t.vorSum)} t at the same point ${vName.toLowerCase()}</p>`:''}
-    <div class="trend${eng?' eng':''}">
+    <div class="trend${eng?' eng':''}${duenn?' duenn':''}">
       ${t.eimer.map((b,i)=>{
         const h=b.vol>0 ? Math.max(Math.round(b.vol/maxV*104), 4) : 2;
         const titel=`${b.label} · ${tonne(b.vol)} t · ${mz(b.einheiten,'session','sessions')}`;
