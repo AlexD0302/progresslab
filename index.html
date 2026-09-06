@@ -1332,6 +1332,31 @@ h2{color:var(--accent)}
 .trend.eng .trend-col{overflow:visible}
 .trend.eng .trend-bar{border-radius:2px 2px 1px 1px}
 
+.sess-fertig{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-top:8px;padding:7px 8px 7px 12px;border-radius:12px;
+  background:var(--accent-glow);border:1px solid var(--accent-dim)}
+.sess-fertig .sf-txt{display:flex;align-items:center;gap:6px;min-width:0;
+  font-size:12.5px;font-weight:700;color:var(--accent);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.sess-fertig .sf-txt svg{width:14px;height:14px;flex:0 0 auto;stroke-width:2.6}
+.sf-btn{flex-shrink:0;display:flex;align-items:center;gap:5px;
+  padding:8px 13px;border-radius:10px;font-size:12.5px;font-weight:700;
+  background:var(--surface);color:var(--accent);border:1px solid var(--accent-dim);
+  cursor:pointer;font-family:inherit;min-height:40px}
+.sf-btn:active{background:var(--accent-glow)}
+.sf-btn svg{width:13px;height:13px;stroke-width:2.6}
+@media (max-width:359px){
+  .sess-fertig .sf-txt span{display:none}
+}
+
+a.btn-slim{display:flex;align-items:center;justify-content:center;gap:8px}
+.leer-hilfe{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:40px;padding:8px 14px;border-radius:10px;
+  font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;
+  border:1px solid var(--line);background:transparent}
+.leer-hilfe svg{width:15px;height:15px;flex:0 0 auto}
+.leer-hilfe:active{background:var(--accent-glow)}
+
 </style>
 </head>
 <body>
@@ -1370,6 +1395,7 @@ const I = {
   eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>',
   eyeOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4l16 16" stroke-linecap="round"/><path d="M9.9 5.2A9.6 9.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.7 3.5M6.5 7.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 3.8-.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.9 10a3 3 0 0 0 4.1 4.1" stroke-linecap="round"/></svg>',
   fire:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 .5-2S6 10 6 14a6 6 0 0 0 12 0c0-6-6-12-6-12z" stroke-linejoin="round"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4.8h6.2a2.4 2.4 0 0 1 2.4 2.4v12a1.8 1.8 0 0 0-1.8-1.8H4z" stroke-linejoin="round"/><path d="M20 4.8h-6.2a2.4 2.4 0 0 0-2.4 2.4v12a1.8 1.8 0 0 1 1.8-1.8H20z" stroke-linejoin="round"/></svg>',
   info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>',
   play:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg>',
   edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9" stroke-linecap="round"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" stroke-linejoin="round"/></svg>',
@@ -1393,8 +1419,9 @@ const I = {
   bench:'<svg class="ic-bench" viewBox="0 0 417 268" fill="currentColor" stroke="none" aria-hidden="true"><g transform="translate(0,268) scale(0.1,-0.1)"><path d="M3613 2640 c-25 -10 -10 -1 -1068 -660 -434 -271 -802 -504 -818 -518 -56 -53 -58 -140 -7 -247 42 -87 69 -110 133 -110 29 0 66 7 84 16 29 16 33 16 46 0 36 -41 37 -41 -168 -41 -183 0 -195 1 -187 18 5 9 12 42 15 72 8 68 -16 124 -70 160 l-37 25 -485 0 c-267 0 -498 -3 -514 -8 -67 -19 -107 -99 -92 -189 17 -101 34 -108 272 -108 l188 -1 -40 -21 c-114 -60 -144 -106 -258 -388 -48 -118 -102 -251 -120 -295 l-34 -80 -93 -3 c-52 -1 -100 -8 -107 -14 -16 -13 -18 -170 -3 -199 10 -18 24 -19 303 -19 166 0 298 4 307 10 11 7 15 30 16 92 2 125 0 128 -91 128 -54 0 -75 4 -75 13 0 17 193 480 213 510 9 13 31 31 50 40 31 15 141 17 1201 17 642 0 1171 -2 1177 -6 9 -5 289 -557 289 -569 0 -3 -27 -5 -59 -5 -82 0 -92 -15 -86 -127 2 -46 7 -88 10 -93 4 -6 118 -10 305 -10 286 0 300 1 310 19 15 29 13 186 -3 199 -7 6 -59 13 -116 14 l-103 3 -389 774 c-214 426 -389 781 -389 791 0 9 8 24 18 32 9 9 175 113 367 233 193 119 362 230 377 246 59 62 50 127 -30 212 -31 32 -74 68 -94 78 -39 20 -107 24 -145 9z m-541 -1240 c86 -168 157 -308 157 -312 1 -5 -212 -8 -473 -8 -383 0 -476 3 -485 13 -18 23 -91 159 -91 171 1 15 701 447 720 444 8 -2 83 -135 172 -308z"/></g></svg>',
 };
 
-const APP_VERSION='1.41.2';
-const APP_BUILD='2026-09-01';
+const TUTORIAL_URL='https://github.com/AlexD0302/progresslab/blob/main/TUTORIAL.md';
+const APP_VERSION='1.42.0';
+const APP_BUILD='2026-09-06';
 
 function mz(n, ein, viele){ return n+' '+(n===1?ein:viele); }
 
@@ -2583,7 +2610,9 @@ function viewToday(){
     ${DB.plans.length? planCards : `<div class="empty">${I.dumb}
       <h3>No plan yet</h3><p style="font-size:13.5px">Create a training plan under “Plans” first.</p>
       <div style="height:16px"></div>
-      <button class="btn wauto" style="margin:0 auto" onclick="go('plans')">Create plan</button></div>`}
+      <button class="btn wauto" style="margin:0 auto" onclick="go('plans')">Create plan</button>
+      <div style="height:12px"></div>
+      <a class="leer-hilfe" href="${TUTORIAL_URL}" target="_blank" rel="noopener noreferrer">${I.book}<span>New here? Step-by-step guide</span></a></div>`}
     ${DB.plans.length?`<div class="hr" style="margin:22px 0"></div>
       <button class="btn-slim" onclick="startFreestyle()">${I.plus}<span>Free workout</span></button>`:''}
   </div>`;
@@ -2795,6 +2824,7 @@ function sessionScreen(){
   const totalSets=s.exercises.reduce((a,e)=>a+e.sets.length,0);
   const doneSets=s.exercises.reduce((a,e)=>a+e.sets.filter(x=>x.done).length,0);
   const pct=totalSets?Math.round(doneSets/totalSets*100):0;
+  const alleFertig = totalSets>0 && doneSets===totalSets;
   const ex=s.exercises[ei];
   return `<div class="sess">
     <div class="sess-head">
@@ -2825,6 +2855,11 @@ function sessionScreen(){
         <button class="btn-slim solid" onclick="addExerciseToSession()">${I.plus}<span>Add exercise</span></button>
       </div>`}
     </div>
+
+    ${alleFertig?`<div class="sess-fertig">
+      <span class="sf-txt">${I.check}${mz(totalSets,'set','sets')} done</span>
+      <button class="sf-btn" onclick="addExerciseToSession()">${I.plus}<span>Add exercise</span></button>
+    </div>`:''}
 
     ${n>1?`<div class="sess-nav">
       <button class="sess-arrow" ${ei===0?'disabled':''} onclick="goExercise(${ei-1})" aria-label="Previous exercise">${I.chevronL}</button>
@@ -5539,7 +5574,9 @@ function backupCard(imDialog){
     <button class="btn-slim solid" style="margin-bottom:10px" onclick="exportData()">${I.download}<span>Download backup</span></button>
     <button class="btn-slim" onclick="document.getElementById('importFile').click()">${I.upload}<span>Restore backup</span></button>
     <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importData(event)">
-    <div class="app-version">Make FMC Fit Again v${APP_VERSION} · Stand ${APP_BUILD}</div>
+    <a class="btn-slim" href="${TUTORIAL_URL}" target="_blank" rel="noopener noreferrer"
+       style="margin-top:10px;text-decoration:none">${I.book}<span>Step-by-step guide</span></a>
+    <div class="app-version">Make FMC Fit Again v${APP_VERSION} · ${APP_BUILD}</div>
     ${imDialog?`<button class="btn ghost" style="margin-top:12px" onclick="closeModal()">Close</button>`:''}
   ${imDialog?'':'</div>'}`;
 }
